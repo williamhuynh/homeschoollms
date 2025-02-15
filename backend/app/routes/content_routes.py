@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from ..services.content_service import ContentService
 from ..models.schemas.content import ContentBase
-from ..utils.auth import get_current_user
+from ..utils.auth_utils import get_current_user
 from typing import List
 
 router = APIRouter()

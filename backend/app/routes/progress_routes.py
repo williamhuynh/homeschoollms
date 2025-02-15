@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from ..services.progress_service import ProgressService
 from ..models.schemas.progress import Progress
-from ..utils.auth import get_current_user
+from ..utils.auth_utils import get_current_user
 from typing import List
 
 router = APIRouter()

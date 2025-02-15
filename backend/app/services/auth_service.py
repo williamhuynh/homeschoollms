@@ -1,6 +1,6 @@
-from ..utils.database import Database
+from ..utils.database_utils import Database
 from ..models.schemas.user import UserInDB
-from ..utils.auth import verify_password
+from ..utils.auth_utils import verify_password
 
 class AuthService:
     @staticmethod

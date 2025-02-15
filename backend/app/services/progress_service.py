@@ -1,4 +1,4 @@
-from ..utils.database import Database
+from ..utils.database_utils import Database
 from ..models.schemas.progress import Progress
 from fastapi import HTTPException
 from bson import ObjectId

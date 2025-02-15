@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from ..services.learning_outcome_service import LearningOutcomeService
 from ..models.schemas.learning_outcome import LearningOutcome
-from ..utils.auth import get_current_user, get_current_user_with_org
+from ..utils.auth_utils import get_current_user, get_current_user_with_org
 from typing import List, Optional
 
 router = APIRouter()

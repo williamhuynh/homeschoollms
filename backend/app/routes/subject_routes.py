@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from ..services.subject_service import SubjectService
 from ..models.schemas.subject import Subject
-from ..utils.auth import get_current_user, get_current_user_with_org
+from ..utils.auth_utils import get_current_user, get_current_user_with_org
 from typing import List, Optional
 
 router = APIRouter()
