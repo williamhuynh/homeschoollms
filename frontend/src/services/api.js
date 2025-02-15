@@ -19,37 +19,23 @@ export const healthCheck = async () => {
 };
 
 export const createStudent = async (studentData) => {
-  const response = await fetch(`${API_BASE_URL}/api/students`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getToken()}`  // Assuming you have this function
-    },
-    body: JSON.stringify(studentData)
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.detail || 'Failed to create student')
+  try {
+    const response = await api.post('/api/students', studentData);
+    return response.data;
+  } catch (error) {
+    console.error('Create Student Error:', error);
+    throw error;
   }
-
-  return response.json()
-}
-
+};
 
 export const getStudents = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/students`, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`
-    }
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.detail || 'Failed to fetch students')
+  try {
+    const response = await api.get('/api/students');
+    return response.data;
+  } catch (error) {
+    console.error('Get Students Error:', error);
+    throw error;
   }
-
-  return response.json()
-}
+};
 
 export default api;

@@ -14,6 +14,10 @@ const StudentSelection = () => {
     navigate('/students/new')
   }
 
+  const handleStudentSelect = (studentId) => {
+    navigate(`/students/${studentId}`)
+  }
+
   useEffect(() => {
     const fetchStudents = async () => {
       try {
