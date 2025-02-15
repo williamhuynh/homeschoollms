@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from .routes import auth
+from .config.settings import settings  # Add this import
 import os
 
 # Load environment variables
@@ -24,13 +25,5 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 @app.on_event("startup")
 async def startup_db_client():
-    app.mongodb_client = AsyncIOMotorClient(os.getenv("MONGODB_URL"))
+    app.mongodb_client = AsyncIOMotorClient(settings.mongodb_url)  # Use settings here too
     app.mongodb = app.mongodb_client.homeschool_lms
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    app.mongodb_client.close()
-
-@app.get("/api/health")
-async def health_check():
-    return {"status": "ok"}
