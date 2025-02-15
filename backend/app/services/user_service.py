@@ -1,4 +1,4 @@
-from ..utils.database import Database
+from ..utils.database import Database  # Update this line
 from ..utils.auth import get_password_hash, verify_password
 from ..models.schemas.user import UserBase, UserCreate, UserInDB, Organization
 from fastapi import HTTPException
