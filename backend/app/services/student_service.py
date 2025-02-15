@@ -3,6 +3,7 @@ from ..models.schemas.student import Student, StudentSubject
 from fastapi import HTTPException
 from bson import ObjectId
 from typing import List
+from datetime import datetime
 
 class StudentService:
     @staticmethod

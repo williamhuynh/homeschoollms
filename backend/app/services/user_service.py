@@ -1,5 +1,5 @@
 from ..utils.database_utils import Database
-from ..utils.auth_utils import get_password_hash  # Only import what's needed
+from ..utils.password_utils import get_password_hash  # Updated import
 from ..models.schemas.user import UserCreate, UserInDB
 from fastapi import HTTPException
 from bson import ObjectId

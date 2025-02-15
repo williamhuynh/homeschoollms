@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import date
 from .base import MongoBaseModel, PyObjectId
 

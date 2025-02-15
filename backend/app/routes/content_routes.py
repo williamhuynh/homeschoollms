@@ -3,6 +3,7 @@ from ..services.content_service import ContentService
 from ..models.schemas.content import ContentBase
 from ..utils.auth_utils import get_current_user
 from typing import List
+from ..models.schemas.user import UserInDB
 
 router = APIRouter()
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from .config.api_description import API_DESCRIPTION, TAGS_METADATA
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -13,6 +13,9 @@ from .routes import (
     subject_routes,
     learning_outcome_routes
 )
+from bson.errors import InvalidId
+from .utils.error_handlers import http_error_handler, invalid_object_id_handler
+from .utils.database_utils import Database
 
 import os
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from ..services.student_service import StudentService
 from ..models.schemas.student import Student
+from ..models.schemas.user import UserInDB
 from ..utils.auth_utils import get_current_user
 from typing import List
 

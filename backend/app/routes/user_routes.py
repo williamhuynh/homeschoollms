@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from typing import List  # Add this import
 from ..services.user_service import UserService
 from ..models.schemas.user import UserCreate, UserInDB
 from ..utils.auth_utils import get_current_user
