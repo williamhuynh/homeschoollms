@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from ..models.schemas.user import UserInDB
-from ..services.user_service import UserService
+from ..services.auth_service import AuthService  # Updated import
 import os
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -45,7 +45,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     except JWTError:
         raise credentials_exception
         
-    user = await UserService.get_user_by_email(email)
+    user = await AuthService.get_user_by_email(email)  # Updated to use AuthService
     if user is None:
         raise credentials_exception
     return user

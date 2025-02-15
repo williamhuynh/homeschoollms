@@ -1,20 +1,17 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from ..services.auth_service import AuthService  # Updated import
+from ..utils.auth import create_access_token
 from datetime import timedelta
-from ..models.user import UserCreate, UserResponse, Token
-from ..services.user_service import UserService
-from ..utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from ..config.settings import settings
+from ..models.schemas.token import Token  # Need to create this schema
+
 
 router = APIRouter()
 
-@router.post("/register", response_model=UserResponse)
-async def register(user: UserCreate):
-    created_user = await UserService.create_user(user)
-    return created_user
-
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await UserService.authenticate_user(form_data.username, form_data.password)
+    user = await AuthService.authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=401,
@@ -22,7 +19,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )

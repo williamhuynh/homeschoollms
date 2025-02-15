@@ -46,6 +46,12 @@ app.include_router(progress_routes.router, prefix="/api", tags=["progress"])
 app.include_router(subject_routes.router, prefix="/api", tags=["subjects"])
 app.include_router(learning_outcome_routes.router, prefix="/api", tags=["learning-outcomes"])
 
+
+# Add error handlers
+app.add_exception_handler(HTTPException, http_error_handler)
+app.add_exception_handler(InvalidId, invalid_object_id_handler)
+
+
 @app.on_event("startup")
 async def startup_db_client():
     app.mongodb_client = AsyncIOMotorClient(settings.mongodb_url)  # Use settings here too
@@ -64,3 +70,7 @@ async def health_check():
             "status": "unhealthy",
             "database": str(e)
         }
+    
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await Database.close_db()

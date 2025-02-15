@@ -1,6 +1,6 @@
-from ..utils.database import Database  # Update this line
-from ..utils.auth import get_password_hash, verify_password
-from ..models.schemas.user import UserBase, UserCreate, UserInDB, Organization
+from ..utils.database import Database
+from ..utils.auth import get_password_hash  # Only import what's needed
+from ..models.schemas.user import UserCreate, UserInDB
 from fastapi import HTTPException
 from bson import ObjectId
 from typing import List
@@ -32,12 +32,3 @@ class UserService:
         db = Database.get_db()
         users = await db.users.find({"family_id": ObjectId(family_id)}).to_list(None)
         return [UserInDB(**user) for user in users]
-
-    # Add this method to the UserService class
-    @staticmethod
-    async def get_user_by_email(email: str):
-        db = Database.get_db()
-        user = await db.users.find_one({"email": email})
-        if not user:
-            return None
-        return UserInDB(**user)
