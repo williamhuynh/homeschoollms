@@ -1,20 +1,30 @@
 import { Container, Heading, VStack, IconButton, Flex } from '@chakra-ui/react'
-import { MoreVertical } from 'react-feather'
+import { Plus } from 'react-feather'  // Changed from MoreVertical to Plus
 import { useNavigate } from 'react-router-dom'
 import StudentList from '../../components/students/StudentList'
+import { useEffect } from 'react'
+import { useStudents } from '../../contexts/StudentsContext'
+import { getStudents } from '../../services/api'
 
 const StudentSelection = () => {
+  const { students, setStudents } = useStudents()
   const navigate = useNavigate()
 
-  // Enhanced mock data
-  const mockStudents = [
-    { id: 1, name: 'Test Student 1', grade: '3rd Grade' },
-    { id: 2, name: 'Test Student 2', grade: '4th Grade' }
-  ]
-
-  const handleStudentSelect = (student) => {
-    navigate(`/students/${student.id}/progress`, { state: { student } })
+  const handleAddStudent = () => {
+    navigate('/students/new')
   }
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const data = await getStudents()
+        setStudents(data)
+      } catch (error) {
+        console.error('Failed to fetch students:', error)
+      }
+    }
+    fetchStudents()
+  }, [setStudents])
 
   return (
     <Container maxW="container.sm" py={8}>
@@ -22,14 +32,16 @@ const StudentSelection = () => {
         <Flex justify="space-between" align="center" px={4}>
           <Heading size="xl">Your Students</Heading>
           <IconButton
-            icon={<MoreVertical />}
-            variant="ghost"
-            aria-label="More options"
+            icon={<Plus />}
+            variant="solid"
+            colorScheme="blue"
+            aria-label="Add student"
+            onClick={handleAddStudent}
           />
         </Flex>
 
         <StudentList 
-          students={mockStudents} 
+          students={students} 
           onStudentSelect={handleStudentSelect}
         />
       </VStack>

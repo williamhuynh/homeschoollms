@@ -7,66 +7,73 @@ import StudentProgressPage from './pages/progress/StudentProgressPage'
 import SubjectContentPage from './pages/progress/SubjectContentPage'
 import ContentCreatePage from './pages/content/ContentCreatePage'
 import BottomNav from './components/navigation/BottomNav'
+import AddStudent from './pages/students/AddStudent'
+import { StudentsProvider } from './contexts/StudentsContext'
+
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   return (
     <ChakraProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              isAuthenticated ? 
-                <Navigate to="/students" replace /> : 
-                <Navigate to="/login" replace />
-            } 
-          />
-          <Route 
-            path="/login" 
-            element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
-          />
-          <Route 
-            path="/students" 
-            element={
-              isAuthenticated ? 
-                <StudentSelection /> : 
-                <Navigate to="/login" replace />
-            } 
-          />
-          <Route 
-            path="/students/:studentId/progress" 
-            element={
-              isAuthenticated ? 
-                <>
-                  <StudentProgressPage />
-                  <BottomNav />
-                </> : 
-                <Navigate to="/login" replace />
-            } 
-          />
-          <Route 
-            path="/students/:studentId/subjects/:subject" 
-            element={
-              isAuthenticated ? 
-                <>
-                  <SubjectContentPage />
-                  <BottomNav />
-                </> : 
-                <Navigate to="/login" replace />
-            } 
-          />
-          <Route 
-            path="/students/:studentId/content/create" 
-            element={
-              isAuthenticated ? 
-                <ContentCreatePage /> : 
-                <Navigate to="/login" replace />
-            } 
-          />
-        </Routes>
-      </BrowserRouter>
+      <StudentsProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                isAuthenticated ? 
+                  <Navigate to="/students" replace /> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
+            <Route 
+              path="/login" 
+              element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
+            />
+            <Route 
+              path="/students" 
+              element={
+                isAuthenticated ? 
+                  <StudentSelection /> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
+            <Route path="/students/new" element={<AddStudent />} />
+            <Route 
+              path="/students/:studentId/progress" 
+              element={
+                isAuthenticated ? 
+                  <>
+                    <StudentProgressPage />
+                    <BottomNav />
+                  </> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
+            <Route 
+              path="/students/:studentId/subjects/:subject" 
+              element={
+                isAuthenticated ? 
+                  <>
+                    <SubjectContentPage />
+                    <BottomNav />
+                  </> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
+            <Route 
+              path="/students/:studentId/content/create" 
+              element={
+                isAuthenticated ? 
+                  <ContentCreatePage /> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
+          </Routes>
+        </BrowserRouter>
+      </StudentsProvider>
     </ChakraProvider>
   )
 }
