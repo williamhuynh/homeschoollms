@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from ..services.auth_service import AuthService  # Updated import
-from ..utils.auth import create_access_token
+from ..services.auth_service import AuthService
+from ..utils.auth_utils import create_access_token
 from datetime import timedelta
 from ..config.settings import settings
-from ..models.schemas.token import Token  # Need to create this schema
-
+from ..models.schemas.token import Token
 
 router = APIRouter()
 

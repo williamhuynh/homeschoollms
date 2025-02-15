@@ -1,7 +1,6 @@
 from ..utils.database import Database
 from ..models.schemas.user import UserInDB
 from ..utils.auth import verify_password
-from fastapi import HTTPException
 
 class AuthService:
     @staticmethod
