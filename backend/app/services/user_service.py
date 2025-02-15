@@ -32,3 +32,12 @@ class UserService:
         db = Database.get_db()
         users = await db.users.find({"family_id": ObjectId(family_id)}).to_list(None)
         return [UserInDB(**user) for user in users]
+
+    # Add this method to the UserService class
+    @staticmethod
+    async def get_user_by_email(email: str):
+        db = Database.get_db()
+        user = await db.users.find_one({"email": email})
+        if not user:
+            return None
+        return UserInDB(**user)
