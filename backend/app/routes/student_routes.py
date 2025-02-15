@@ -5,7 +5,7 @@ from ..models.schemas.user import UserInDB
 from ..utils.auth_utils import get_current_user
 from typing import List
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 @router.post("/students/", response_model=Student)
 async def create_student(

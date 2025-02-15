@@ -33,7 +33,13 @@ export const getStudents = async () => {
     const response = await api.get('/api/students');
     return response.data;
   } catch (error) {
-    console.error('Get Students Error:', error);
+    console.error('Get Students Error:', {
+      message: error.message,
+      status: error.response?.status,
+      url: error.config?.url,
+      method: error.config?.method,
+      responseData: error.response?.data
+    });
     throw error;
   }
 };
