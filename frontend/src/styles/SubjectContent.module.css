@@ -1,0 +1,26 @@
+/* src/styles/SubjectContent.module.css */
+.contentCard {
+    width: 100%;
+    cursor: pointer;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  
+  .contentCard:hover {
+    transform: scale(1.05);
+  } 
+  
+  /* Subject-specific styling (optional) */
+  .math {
+    /* Math-specific styles */
+  }
+  
+  .english {
+    /* English-specific styles */
+  }
+  
+  .science {
+    /* Science-specific styles */
+  }
