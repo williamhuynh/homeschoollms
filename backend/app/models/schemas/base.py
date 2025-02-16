@@ -9,7 +9,7 @@ class PyObjectId(ObjectId):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v, **kwargs):  # Add **kwargs to accept extra arguments
         if isinstance(v, ObjectId):
             return v
         if isinstance(v, str):
