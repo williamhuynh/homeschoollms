@@ -15,6 +15,14 @@ class StudentService:
         result = await db.students.insert_one(student_dict)
         created_student = await db.students.find_one({"_id": result.inserted_id})
         return Student(**created_student)
+    
+    @staticmethod
+    async def get_all_students() -> List[Student]:
+        db = Database.get_db()
+        students = []
+        async for student in db.students.find():
+            students.append(Student(**student))
+        return students
 
     @staticmethod
     async def get_student_by_id(student_id: str):

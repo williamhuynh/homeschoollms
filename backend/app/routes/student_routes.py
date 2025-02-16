@@ -14,6 +14,12 @@ async def create_student(
 ):
     return await StudentService.create_student(student, str(current_user.id))
 
+@router.get("/students", response_model=List[Student])
+async def get_students(
+    current_user: UserInDB = Depends(get_current_user)
+):
+    return await StudentService.get_all_students()
+
 @router.get("/students/{student_id}", response_model=Student)
 async def get_student(
     student_id: str,
