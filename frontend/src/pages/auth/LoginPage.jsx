@@ -14,7 +14,14 @@ const LoginPage = ({ setIsAuthenticated }) => {
       }
       
       // Call login API
-      await login(credentials)
+      const response = await login(credentials)
+      
+      // Debug: Check login response
+      console.log('Login Response:', response)
+      
+      // Debug: Verify token is stored
+      const token = localStorage.getItem('token')
+      console.log('Stored Token:', token)
       
       // Update authentication state
       setIsAuthenticated(true)
