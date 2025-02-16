@@ -5,8 +5,27 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
 });
+
+// Add request interceptor to include JWT token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const login = async (credentials) => {
+  try {
+    const response = await api.post('/api/login', credentials);
+    localStorage.setItem('token', response.data.access_token);
+    return response.data;
+  } catch (error) {
+    console.error('Login Error:', error);
+    throw error;
+  }
+};
 
 export const healthCheck = async () => {
   try {
@@ -43,5 +62,9 @@ export const getStudents = async () => {
     throw error;
   }
 };
+
+export const logout = () => {
+  localStorage.removeItem('token')
+}
 
 export default api;

@@ -9,11 +9,18 @@ import ContentCreatePage from './pages/content/ContentCreatePage'
 import BottomNav from './components/navigation/BottomNav'
 import AddStudent from './pages/students/AddStudent'
 import { StudentsProvider } from './contexts/StudentsContext'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+
 
 
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+
+  // Temporary override for testing (add this line below the original state)
+  // Comment this line to restore normal authentication behavior
+  isAuthenticated = true
 
   return (
     <ChakraProvider>
