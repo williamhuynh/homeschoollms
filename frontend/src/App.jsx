@@ -11,30 +11,24 @@ import AddStudent from './pages/students/AddStudent'
 import { StudentsProvider } from './contexts/StudentsContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
-
-
-
 function App() {
+  // Original authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-
-  // Temporary override for testing (add this line below the original state)
+  // Temporary override for testing
   // Comment this line to restore normal authentication behavior
-  isAuthenticated = true
+  const isAuthenticatedOverride = true
 
   return (
     <ChakraProvider>
       <StudentsProvider>
         <BrowserRouter>
           <Routes>
-            <Route 
-              path="/" 
-              element={
-                isAuthenticated ? 
-                  <Navigate to="/students" replace /> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
+            <Route path="/" element={
+              isAuthenticatedOverride || isAuthenticated ? 
+                <Navigate to="/students" replace /> : 
+                <Navigate to="/login" replace />
+            } />
             <Route 
               path="/login" 
               element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
@@ -42,7 +36,7 @@ function App() {
             <Route 
               path="/students" 
               element={
-                isAuthenticated ? 
+                isAuthenticatedOverride || isAuthenticated ? 
                   <StudentSelection /> : 
                   <Navigate to="/login" replace />
               } 
@@ -51,7 +45,7 @@ function App() {
             <Route 
               path="/students/:studentId/progress" 
               element={
-                isAuthenticated ? 
+                isAuthenticatedOverride || isAuthenticated ? 
                   <>
                     <StudentProgressPage />
                     <BottomNav />
@@ -62,7 +56,7 @@ function App() {
             <Route 
               path="/students/:studentId/subjects/:subject" 
               element={
-                isAuthenticated ? 
+                isAuthenticatedOverride || isAuthenticated ? 
                   <>
                     <SubjectContentPage />
                     <BottomNav />
@@ -73,7 +67,7 @@ function App() {
             <Route 
               path="/students/:studentId/content/create" 
               element={
-                isAuthenticated ? 
+                isAuthenticatedOverride || isAuthenticated ? 
                   <ContentCreatePage /> : 
                   <Navigate to="/login" replace />
               } 
