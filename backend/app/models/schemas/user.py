@@ -23,6 +23,7 @@ class Organization(MongoBaseModel):
     subscription_end_date: Optional[datetime] = None
 
 class UserCreate(UserBase):
+    email: EmailStr
     password: str
 
 class UserInDB(UserBase):
