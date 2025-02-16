@@ -6,9 +6,7 @@ from datetime import timedelta
 from ..config.settings import settings
 from ..models.schemas.token import Token
 from ..utils.password_utils import get_password_hash
-from ..models.schemas.user import UserCreate
-from ..models.schemas.user import User
-
+from ..models.schemas.user import User, UserCreate
 
 
 router = APIRouter()

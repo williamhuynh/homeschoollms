@@ -28,3 +28,11 @@ class UserCreate(UserBase):
 class UserInDB(UserBase):
     hashed_password: str
     refresh_token: Optional[str] = None
+
+class User(UserBase):
+    id: str
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
