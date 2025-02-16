@@ -12,9 +12,11 @@ class PyObjectId(ObjectId):
     def validate(cls, v):
         if isinstance(v, ObjectId):
             return v
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-        return ObjectId(v)
+        if isinstance(v, str):
+            if not ObjectId.is_valid(v):
+                raise ValueError("Invalid ObjectId")
+            return ObjectId(v)
+        raise TypeError("Expected ObjectId or str")
 
     @classmethod
     def __get_pydantic_json_schema__(cls, field_schema: Any) -> Any:

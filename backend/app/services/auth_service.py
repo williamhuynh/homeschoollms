@@ -20,6 +20,11 @@ class AuthService:
         user = await db.users.find_one({"email": email})
         if not user:
             return None
+        # Ensure PyObjectId fields are properly handled
+        if "organization_id" in user and user["organization_id"] is not None:
+            user["organization_id"] = str(user["organization_id"])
+        if "family_id" in user and user["family_id"] is not None:
+            user["family_id"] = str(user["family_id"])
         return UserInDB(**user)
     
     @staticmethod

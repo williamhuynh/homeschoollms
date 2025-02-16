@@ -2,6 +2,7 @@ from pydantic import EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
 from .base import MongoBaseModel, PyObjectId
+from bson import ObjectId
 
 class UserBase(MongoBaseModel):
     email: EmailStr
@@ -29,6 +30,10 @@ class UserCreate(UserBase):
 class UserInDB(UserBase):
     hashed_password: str
     refresh_token: Optional[str] = None
+
+    class Config:
+        json_encoders = {ObjectId: str}
+        arbitrary_types_allowed = True
 
 class User(UserBase):
     id: str
