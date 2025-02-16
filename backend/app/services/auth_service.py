@@ -1,6 +1,6 @@
 from ..utils.database_utils import Database
-from ..models.schemas.user import UserInDB
-from ..utils.password_utils import verify_password
+from ..models.schemas.user import UserInDB, UserCreate
+from ..utils.password_utils import get_password_hash, verify_password
 
 class AuthService:
     @staticmethod
@@ -23,13 +23,20 @@ class AuthService:
         return UserInDB(**user)
     
     @staticmethod
-    async def create_user(email: str, hashed_password: str):
+    async def create_user(email: str, hashed_password: str, first_name: str, last_name: str):
         db = Database.get_db()
         user_data = {
             "email": email,
             "hashed_password": hashed_password,
+            "first_name": first_name,
+            "last_name": last_name,
             "is_active": True,
-            "organization_id": None  # Add default fields as needed
+            "role": "parent",  # Default role
+            "is_verified": False,
+            "profile_image": None,
+            "last_login": None,
+            "organization_id": None,
+            "family_id": None
         }
         result = await db.users.insert_one(user_data)
         if result.inserted_id:
