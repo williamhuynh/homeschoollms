@@ -21,3 +21,17 @@ class AuthService:
         if not user:
             return None
         return UserInDB(**user)
+    
+    @staticmethod
+    async def create_user(email: str, hashed_password: str):
+        db = Database.get_db()
+        user_data = {
+            "email": email,
+            "hashed_password": hashed_password,
+            "is_active": True,
+            "organization_id": None  # Add default fields as needed
+        }
+        result = await db.users.insert_one(user_data)
+        if result.inserted_id:
+            return UserInDB(**user_data, id=str(result.inserted_id))
+        return None

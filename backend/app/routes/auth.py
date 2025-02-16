@@ -5,6 +5,11 @@ from ..utils.auth_utils import create_access_token
 from datetime import timedelta
 from ..config.settings import settings
 from ..models.schemas.token import Token
+from ..utils.password_utils import get_password_hash
+from ..models.schemas.user import UserCreate
+from ..models.schemas.user import User
+
+
 
 router = APIRouter()
 
@@ -24,3 +29,16 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/register", response_model=User)
+async def register(user: UserCreate):
+    existing_user = await AuthService.get_user_by_email(user.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="User with this email already exists"
+        )
+    
+    hashed_password = get_password_hash(user.password)
+    new_user = await AuthService.create_user(user.email, hashed_password)
+    return new_user
