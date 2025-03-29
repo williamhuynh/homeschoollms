@@ -57,7 +57,7 @@ export const healthCheck = async () => {
 
 export const createStudent = async (studentData) => {
   try {
-    const response = await api.post('/api/students', studentData);
+    const response = await api.post('/api/students/', studentData);
     return response.data;
   } catch (error) {
     console.error('Create Student Error:', error);
@@ -67,7 +67,7 @@ export const createStudent = async (studentData) => {
 
 export const getStudents = async () => {
   try {
-    const response = await api.get('/api/students');
+    const response = await api.get('/api/students/');
     return response.data;
   } catch (error) {
     console.error('Get Students Error:', {
@@ -94,7 +94,7 @@ export const getContentBySubject = async (subjectId) => {
 
 export const createContent = async (contentData) => {
   try {
-    const response = await api.post('/api/content', contentData);
+    const response = await api.post('/api/content/', contentData);
     return response.data;
   } catch (error) {
     console.error('Error creating content:', error);

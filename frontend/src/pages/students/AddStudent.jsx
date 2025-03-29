@@ -19,12 +19,13 @@ import {
     const { addStudent } = useStudents()
     const navigate = useNavigate()
     const toast = useToast()
-    const [formData, setFormData] = useState({
-      first_name: '',
-      last_name: '',
-      date_of_birth: '',
-      grade_level: ''
-    })
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    date_of_birth: '',
+    grade_level: '',
+    gender: 'prefer_not_to_say'  // Default value
+  })
   
     const handleChange = (e) => {
       const { name, value } = e.target
@@ -108,6 +109,20 @@ import {
                   <option value="4">4th Grade</option>
                   <option value="5">5th Grade</option>
                   <option value="6">6th Grade</option>
+                </Select>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Gender</FormLabel>
+                <Select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
                 </Select>
               </FormControl>
   
