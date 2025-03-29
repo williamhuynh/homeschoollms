@@ -9,7 +9,7 @@ class PyObjectId(ObjectId):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v, **kwargs):  # Add **kwargs to accept extra arguments
+    def validate(cls, v, handler=None, info=None):  # Updated to handle Pydantic v2 validation
         if isinstance(v, ObjectId):
             return v
         if isinstance(v, str):
