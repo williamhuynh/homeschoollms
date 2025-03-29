@@ -37,8 +37,26 @@ import {
   
     const handleSubmit = async (e) => {
         e.preventDefault()
+        
+        // Validate form data
+        if (!formData.first_name || !formData.last_name || !formData.date_of_birth || !formData.grade_level || !formData.gender) {
+          toast({
+            title: 'Missing information',
+            description: 'Please fill in all required fields',
+            status: 'warning',
+            duration: 5000,
+            isClosable: true,
+          })
+          return
+        }
+        
         try {
+          // Log the data being sent
+          console.log('Submitting student data:', formData)
+          
           const newStudent = await createStudent(formData)
+          console.log('Created student:', newStudent)
+          
           addStudent(newStudent)
           toast({
             title: 'Student created.',
@@ -49,9 +67,10 @@ import {
           })
           navigate('/students')
         } catch (error) {
+          console.error('Error details:', error.response?.data)
           toast({
             title: 'Error creating student.',
-            description: error.message,
+            description: error.response?.data?.detail || error.message,
             status: 'error',
             duration: 5000,
             isClosable: true,

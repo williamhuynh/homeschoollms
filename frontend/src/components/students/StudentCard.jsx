@@ -1,13 +1,16 @@
 import { User } from 'react-feather'
 import styles from '../../styles/StudentCard.module.css'
 
-const StudentCard = ({ name, onClick }) => {
+const StudentCard = ({ student, onClick }) => {
   const handleClick = () => {
-    console.log('Card clicked!') // Add this debug log
+    console.log('Card clicked!', student) // Add this debug log
     if (onClick) {
-      onClick()
+      onClick(student)
     }
   }
+
+  // Create a display name from first_name and last_name
+  const displayName = student ? `${student.first_name} ${student.last_name}` : 'Unknown Student'
 
   return (
     <div className={styles.card} onClick={handleClick}>
@@ -16,7 +19,7 @@ const StudentCard = ({ name, onClick }) => {
           <User size={32} />
         </div>
       </div>
-      <span className={styles.name}>{name}</span>
+      <span className={styles.name}>{displayName}</span>
     </div>
   )
 }

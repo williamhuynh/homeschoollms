@@ -1,34 +1,64 @@
-import { Container, Heading, VStack, IconButton, Flex } from '@chakra-ui/react'
-import { Plus } from 'react-feather'  // Changed from MoreVertical to Plus
+import { Container, Heading, VStack, IconButton, Flex, useToast, Text, Center, Spinner } from '@chakra-ui/react'
+import { Plus } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import StudentList from '../../components/students/StudentList'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStudents } from '../../contexts/StudentsContext'
 import { getStudents } from '../../services/api'
 
 const StudentSelection = () => {
   const { students, setStudents } = useStudents()
   const navigate = useNavigate()
+  const toast = useToast()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const handleAddStudent = () => {
     navigate('/students/new')
   }
 
-  const handleStudentSelect = (studentId) => {
-    navigate(`/students/${studentId}`)
+  const handleStudentSelect = (student) => {
+    console.log('Selected student:', student)
+    // Use the correct ID field from the student object
+    const studentId = student.id || student._id
+    if (studentId) {
+      navigate(`/students/${studentId}`)
+    } else {
+      console.error('Student has no ID:', student)
+      toast({
+        title: 'Error',
+        description: 'Could not navigate to student details - missing ID',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
   }
 
   useEffect(() => {
     const fetchStudents = async () => {
+      setLoading(true)
       try {
         const data = await getStudents()
-        setStudents(data)
+        console.log('Fetched students:', data)
+        setStudents(data || [])
+        setError(null)
       } catch (error) {
         console.error('Failed to fetch students:', error)
+        setError('Failed to load students. Please try again later.')
+        toast({
+          title: 'Error loading students',
+          description: error.message,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+      } finally {
+        setLoading(false)
       }
     }
     fetchStudents()
-  }, [setStudents])
+  }, [setStudents, toast])
 
   return (
     <Container maxW="container.sm" py={8}>
@@ -44,10 +74,20 @@ const StudentSelection = () => {
           />
         </Flex>
 
-        <StudentList 
-          students={students} 
-          onStudentSelect={handleStudentSelect}
-        />
+        {loading ? (
+          <Center p={8}>
+            <Spinner size="xl" color="blue.500" />
+          </Center>
+        ) : error ? (
+          <Center p={8}>
+            <Text color="red.500">{error}</Text>
+          </Center>
+        ) : (
+          <StudentList 
+            students={students} 
+            onStudentSelect={handleStudentSelect}
+          />
+        )}
       </VStack>
     </Container>
   )

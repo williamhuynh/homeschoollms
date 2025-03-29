@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from ..services.student_service import StudentService
 from ..models.schemas.student import Student
 from ..models.schemas.user import UserInDB
@@ -18,6 +18,13 @@ async def create_student(
 async def get_students(
     current_user: UserInDB = Depends(get_current_user)
 ):
+    return await StudentService.get_all_students()
+
+@router.get("/students/", response_model=List[Student])
+async def get_students_with_slash(
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """Duplicate endpoint to handle requests with trailing slash"""
     return await StudentService.get_all_students()
 
 @router.get("/students/{student_id}", response_model=Student)

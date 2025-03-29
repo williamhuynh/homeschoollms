@@ -57,17 +57,54 @@ export const healthCheck = async () => {
 
 export const createStudent = async (studentData) => {
   try {
-    const response = await api.post('/api/students/', studentData);
+    // Log the data being sent for debugging
+    console.log('Sending student data:', studentData);
+    
+    // Create a copy of the data to avoid modifying the original
+    const formattedData = { ...studentData };
+    
+    // Ensure parent_ids is initialized as an empty array if not provided
+    if (!formattedData.parent_ids) {
+      formattedData.parent_ids = [];
+    }
+    
+    // Ensure organization_id and family_id are null if not provided
+    if (!formattedData.organization_id) {
+      formattedData.organization_id = null;
+    }
+    
+    if (!formattedData.family_id) {
+      formattedData.family_id = null;
+    }
+    
+    // Initialize subjects and active_subjects if not provided
+    if (!formattedData.subjects) {
+      formattedData.subjects = {};
+    }
+    
+    if (!formattedData.active_subjects) {
+      formattedData.active_subjects = [];
+    }
+    
+    console.log('Formatted student data:', formattedData);
+    
+    const response = await api.post('/api/students/', formattedData);
     return response.data;
   } catch (error) {
     console.error('Create Student Error:', error);
+    // Log more detailed error information
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+      console.error('Error response headers:', error.response.headers);
+    }
     throw error;
   }
 };
 
 export const getStudents = async () => {
   try {
-    const response = await api.get('/api/students/');
+    const response = await api.get('/api/students');
     return response.data;
   } catch (error) {
     console.error('Get Students Error:', {
