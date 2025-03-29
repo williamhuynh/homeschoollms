@@ -1,6 +1,6 @@
 import { ChakraProvider } from '@chakra-ui/react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import LoginPage from './pages/auth/LoginPage'
 import StudentSelection from './pages/students/StudentSelection'
 import StudentProgressPage from './pages/progress/StudentProgressPage'
