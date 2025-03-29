@@ -1,11 +1,13 @@
 import axios from 'axios';
 
+// Create API instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
 
 // Add request interceptor to include JWT token
 api.interceptors.request.use((config) => {
@@ -69,6 +71,39 @@ export const getStudents = async () => {
     throw error;
   }
 };
+
+// Content API
+export const getContentBySubject = async (subjectId) => {
+  try {
+    const response = await api.get(`/api/content/subject/${subjectId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching content:', error);
+    throw error;
+  }
+};
+
+export const createContent = async (contentData) => {
+  try {
+    const response = await api.post('/api/content', contentData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating content:', error);
+    throw error;
+  }
+};
+
+// Progress API
+export const updateProgress = async (studentId, contentId, progressData) => {
+  try {
+    const response = await api.post(`/api/progress/${studentId}/${contentId}`, progressData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating progress:', error);
+    throw error;
+  }
+};
+
 
 export const logout = () => {
   localStorage.removeItem('token')
