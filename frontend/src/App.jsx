@@ -20,6 +20,17 @@ function App() {
   // For development purposes only - remove in production
   const isAuthenticatedOverride = false;
 
+  // Update authentication state when token changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setIsAuthenticated(localStorage.getItem('token') !== null);
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+
   return (
     <ChakraProvider>
       <StudentsProvider>

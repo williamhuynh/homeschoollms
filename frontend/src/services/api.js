@@ -18,22 +18,33 @@ api.interceptors.request.use((config) => {
 
 export const login = async (credentials) => {
   try {
-    const response = await api.post('/api/auth/login', credentials)
-    console.log('API Login Response:', response.data)
+    // FastAPI OAuth2 expects form data with username and password fields
+    const formData = new URLSearchParams();
+    formData.append('username', credentials.username);
+    formData.append('password', credentials.password);
+
+    const response = await api.post('/api/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+    
+    console.log('API Login Response:', response.data);
     
     // Verify token is in response
     if (response.data.access_token) {
-      localStorage.setItem('token', response.data.access_token)
+      localStorage.setItem('token', response.data.access_token);
     } else {
-      console.error('No access_token in response:', response.data)
+      console.error('No access_token in response:', response.data);
     }
     
-    return response.data
+    return response.data;
   } catch (error) {
-    console.error('Login Error:', error)
-    throw error
+    console.error('Login Error:', error);
+    throw error;
   }
-}
+};
+
 export const healthCheck = async () => {
   try {
     const response = await api.get('/api/health');
@@ -105,6 +116,6 @@ export const updateProgress = async (studentId, contentId, progressData) => {
 
 export const logout = () => {
   localStorage.removeItem('token')
-}
+};
 
 export default api;
