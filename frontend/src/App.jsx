@@ -12,12 +12,13 @@ import { StudentsProvider } from './contexts/StudentsContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
 function App() {
-  // Original authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // Check for token on initial load
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('token') !== null;
+  });
 
-  // Temporary override for testing
-  // Comment this line to restore normal authentication behavior
-  const isAuthenticatedOverride = true
+  // For development purposes only - remove in production
+  const isAuthenticatedOverride = false;
 
   return (
     <ChakraProvider>
