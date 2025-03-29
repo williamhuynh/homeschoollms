@@ -31,14 +31,16 @@ class UserInDB(UserBase):
     hashed_password: str
     refresh_token: Optional[str] = None
 
-    class Config:
-        json_encoders = {ObjectId: str}
-        arbitrary_types_allowed = True
+    model_config = {
+        "json_encoders": {ObjectId: str},
+        "arbitrary_types_allowed": True
+    }
 
 class User(UserBase):
     id: str
     is_active: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }

@@ -27,7 +27,8 @@ class MongoBaseModel(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    class Config:
-        json_encoders = {ObjectId: str}
-        populate_by_name = True
-        arbitrary_types_allowed = True
+    model_config = {
+        "json_encoders": {ObjectId: str},
+        "populate_by_name": True,
+        "arbitrary_types_allowed": True
+    }

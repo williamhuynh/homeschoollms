@@ -38,5 +38,5 @@ async def register(user: UserCreate):
         )
     
     hashed_password = get_password_hash(user.password)
-    new_user = await AuthService.create_user(user.email, hashed_password)
+    new_user = await AuthService.create_user(user.email, hashed_password, user.first_name, user.last_name)
     return new_user

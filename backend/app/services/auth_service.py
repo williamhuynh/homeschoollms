@@ -16,6 +16,12 @@ class AuthService:
         if "family_id" in user and user["family_id"] is not None:
             user["family_id"] = str(user["family_id"])
         
+        # Add default values for required fields if they're missing
+        if "first_name" not in user:
+            user["first_name"] = "User"
+        if "last_name" not in user:
+            user["last_name"] = "Name"
+        
         user = UserInDB(**user)
         if not verify_password(password, user.hashed_password):
             return None
@@ -32,6 +38,13 @@ class AuthService:
             user["organization_id"] = str(user["organization_id"])
         if "family_id" in user and user["family_id"] is not None:
             user["family_id"] = str(user["family_id"])
+        
+        # Add default values for required fields if they're missing
+        if "first_name" not in user:
+            user["first_name"] = "User"
+        if "last_name" not in user:
+            user["last_name"] = "Name"
+            
         return UserInDB(**user)
     
     @staticmethod
