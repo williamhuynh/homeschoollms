@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any
 
 class PyObjectId(ObjectId):
@@ -28,7 +28,10 @@ class MongoBaseModel(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = {
-        "json_encoders": {ObjectId: str},
+        "json_encoders": {
+            ObjectId: str,
+            date: lambda d: d.isoformat()  # Convert date to ISO format string
+        },
         "populate_by_name": True,
         "arbitrary_types_allowed": True
     }
