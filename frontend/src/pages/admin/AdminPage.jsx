@@ -1,7 +1,8 @@
-import { Container, Heading, VStack, Box, Button } from '@chakra-ui/react'
+import { Container, Heading, VStack, Box, Button, Divider } from '@chakra-ui/react'
 import { ArrowLeft } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import UpdateStudentSlugs from '../../components/admin/UpdateStudentSlugs'
+import DeleteStudent from '../../components/admin/DeleteStudent'
 
 const AdminPage = () => {
   const navigate = useNavigate()
@@ -23,7 +24,11 @@ const AdminPage = () => {
 
         <Box>
           <Heading size="md" mb={4}>Student Management</Heading>
-          <UpdateStudentSlugs />
+          <VStack spacing={4} align="stretch">
+            <UpdateStudentSlugs />
+            <Divider my={2} />
+            <DeleteStudent />
+          </VStack>
         </Box>
       </VStack>
     </Container>

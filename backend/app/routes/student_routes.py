@@ -3,7 +3,7 @@ from ..services.student_service import StudentService
 from ..models.schemas.student import Student
 from ..models.schemas.user import UserInDB
 from ..utils.auth_utils import get_current_user
-from typing import List
+from typing import List, Dict, Any
 
 router = APIRouter()
 
@@ -63,3 +63,11 @@ async def enroll_student_in_subject(
     current_user: UserInDB = Depends(get_current_user)
 ):
     return await StudentService.enroll_in_subject(student_id, subject_id, grade_level)
+
+@router.delete("/students/{student_id}", response_model=Dict[str, Any])
+async def delete_student(
+    student_id: str,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """Delete a student by ID."""
+    return await StudentService.delete_student(student_id)

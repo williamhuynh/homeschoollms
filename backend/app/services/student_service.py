@@ -2,7 +2,7 @@ from ..utils.database_utils import Database
 from ..models.schemas.student import Student, StudentSubject
 from fastapi import HTTPException
 from bson import ObjectId
-from typing import List
+from typing import List, Dict, Any
 from datetime import datetime, date
 import re
 
@@ -133,3 +133,19 @@ class StudentService:
             raise HTTPException(status_code=400, detail="Failed to enroll in subject")
         
         return await StudentService.get_student_by_id(student_id)
+        
+    @staticmethod
+    async def delete_student(student_id: str) -> Dict[str, Any]:
+        """Delete a student by ID."""
+        db = Database.get_db()
+        
+        # First check if the student exists
+        student = await StudentService.get_student_by_id(student_id)
+        
+        # Delete the student
+        result = await db.students.delete_one({"_id": ObjectId(student_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Student not found or could not be deleted")
+        
+        return {"success": True, "message": f"Student {student.first_name} {student.last_name} deleted successfully"}

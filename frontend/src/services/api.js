@@ -173,6 +173,16 @@ export const updateStudentSlugs = async () => {
   }
 };
 
+export const deleteStudent = async (studentId) => {
+  try {
+    const response = await apiToUse.delete(`/api/students/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Delete Student Error:', error);
+    throw error;
+  }
+};
+
 // Content API
 export const getContentBySubject = async (subjectId) => {
   try {
