@@ -1,5 +1,5 @@
-import { Container, Heading, VStack, IconButton, Flex, useToast, Text, Center, Spinner } from '@chakra-ui/react'
-import { Plus } from 'react-feather'
+import { Container, Heading, VStack, IconButton, Flex, useToast, Text, Center, Spinner, Link, Box } from '@chakra-ui/react'
+import { Plus, Settings } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import StudentList from '../../components/students/StudentList'
 import { useEffect, useState } from 'react'
@@ -19,19 +19,25 @@ const StudentSelection = () => {
 
   const handleStudentSelect = (student) => {
     console.log('Selected student:', student)
-    // Use the correct ID field from the student object
-    const studentId = student.id || student._id
-    if (studentId) {
-      navigate(`/students/${studentId}`)
+    
+    // Prefer slug if available, fall back to ID
+    if (student.slug) {
+      navigate(`/students/${student.slug}`)
     } else {
-      console.error('Student has no ID:', student)
-      toast({
-        title: 'Error',
-        description: 'Could not navigate to student details - missing ID',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
+      // Fall back to ID if slug is not available
+      const studentId = student.id || student._id
+      if (studentId) {
+        navigate(`/students/${studentId}`)
+      } else {
+        console.error('Student has no ID or slug:', student)
+        toast({
+          title: 'Error',
+          description: 'Could not navigate to student details - missing identifier',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+      }
     }
   }
 
@@ -65,13 +71,21 @@ const StudentSelection = () => {
       <VStack spacing={8} align="stretch">
         <Flex justify="space-between" align="center" px={4}>
           <Heading size="xl">Your Students</Heading>
-          <IconButton
-            icon={<Plus />}
-            variant="solid"
-            colorScheme="blue"
-            aria-label="Add student"
-            onClick={handleAddStudent}
-          />
+          <Flex gap={2}>
+            <IconButton
+              icon={<Settings size={20} />}
+              variant="ghost"
+              aria-label="Admin settings"
+              onClick={() => navigate('/admin')}
+            />
+            <IconButton
+              icon={<Plus />}
+              variant="solid"
+              colorScheme="blue"
+              aria-label="Add student"
+              onClick={handleAddStudent}
+            />
+          </Flex>
         </Flex>
 
         {loading ? (

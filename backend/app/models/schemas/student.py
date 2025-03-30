@@ -24,6 +24,7 @@ class Student(MongoBaseModel):
     date_of_birth: date
     gender: Gender
     grade_level: str
+    slug: Optional[str] = None
     parent_ids: List[PyObjectId]  # Multiple parents/guardians
     organization_id: Optional[PyObjectId]
     family_id: Optional[PyObjectId]

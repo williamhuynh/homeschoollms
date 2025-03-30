@@ -118,6 +118,32 @@ export const getStudents = async () => {
   }
 };
 
+export const getStudentBySlug = async (slug) => {
+  try {
+    const response = await api.get(`/api/students/by-slug/${slug}`);
+    return response.data;
+  } catch (error) {
+    console.error('Get Student By Slug Error:', {
+      message: error.message,
+      status: error.response?.status,
+      url: error.config?.url,
+      method: error.config?.method,
+      responseData: error.response?.data
+    });
+    throw error;
+  }
+};
+
+export const updateStudentSlugs = async () => {
+  try {
+    const response = await api.post('/api/students/update-slugs');
+    return response.data;
+  } catch (error) {
+    console.error('Update Student Slugs Error:', error);
+    throw error;
+  }
+};
+
 // Content API
 export const getContentBySubject = async (subjectId) => {
   try {

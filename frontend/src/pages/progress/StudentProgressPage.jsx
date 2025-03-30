@@ -1,12 +1,16 @@
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Box, Button, Text, VStack, Heading, Container } from '@chakra-ui/react'
+import { Box, Button, Text, VStack, Heading, Container, Spinner, Center } from '@chakra-ui/react'
 import { ArrowLeft } from 'react-feather'
+import { useEffect, useState } from 'react'
+import { getStudentBySlug } from '../../services/api'
 
 const StudentProgressPage = () => {
   const navigate = useNavigate()
   const { studentId } = useParams()
   const location = useLocation()
-  const student = location.state?.student
+  const [student, setStudent] = useState(location.state?.student || null)
+  const [loading, setLoading] = useState(!location.state?.student)
+  const [error, setError] = useState(null)
 
   // Mock progress data (you'll replace this with real data later)
   const mockProgress = {
@@ -16,6 +20,28 @@ const StudentProgressPage = () => {
       { name: 'Science', progress: 60 }
     ]
   }
+
+  // Fetch student data if not provided in location state
+  useEffect(() => {
+    const fetchStudent = async () => {
+      if (!student && studentId) {
+        setLoading(true)
+        try {
+          // Try to fetch by slug (the API will handle if it's an ID or slug)
+          const data = await getStudentBySlug(studentId)
+          setStudent(data)
+          setError(null)
+        } catch (err) {
+          console.error('Error fetching student:', err)
+          setError('Failed to load student information')
+        } finally {
+          setLoading(false)
+        }
+      }
+    }
+    
+    fetchStudent()
+  }, [studentId, student])
 
   const handleBack = () => {
     navigate('/students')
@@ -27,11 +53,23 @@ const StudentProgressPage = () => {
     })
   }
 
-  if (!student) {
+  if (loading) {
     return (
       <Container maxW="container.sm" py={8}>
-        <Text>Student not found</Text>
-        <Button onClick={handleBack}>Back to Students</Button>
+        <Center p={8}>
+          <Spinner size="xl" color="blue.500" />
+        </Center>
+      </Container>
+    )
+  }
+
+  if (error || !student) {
+    return (
+      <Container maxW="container.sm" py={8}>
+        <VStack spacing={4}>
+          <Text color="red.500">{error || 'Student not found'}</Text>
+          <Button onClick={handleBack}>Back to Students</Button>
+        </VStack>
       </Container>
     )
   }
@@ -48,8 +86,8 @@ const StudentProgressPage = () => {
           Back to Students
         </Button>
 
-        <Heading size="xl">{student.name}'s Progress</Heading>
-        <Text>{student.grade}</Text>
+        <Heading size="xl">{student.first_name} {student.last_name}'s Progress</Heading>
+        <Text>Grade: {student.grade_level}</Text>
 
         <VStack spacing={4} align="stretch">
           {mockProgress.subjects.map((subject) => (

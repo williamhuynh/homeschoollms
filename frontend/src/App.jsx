@@ -6,6 +6,7 @@ import StudentSelection from './pages/students/StudentSelection'
 import StudentProgressPage from './pages/progress/StudentProgressPage'
 import SubjectContentPage from './pages/progress/SubjectContentPage'
 import ContentCreatePage from './pages/content/ContentCreatePage'
+import AdminPage from './pages/admin/AdminPage'
 import BottomNav from './components/navigation/BottomNav'
 import AddStudent from './pages/students/AddStudent'
 import { StudentsProvider } from './contexts/StudentsContext'
@@ -54,6 +55,15 @@ function App() {
               } 
             />
             <Route path="/students/new" element={<AddStudent />} />
+            {/* Student detail page - redirects to progress */}
+            <Route 
+              path="/students/:studentId" 
+              element={
+                isAuthenticatedOverride || isAuthenticated ? 
+                  <Navigate to="progress" replace /> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
             <Route 
               path="/students/:studentId/progress" 
               element={
@@ -81,6 +91,14 @@ function App() {
               element={
                 isAuthenticatedOverride || isAuthenticated ? 
                   <ContentCreatePage /> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                isAuthenticatedOverride || isAuthenticated ? 
+                  <AdminPage /> : 
                   <Navigate to="/login" replace />
               } 
             />
