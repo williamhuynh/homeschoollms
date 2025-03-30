@@ -131,7 +131,14 @@ export const getStudents = async () => {
     
     const response = await apiToUse.get('/api/students');
     console.log('Students API response:', response);
-    return response.data;
+    
+    // Ensure IDs are in the correct format
+    const students = response.data.map(student => ({
+      ...student,
+      id: student.id.toString() // Convert ObjectId to string
+    }));
+    
+    return students;
   } catch (error) {
     console.error('Get Students Error:', {
       message: error.message,
