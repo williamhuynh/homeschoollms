@@ -19,7 +19,7 @@ function App() {
   });
 
   // For development purposes only - remove in production
-  const isAuthenticatedOverride = false;
+  const isAuthenticatedOverride = true;
 
   // Update authentication state when token changes
   useEffect(() => {

@@ -7,14 +7,29 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
-// Add request interceptor to include JWT token
-api.interceptors.request.use((config) => {
+
+// Create a separate instance for the production API
+const productionApi = axios.create({
+  baseURL: 'https://homeschoollms-server.onrender.com',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor to include JWT token for both API instances
+const addAuthToken = (config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-});
+};
+
+api.interceptors.request.use(addAuthToken);
+productionApi.interceptors.request.use(addAuthToken);
+
+// Determine which API to use based on the environment
+const apiToUse = window.location.hostname === 'localhost' ? api : productionApi;
 
 export const login = async (credentials) => {
   try {
@@ -23,7 +38,7 @@ export const login = async (credentials) => {
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
 
-    const response = await api.post('/api/auth/login', formData, {
+    const response = await apiToUse.post('/api/auth/login', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -47,7 +62,7 @@ export const login = async (credentials) => {
 
 export const healthCheck = async () => {
   try {
-    const response = await api.get('/api/health');
+    const response = await apiToUse.get('/api/health');
     return response.data;
   } catch (error) {
     console.error('API Health Check Error:', error);
@@ -88,7 +103,7 @@ export const createStudent = async (studentData) => {
     
     console.log('Formatted student data:', formattedData);
     
-    const response = await api.post('/api/students/', formattedData);
+    const response = await apiToUse.post('/api/students/', formattedData);
     return response.data;
   } catch (error) {
     console.error('Create Student Error:', error);
@@ -104,7 +119,8 @@ export const createStudent = async (studentData) => {
 
 export const getStudents = async () => {
   try {
-    const response = await api.get('/api/students');
+    console.log('Using API:', apiToUse.defaults.baseURL);
+    const response = await apiToUse.get('/api/students');
     return response.data;
   } catch (error) {
     console.error('Get Students Error:', {
@@ -120,7 +136,7 @@ export const getStudents = async () => {
 
 export const getStudentBySlug = async (slug) => {
   try {
-    const response = await api.get(`/api/students/by-slug/${slug}`);
+    const response = await apiToUse.get(`/api/students/by-slug/${slug}`);
     return response.data;
   } catch (error) {
     console.error('Get Student By Slug Error:', {
@@ -136,7 +152,7 @@ export const getStudentBySlug = async (slug) => {
 
 export const updateStudentSlugs = async () => {
   try {
-    const response = await api.post('/api/students/update-slugs');
+    const response = await apiToUse.post('/api/students/update-slugs');
     return response.data;
   } catch (error) {
     console.error('Update Student Slugs Error:', error);
@@ -147,7 +163,7 @@ export const updateStudentSlugs = async () => {
 // Content API
 export const getContentBySubject = async (subjectId) => {
   try {
-    const response = await api.get(`/api/content/subject/${subjectId}`);
+    const response = await apiToUse.get(`/api/content/subject/${subjectId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching content:', error);
@@ -157,7 +173,7 @@ export const getContentBySubject = async (subjectId) => {
 
 export const createContent = async (contentData) => {
   try {
-    const response = await api.post('/api/content/', contentData);
+    const response = await apiToUse.post('/api/content/', contentData);
     return response.data;
   } catch (error) {
     console.error('Error creating content:', error);
@@ -168,7 +184,7 @@ export const createContent = async (contentData) => {
 // Progress API
 export const updateProgress = async (studentId, contentId, progressData) => {
   try {
-    const response = await api.post(`/api/progress/${studentId}/${contentId}`, progressData);
+    const response = await apiToUse.post(`/api/progress/${studentId}/${contentId}`, progressData);
     return response.data;
   } catch (error) {
     console.error('Error updating progress:', error);
@@ -181,4 +197,4 @@ export const logout = () => {
   localStorage.removeItem('token')
 };
 
-export default api;
+export default apiToUse;
