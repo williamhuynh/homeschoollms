@@ -5,10 +5,19 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from ..models.schemas.user import UserInDB
 from ..services.auth_service import AuthService
+from ..config.settings import settings
 import os
 
-SECRET_KEY = os.getenv("JWT_SECRET")
-ALGORITHM = "HS256"
+# Ensure we have a valid secret key
+SECRET_KEY = settings.jwt_secret
+if not SECRET_KEY:
+    # Fallback to environment variable directly as a last resort
+    SECRET_KEY = os.getenv("JWT_SECRET", "fallback-secret-key-for-development-only")
+    if not SECRET_KEY:
+        print("WARNING: No JWT_SECRET found. Using insecure default secret key!")
+        SECRET_KEY = "insecure-default-secret-key-for-development-only"
+
+ALGORITHM = settings.jwt_algorithm
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 

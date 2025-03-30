@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from ..services.auth_service import AuthService
-from ..utils.auth_utils import create_access_token
+from ..utils.auth_utils import create_access_token, ALGORITHM, SECRET_KEY
 from datetime import timedelta
 from ..config.settings import settings
 from ..models.schemas.token import Token

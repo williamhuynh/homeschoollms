@@ -54,7 +54,14 @@ function App() {
                   <Navigate to="/login" replace />
               } 
             />
-            <Route path="/students/new" element={<AddStudent />} />
+            <Route 
+              path="/students/new" 
+              element={
+                isAuthenticatedOverride || isAuthenticated ? 
+                  <AddStudent /> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
             {/* Student detail page - redirects to progress */}
             <Route 
               path="/students/:studentId" 
