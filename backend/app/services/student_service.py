@@ -141,11 +141,11 @@ class StudentService:
         
         # First check if the student exists
         student = await StudentService.get_student_by_id(student_id)
-        
+
         # Delete the student
-        result = await db.students.delete_one({"_id": ObjectId(student_id)})
+        result = await db.students.delete_one({"_id": ObjectId(student.id)})
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Student not found or could not be deleted")
-        
+
         return {"success": True, "message": f"Student {student.first_name} {student.last_name} deleted successfully"}
