@@ -3,7 +3,7 @@ from ..models.schemas.student import Student, StudentSubject
 from fastapi import HTTPException
 from bson import ObjectId
 from typing import List
-from datetime import datetime
+from datetime import datetime, date
 
 class StudentService:
     @staticmethod
@@ -11,6 +11,10 @@ class StudentService:
         db = Database.get_db()
         student_dict = student.dict()
         student_dict["parent_ids"] = [ObjectId(parent_id)]
+        
+        # Convert date_of_birth to ISO format string for MongoDB
+        if isinstance(student_dict["date_of_birth"], date):
+            student_dict["date_of_birth"] = student_dict["date_of_birth"].isoformat()
         
         result = await db.students.insert_one(student_dict)
         created_student = await db.students.find_one({"_id": result.inserted_id})
@@ -43,10 +47,15 @@ class StudentService:
             start_date=datetime.now().date()
         )
         
+        # Convert the subject dict and handle the date
+        subject_dict = subject.dict()
+        if isinstance(subject_dict["start_date"], date):
+            subject_dict["start_date"] = subject_dict["start_date"].isoformat()
+        
         update_result = await db.students.update_one(
             {"_id": ObjectId(student_id)},
             {
-                "$set": {f"subjects.{subject_id}": subject.dict()},
+                "$set": {f"subjects.{subject_id}": subject_dict},
                 "$addToSet": {"active_subjects": ObjectId(subject_id)}
             }
         )
