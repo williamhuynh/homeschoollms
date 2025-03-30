@@ -174,6 +174,12 @@ export const updateStudentSlugs = async () => {
 };
 
 export const deleteStudent = async (studentId) => {
+  // Validate the student ID format
+  const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+  if (!objectIdRegex.test(studentId)) {
+    throw new Error('Invalid student ID format. Must be a 24-character hexadecimal string');
+  }
+
   try {
     const response = await apiToUse.delete(`/api/students/${studentId}`);
     return response.data;

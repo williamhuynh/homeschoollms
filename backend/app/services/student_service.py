@@ -139,13 +139,26 @@ class StudentService:
         """Delete a student by ID."""
         db = Database.get_db()
         
-        # First check if the student exists
-        student = await StudentService.get_student_by_id(student_id)
-
-        # Delete the student
-        result = await db.students.delete_one({"_id": ObjectId(student.id)})
+        # Validate the student_id format
+        if not ObjectId.is_valid(student_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid student ID format. Must be a valid MongoDB ObjectId"
+            )
         
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Student not found or could not be deleted")
+        try:
+            # First check if the student exists
+            student = await StudentService.get_student_by_id(student_id)
 
-        return {"success": True, "message": f"Student {student.first_name} {student.last_name} deleted successfully"}
+            # Delete the student
+            result = await db.students.delete_one({"_id": ObjectId(student.id)})
+            
+            if result.deleted_count == 0:
+                raise HTTPException(status_code=404, detail="Student not found or could not be deleted")
+
+            return {"success": True, "message": f"Student {student.first_name} {student.last_name} deleted successfully"}
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Error deleting student: {str(e)}"
+            )
