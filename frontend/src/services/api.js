@@ -133,10 +133,14 @@ export const getStudents = async () => {
     console.log('Students API response:', response);
     
     // Ensure IDs are in the correct format
-    const students = response.data.map(student => ({
-      ...student,
-      id: student.id.toString() // Convert ObjectId to string
-    }));
+    const students = response.data.map(student => {
+      // Handle cases where id might be missing or in different format
+      const studentId = student._id || student.id;
+      return {
+        ...student,
+        id: studentId ? studentId.toString() : null
+      };
+    });
     
     return students;
   } catch (error) {
