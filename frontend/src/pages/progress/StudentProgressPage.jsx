@@ -34,7 +34,10 @@ const StudentProgressPage = () => {
         
         // Get subjects for student's grade level
         if (curriculum && data.grade_level) {
+          console.log('Student grade level:', data.grade_level)
+          console.log('Curriculum stages:', curriculum.getStages())
           const gradeSubjects = curriculum.getSubjects(data.grade_level)
+          console.log('Found subjects:', gradeSubjects)
           setSubjects(gradeSubjects)
         }
       } catch (err) {
