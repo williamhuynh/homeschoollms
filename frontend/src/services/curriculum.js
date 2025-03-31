@@ -3,9 +3,12 @@ export class NSWCurriculum {
     this.data = this._loadCurriculum(jsonFile);
   }
 
-  async _loadCurriculum(jsonFile) {
+  async _loadCurriculum() {
     try {
-      const response = await fetch(jsonFile);
+      const response = await fetch('/nsw_curriculum.json');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       return await response.json();
     } catch (err) {
       throw new Error(`Failed to load curriculum: ${err.message}`);
