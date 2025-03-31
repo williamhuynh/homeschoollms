@@ -11,6 +11,7 @@ const StudentProgressPage = () => {
   const location = useLocation()
   const [student, setStudent] = useState(location.state?.student || null)
   const [loading, setLoading] = useState(!location.state?.student)
+  const [curriculumLoading, setCurriculumLoading] = useState(true)
   const [error, setError] = useState(null)
   const [subjects, setSubjects] = useState([])
   const [curriculum, setCurriculum] = useState(null)
@@ -23,6 +24,8 @@ const StudentProgressPage = () => {
         // Load curriculum
         const curriculum = new NSWCurriculum()
         await curriculum.load()
+        setCurriculum(curriculum)
+        setCurriculumLoading(false)
         
         // Fetch student data
         const data = await getStudentBySlug(studentId)
@@ -30,9 +33,10 @@ const StudentProgressPage = () => {
         setError(null)
         
         // Get subjects for student's grade level
-        const gradeSubjects = curriculum.getSubjects(data.grade_level)
-        setSubjects(gradeSubjects)
-        setCurriculum(curriculum)
+        if (curriculum && data.grade_level) {
+          const gradeSubjects = curriculum.getSubjects(data.grade_level)
+          setSubjects(gradeSubjects)
+        }
       } catch (err) {
         console.error('Error fetching student:', err)
         setError('Failed to load student information')
@@ -42,7 +46,7 @@ const StudentProgressPage = () => {
     }
     
     fetchData()
-  }, [studentId, student, curriculum])
+  }, [studentId, student])
 
   const handleBack = () => {
     navigate('/students')
@@ -54,7 +58,7 @@ const StudentProgressPage = () => {
     })
   }
 
-  if (loading) {
+  if (loading || curriculumLoading) {
     return (
       <Container maxW="container.sm" py={8}>
         <Center p={8}>
