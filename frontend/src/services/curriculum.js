@@ -22,9 +22,24 @@ export class NSWCurriculum {
     return this.data.map(stage => stage.stage);
   }
 
-  getSubjects(stage) {
+  getStageForGrade(grade) {
+    const gradeMapping = {
+      'Kindergarten': 'Early Stage 1',
+      'Year 1': 'Stage 1',
+      'Year 2': 'Stage 1',
+      'Year 3': 'Stage 2',
+      'Year 4': 'Stage 2'
+    };
+    return gradeMapping[grade] || null;
+  }
+
+  getSubjects(grade) {
     if (!this.data) {
       throw new Error('Curriculum data not loaded');
+    }
+    const stage = this.getStageForGrade(grade);
+    if (!stage) {
+      return [];
     }
     const stageData = this.data.find(s => s.stage === stage);
     return stageData ? stageData.subjects : [];
