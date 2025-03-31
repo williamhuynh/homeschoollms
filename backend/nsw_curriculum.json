@@ -1,0 +1,220 @@
+[
+  {
+    "stage": "Early Stage 1",
+    "subjects": [
+      {
+        "name": "English",
+        "code": "ENG",
+        "description": "Learning area for English",
+        "outcomes": [
+          {
+            "code": "ENE-OLC-01",
+            "name": "Oral language and communication",
+            "description": "communicates effectively by using interpersonal conventions and language with familiar peers and adults",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-VOCAB-01",
+            "name": "Vocabulary",
+            "description": "understands and effectively uses Tier 1 words and Tier 2 words in familiar contexts",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-PHOAW-01",
+            "name": "Phonological awareness",
+            "description": "identifies, blends, segments and manipulates phonological units in spoken words as a strategy for reading and creating texts",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-PRINT-01",
+            "name": "Print conventions",
+            "description": "tracks written text from left to right and from top to bottom of the page and identifies visual and spatial features of print",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-PHOKW-01",
+            "name": "Phonic knowledge",
+            "description": "uses single-letter grapheme–phoneme correspondences and common digraphs to decode and encode words when reading and creating texts",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-REFLU-01",
+            "name": "Reading fluency",
+            "description": "reads decodable texts aloud with automaticity",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-RECOM-01",
+            "name": "Reading comprehension",
+            "description": "comprehends independently read texts using background knowledge, word knowledge and understanding of how sentences connect",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-CWT-01",
+            "name": "Creating written texts",
+            "description": "creates written texts that include at least 2 related ideas and correct simple sentences",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-SPELL-01",
+            "name": "Spelling",
+            "description": "applies phonological, orthographic and morphological generalisations and strategies to spell taught familiar and high-frequency words when creating texts",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-HANDW-01",
+            "name": "Handwriting",
+            "description": "produces all lower-case and upper-case letters to create texts",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ENE-UARL-01",
+            "name": "Understanding and responding to literature",
+            "description": "understands and responds to literature read to them",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      },
+      {
+        "name": "Mathematics",
+        "code": "MATH",
+        "description": "Learning area for Mathematics",
+        "outcomes": [
+          {
+            "code": "MAO-WM-01",
+            "name": "Working mathematically",
+            "description": "develops understanding and fluency in mathematics through exploring and connecting mathematical concepts, choosing and applying mathematical techniques to solve problems, and communicating their thinking and reasoning coherently and clearly",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-RWN-01",
+            "name": "Representing whole numbers",
+            "description": "demonstrates an understanding of how whole numbers indicate quantity",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-RWN-02",
+            "name": "Representing whole numbers",
+            "description": "reads numerals and represents whole numbers to at least 20",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-CSQ-01",
+            "name": "Combining and separating quantities",
+            "description": "reasons about number relations to model addition and subtraction by combining and separating, and comparing collections",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-CSQ-02",
+            "name": "Combining and separating quantities",
+            "description": "represents the relations between the parts that form the whole, with numbers up to 10",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-FG-01",
+            "name": "Forming groups",
+            "description": "recognises, describes and continues repeating patterns",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-FG-02",
+            "name": "Forming groups",
+            "description": "forms equal groups by sharing and counting collections of objects",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-GM-01",
+            "name": "Geometric measure",
+            "description": "describes position and gives and follows simple directions",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-GM-02",
+            "name": "Geometric measure",
+            "description": "describes and compares lengths",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-GM-03",
+            "name": "Geometric measure",
+            "description": "identifies half the length and the halfway point",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-2DS-01",
+            "name": "Two-dimensional spatial structure",
+            "description": "sorts, describes, names and makes two-dimensional shapes, including triangles, circles, squares and rectangles",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-2DS-02",
+            "name": "Two-dimensional spatial structure",
+            "description": "describes and compares areas of similar shapes",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-3DS-01",
+            "name": "Three-dimensional spatial structure",
+            "description": "manipulates, describes and sorts three-dimensional objects",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-3DS-02",
+            "name": "Three-dimensional spatial structure",
+            "description": "describes and compares volumes",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-NSM-01",
+            "name": "Non-spatial measure",
+            "description": "describes and compares the masses of objects",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-NSM-02",
+            "name": "Non-spatial measure",
+            "description": "sequences events and reads hour time on clocks",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MAE-DATA-01",
+            "name": "Data",
+            "description": "contributes to collecting data and interprets data displays made from objects",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      },
+      {
+        "name": "Creative Arts",
+        "code": "CART",
+        "description": "Learning area for Creative Arts",
+        "outcomes": [
+          {
+            "code": "CAE-DAN-01",
+            "name": "Dance",
+            "description": "experiments with and identifies ways shapes and movements are used in dance",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "CAE-DRA-01",
+            "name": "Drama",
+            "description": "experiments with and identifies ways feelings, ideas, roles and situations are embodied and enacted in drama",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "CAE-MUS-01",
+            "name": "Music",
+            "description": "experiments with and identifies ways sound is organised in music through singing, moving, playing instruments and using listening skills",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "CAE-VIS-01",
+            "name": "Visual Arts",
+            "description": "experiments with and identifies ways materials and techniques are used to represent subject matter and ideas in artworks",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      }
+    ]
+  }
+]

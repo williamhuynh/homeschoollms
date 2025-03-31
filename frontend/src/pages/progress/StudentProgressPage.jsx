@@ -3,6 +3,7 @@ import { Box, Button, Text, VStack, Heading, Container, Spinner, Center } from '
 import { ArrowLeft } from 'react-feather'
 import { useEffect, useState } from 'react'
 import { getStudentBySlug } from '../../services/api'
+import { NSWCurriculum } from '../../services/curriculum'
 
 const StudentProgressPage = () => {
   const navigate = useNavigate()
@@ -11,26 +12,38 @@ const StudentProgressPage = () => {
   const [student, setStudent] = useState(location.state?.student || null)
   const [loading, setLoading] = useState(!location.state?.student)
   const [error, setError] = useState(null)
+  const [subjects, setSubjects] = useState([])
+  const [curriculum, setCurriculum] = useState(null)
 
-  // Mock progress data (you'll replace this with real data later)
-  const mockProgress = {
-    subjects: [
-      { name: 'Math', progress: 75 },
-      { name: 'English', progress: 85 },
-      { name: 'Science', progress: 60 }
-    ]
-  }
-
-  // Fetch student data if not provided in location state
+  // Initialize curriculum
   useEffect(() => {
-    const fetchStudent = async () => {
+    const initCurriculum = async () => {
+      try {
+        const curriculum = new NSWCurriculum("backend/nsw_curriculum.json")
+        setCurriculum(curriculum)
+      } catch (err) {
+        console.error('Error loading curriculum:', err)
+        setError('Failed to load curriculum data')
+      }
+    }
+    initCurriculum()
+  }, [])
+
+  // Fetch student data and subjects
+  useEffect(() => {
+    const fetchData = async () => {
       if (!student && studentId) {
         setLoading(true)
         try {
-          // Try to fetch by slug (the API will handle if it's an ID or slug)
           const data = await getStudentBySlug(studentId)
           setStudent(data)
           setError(null)
+          
+          // Get subjects for student's grade level
+          if (curriculum && data.grade_level) {
+            const gradeSubjects = curriculum.get_subjects(data.grade_level)
+            setSubjects(gradeSubjects)
+          }
         } catch (err) {
           console.error('Error fetching student:', err)
           setError('Failed to load student information')
@@ -40,16 +53,16 @@ const StudentProgressPage = () => {
       }
     }
     
-    fetchStudent()
-  }, [studentId, student])
+    fetchData()
+  }, [studentId, student, curriculum])
 
   const handleBack = () => {
     navigate('/students')
   }
 
   const handleSubjectClick = (subject) => {
-    navigate(`/students/${studentId}/subjects/${subject.toLowerCase()}`, {
-      state: { student }
+    navigate(`/students/${studentId}/subjects/${subject.code}`, {
+      state: { student, subject }
     })
   }
 
@@ -90,19 +103,19 @@ const StudentProgressPage = () => {
         <Text>Grade: {student.grade_level}</Text>
 
         <VStack spacing={4} align="stretch">
-          {mockProgress.subjects.map((subject) => (
+          {subjects.map((subject) => (
             <Box 
-              key={subject.name} 
+              key={subject.code} 
               p={4} 
               borderRadius="lg" 
               border="1px" 
               borderColor="gray.200"
               cursor="pointer"
-              onClick={() => handleSubjectClick(subject.name)}
+              onClick={() => handleSubjectClick(subject)}
               _hover={{ bg: 'gray.50' }}
             >
               <Text fontWeight="bold">{subject.name}</Text>
-              <Text>Progress: {subject.progress}%</Text>
+              <Text>{subject.description}</Text>
             </Box>
           ))}
         </VStack>
