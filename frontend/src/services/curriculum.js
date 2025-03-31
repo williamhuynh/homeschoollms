@@ -24,6 +24,7 @@ export class NSWCurriculum {
 
   getStageForGrade(grade) {
     const gradeMapping = {
+      'K': 'Early Stage 1',
       'Kindergarten': 'Early Stage 1',
       'Year 1': 'Stage 1',
       'Year 2': 'Stage 1',
@@ -42,6 +43,7 @@ export class NSWCurriculum {
       return [];
     }
     const stageData = this.data.find(s => s.stage === stage);
+    console.log('Stage data:', stageData);
     return stageData ? stageData.subjects : [];
   }
 
