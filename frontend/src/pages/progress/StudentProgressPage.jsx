@@ -46,7 +46,7 @@ const StudentProgressPage = () => {
     }
     
     fetchData()
-  }, [studentId, student])
+  }, [studentId])
 
   const handleBack = () => {
     navigate('/students')
