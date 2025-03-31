@@ -22,8 +22,8 @@ const SubjectContentPage = () => {
       setLoading(true)
       try {
         // Load curriculum
-        const curriculum = new NSWCurriculum("/backend/nsw_curriculum.json")
-        await curriculum._loadCurriculum()
+        const curriculum = new NSWCurriculum()
+        await curriculum.load()
         
         // Fetch student data if needed
         if (!student && studentId) {
