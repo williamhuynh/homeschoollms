@@ -15,41 +15,29 @@ const StudentProgressPage = () => {
   const [subjects, setSubjects] = useState([])
   const [curriculum, setCurriculum] = useState(null)
 
-  // Initialize curriculum
-  useEffect(() => {
-    const initCurriculum = async () => {
-      try {
-        const curriculum = new NSWCurriculum("backend/nsw_curriculum.json")
-        setCurriculum(curriculum)
-      } catch (err) {
-        console.error('Error loading curriculum:', err)
-        setError('Failed to load curriculum data')
-      }
-    }
-    initCurriculum()
-  }, [])
-
-  // Fetch student data and subjects
+  // Initialize curriculum and fetch data
   useEffect(() => {
     const fetchData = async () => {
-      if (!student && studentId) {
-        setLoading(true)
-        try {
-          const data = await getStudentBySlug(studentId)
-          setStudent(data)
-          setError(null)
-          
-          // Get subjects for student's grade level
-          if (curriculum && data.grade_level) {
-            const gradeSubjects = curriculum.get_subjects(data.grade_level)
-            setSubjects(gradeSubjects)
-          }
-        } catch (err) {
-          console.error('Error fetching student:', err)
-          setError('Failed to load student information')
-        } finally {
-          setLoading(false)
-        }
+      setLoading(true)
+      try {
+        // Load curriculum
+        const curriculum = new NSWCurriculum("/backend/nsw_curriculum.json")
+        await curriculum._loadCurriculum()
+        
+        // Fetch student data
+        const data = await getStudentBySlug(studentId)
+        setStudent(data)
+        setError(null)
+        
+        // Get subjects for student's grade level
+        const gradeSubjects = curriculum.getSubjects(data.grade_level)
+        setSubjects(gradeSubjects)
+        setCurriculum(curriculum)
+      } catch (err) {
+        console.error('Error fetching student:', err)
+        setError('Failed to load student information')
+      } finally {
+        setLoading(false)
       }
     }
     

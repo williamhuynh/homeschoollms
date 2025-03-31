@@ -1,3 +1,28 @@
-import { NSWCurriculum } from '../../backend/app/scripts/use_nsw_curriculum';
+export class NSWCurriculum {
+  constructor(jsonFile) {
+    this.data = this._loadCurriculum(jsonFile);
+  }
 
-export { NSWCurriculum };
+  async _loadCurriculum(jsonFile) {
+    try {
+      const response = await fetch(jsonFile);
+      return await response.json();
+    } catch (err) {
+      throw new Error(`Failed to load curriculum: ${err.message}`);
+    }
+  }
+
+  getStages() {
+    return this.data.map(stage => stage.stage);
+  }
+
+  getSubjects(stage) {
+    const stageData = this.data.find(s => s.stage === stage);
+    return stageData ? stageData.subjects : [];
+  }
+
+  getOutcomes(stage, subjectCode) {
+    const subject = this.getSubjects(stage).find(s => s.code === subjectCode);
+    return subject ? subject.outcomes : [];
+  }
+}

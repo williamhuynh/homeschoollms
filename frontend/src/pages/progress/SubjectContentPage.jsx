@@ -16,44 +16,35 @@ const SubjectContentPage = () => {
   const [outcomes, setOutcomes] = useState([])
   const [curriculum, setCurriculum] = useState(null)
 
-  // Initialize curriculum
-  useEffect(() => {
-    const initCurriculum = async () => {
-      try {
-        const curriculum = new NSWCurriculum("backend/nsw_curriculum.json")
-        setCurriculum(curriculum)
-      } catch (err) {
-        console.error('Error loading curriculum:', err)
-        setError('Failed to load curriculum data')
-      }
-    }
-    initCurriculum()
-  }, [])
-
-  // Fetch student data and outcomes
+  // Initialize curriculum and fetch data
   useEffect(() => {
     const fetchData = async () => {
-      if (!student && studentId) {
-        setLoading(true)
-        try {
+      setLoading(true)
+      try {
+        // Load curriculum
+        const curriculum = new NSWCurriculum("/backend/nsw_curriculum.json")
+        await curriculum._loadCurriculum()
+        
+        // Fetch student data if needed
+        if (!student && studentId) {
           const data = await getStudentBySlug(studentId)
           setStudent(data)
-          setError(null)
-          
-          // Get outcomes for the selected subject
-          if (curriculum && data.grade_level && subjectData) {
-            const subjectOutcomes = curriculum.get_outcomes(
-              data.grade_level,
-              subjectData.code
-            )
-            setOutcomes(subjectOutcomes)
-          }
-        } catch (err) {
-          console.error('Error fetching student:', err)
-          setError('Failed to load student information')
-        } finally {
-          setLoading(false)
         }
+        
+        // Get outcomes for the selected subject
+        if (student?.grade_level && subjectData) {
+          const subjectOutcomes = curriculum.getOutcomes(
+            student.grade_level,
+            subjectData.code
+          )
+          setOutcomes(subjectOutcomes)
+          setCurriculum(curriculum)
+        }
+      } catch (err) {
+        console.error('Error:', err)
+        setError('Failed to load data')
+      } finally {
+        setLoading(false)
       }
     }
     
