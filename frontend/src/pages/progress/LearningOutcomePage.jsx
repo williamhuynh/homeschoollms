@@ -123,9 +123,14 @@ const LearningOutcomePage = () => {
           variant="ghost"
           aria-label="Back"
         />
-        <Text fontSize="xl" fontWeight="bold" ml={2} display="inline-block">
-          {learningOutcome.name}
-        </Text>
+        <VStack align="start" spacing={1} ml={2}>
+          <Text fontSize="xl" fontWeight="bold">
+            {learningOutcome.name}
+          </Text>
+          <Text fontSize="sm" color="gray.500">
+            {learningOutcome.code} | {learningOutcome.grade_level}
+          </Text>
+        </VStack>
       </Box>
 
       <Box mt="60px" p={4}>
