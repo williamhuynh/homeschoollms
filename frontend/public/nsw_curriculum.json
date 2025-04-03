@@ -214,6 +214,199 @@
             "grade_level": "Early Stage 1"
           }
         ]
+      },
+      {
+        "name": "Aboriginal Languages",
+        "code": "ALE",
+        "description": "Learning area for Aboriginal Languages",
+        "outcomes": [
+          {
+            "code": "ALE-INT-01",
+            "name": "Interacting",
+            "description": "uses modelled target language in simple exchanges",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ALE-RES-01",
+            "name": "Responding",
+            "description": "responds to simple texts through words, gestures or expression",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ALE-COM-01",
+            "name": "Composing",
+            "description": "composes simple texts in the target language using supports and other scaffolds",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ALE-RLC-01",
+            "name": "The role of language, culture and identity",
+            "description": "recognises different languages and cultures in their immediate environment and the world",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "ALE-LAB-01",
+            "name": "Language awareness and building",
+            "description": "recognises that some Aboriginal Languages are being maintained, revived and/or strengthened",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      },
+      {
+        "name": "Auslan",
+        "code": "AUE",
+        "description": "Learning area for Auslan",
+        "outcomes": [
+          {
+            "code": "AUE-INT-01",
+            "name": "Interacting in Auslan",
+            "description": "exchanges meaning using key signs and common protocols",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "AUE-UND-01",
+            "name": "Understanding texts in Auslan",
+            "description": "identifies key signs and information and responds in a variety of ways",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "AUE-CRE-01",
+            "name": "Creating texts in Auslan",
+            "description": "creates simple texts on known topics using key signs",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "AUE-RLC-01",
+            "name": "Role of language, culture and identity",
+            "description": "identifies different communication methods",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      },
+      {
+        "name": "Classical Languages",
+        "code": "CLE",
+        "description": "Learning area for Classical Languages",
+        "outcomes": [
+          {
+            "code": "CLE-UND-01",
+            "name": "Understanding texts",
+            "description": "recognises and responds to information to demonstrate understanding of simple texts with modelled vocabulary, actions or visuals",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "CLE-ICU-01",
+            "name": "Intercultural understanding",
+            "description": "identifies people and places of the past represented in the target language",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      },
+      {
+        "name": "Human Society and its Environment",
+        "code": "HSE",
+        "description": "Learning area for HSIE (Geography & History)",
+        "outcomes": [
+          {
+            "code": "HSE-ACH-01",
+            "name": "Aboriginal Connections to Country",
+            "description": "identifies ways that Aboriginal Peoples connect with Country, Culture and Community",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "HSE-GEO-01",
+            "name": "Geography",
+            "description": "identifies and locates places people connect with, using geographical information",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "HSE-HIS-01",
+            "name": "History",
+            "description": "identifies information about daily life and transport in the past, using stories, images and objects",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      },
+      {
+        "name": "Modern Languages",
+        "code": "MLE",
+        "description": "Learning area for Modern Languages",
+        "outcomes": [
+          {
+            "code": "MLE-INT-01",
+            "name": "Interacting",
+            "description": "exchanges meaning through play and actions by reproducing culturally appropriate modelled language",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MLE-UND-01",
+            "name": "Understanding texts",
+            "description": "responds to information in simple texts in a variety of ways to demonstrate understanding",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "MLE-CRT-01",
+            "name": "Creating texts",
+            "description": "creates simple texts by reproducing culturally appropriate modelled vocabulary",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      },
+      {
+        "name": "PDHPE",
+        "code": "PHE",
+        "description": "Learning area for PDHPE",
+        "outcomes": [
+          {
+            "code": "PHE-MSP-01",
+            "name": "Movement skill and physical activity",
+            "description": "demonstrates fundamental movement skills and participates with others in physical activities",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "PHE-RRS-01",
+            "name": "Respectful relationships and safety",
+            "description": "identifies how respectful relationships and safety contribute to wellbeing",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "PHE-IHW-01",
+            "name": "Identity, health and wellbeing",
+            "description": "identifies factors that contribute to identity, health and wellbeing",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "PHE-SMI-01",
+            "name": "Self-management and interpersonal skills",
+            "description": "identifies and demonstrates self-management and interpersonal skills",
+            "grade_level": "Early Stage 1"
+          }
+        ]
+      },
+      {
+        "name": "Science and Technology",
+        "code": "STE",
+        "description": "Learning area for Science and Technology",
+        "outcomes": [
+          {
+            "code": "STE-SCI-01",
+            "name": "Science",
+            "description": "identifies and describes characteristics of living things, properties of materials, and movement",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "STE-PQU-01",
+            "name": "Science Inquiry",
+            "description": "poses questions based on observations to collect data",
+            "grade_level": "Early Stage 1"
+          },
+          {
+            "code": "STE-DDT-01",
+            "name": "Technology",
+            "description": "identifies and uses technologies to make products to address user needs or opportunities",
+            "grade_level": "Early Stage 1"
+          }
+        ]
       }
     ]
   }
