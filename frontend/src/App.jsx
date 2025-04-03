@@ -5,6 +5,7 @@ import LoginPage from './pages/auth/LoginPage'
 import StudentSelection from './pages/students/StudentSelection'
 import StudentProgressPage from './pages/progress/StudentProgressPage'
 import SubjectContentPage from './pages/progress/SubjectContentPage'
+import LearningOutcomePage from './pages/progress/LearningOutcomePage'
 import ContentCreatePage from './pages/content/ContentCreatePage'
 import AdminPage from './pages/admin/AdminPage'
 import BottomNav from './components/navigation/BottomNav'
@@ -88,6 +89,17 @@ function App() {
                 isAuthenticatedOverride || isAuthenticated ? 
                   <>
                     <SubjectContentPage />
+                    <BottomNav />
+                  </> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
+            <Route 
+              path="/students/:studentId/learning-outcomes/:learningOutcomeId" 
+              element={
+                isAuthenticatedOverride || isAuthenticated ? 
+                  <>
+                    <LearningOutcomePage />
                     <BottomNav />
                   </> : 
                   <Navigate to="/login" replace />

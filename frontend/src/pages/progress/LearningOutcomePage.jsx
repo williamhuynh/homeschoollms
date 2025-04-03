@@ -1,4 +1,5 @@
-import { Box, VStack, IconButton, Text, Image, SimpleGrid, Container, Spinner, Center } from '@chakra-ui/react'
+import { Box, IconButton, Text, Container, Spinner, Center } from '@chakra-ui/react'
+import styles from '../../styles/LearningOutcomes.module.css'
 import { ArrowLeft } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
@@ -108,41 +109,27 @@ const LearningOutcomePage = () => {
           {learningOutcome.description}
         </Text>
 
-        <SimpleGrid 
-          columns={2} 
-          spacing={3} 
-          pb={4}
-        >
+        <div className={styles.outcomeGrid}>
           {learningOutcome.evidence.map((evidence) => (
-            <Box 
+            <div 
               key={evidence.id} 
+              className={styles.outcomeCard}
               onClick={() => console.log('Open evidence:', evidence.id)}
-              cursor="pointer"
             >
-              <Box position="relative" paddingTop="133.33%">
-                <Image
-                  src={evidence.thumbnail || 'https://placehold.co/300x400'}
-                  alt={evidence.description}
-                  position="absolute"
-                  top={0}
-                  left={0}
-                  w="100%"
-                  h="100%"
-                  objectFit="cover"
-                  borderRadius="lg"
+              <div className={styles.imageContainer}>
+                <img 
+                  className={styles.image}
+                  src={evidence.thumbnail || 'https://placehold.co/300x400'} 
+                  alt={evidence.description} 
                 />
-              </Box>
-              <Box p={2}>
-                <Text fontSize="sm" fontWeight="semibold" noOfLines={2}>
-                  {new Date(evidence.date).toLocaleDateString()}
-                </Text>
-                <Text fontSize="xs" color="gray.500" noOfLines={2}>
-                  {evidence.description}
-                </Text>
-              </Box>
-            </Box>
+              </div>
+              <div className={styles.contentContainer}>
+                <h3 className={styles.title}>{new Date(evidence.date).toLocaleDateString()}</h3>
+                <p className={styles.description}>{evidence.description}</p>
+              </div>
+            </div>
           ))}
-        </SimpleGrid>
+        </div>
       </Box>
     </Container>
   )

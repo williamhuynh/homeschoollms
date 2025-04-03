@@ -1,5 +1,6 @@
 import { Box, VStack, IconButton, Text, Container, Spinner, Center } from '@chakra-ui/react'
 import { ArrowLeft } from 'react-feather'
+import styles from '../../styles/LearningOutcomes.module.css'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getStudentBySlug } from '../../services/api'
@@ -107,21 +108,29 @@ const SubjectContentPage = () => {
         </Text>
       </Box>
 
-      <VStack spacing={4} mt="80px" p={4}>
-        {outcomes.map((outcome) => (
-          <Box
-            key={outcome.code}
-            p={4}
-            borderRadius="lg"
-            border="1px"
-            borderColor="gray.200"
-            width="100%"
-          >
-            <Text fontWeight="bold">{outcome.name}</Text>
-            <Text fontSize="sm" color="gray.600">{outcome.description}</Text>
-          </Box>
-        ))}
-      </VStack>
+      <Box mt="80px">
+        <div className={styles.outcomeGrid}>
+          {outcomes.map((outcome) => (
+            <div 
+              key={outcome.code} 
+              className={styles.outcomeCard}
+              onClick={() => navigate(`/students/${studentId}/learning-outcomes/${outcome.code}`)}
+            >
+              <div className={styles.imageContainer}>
+                <img 
+                  className={styles.image}
+                  src={outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome'} 
+                  alt={outcome.name} 
+                />
+              </div>
+              <div className={styles.contentContainer}>
+                <h3 className={styles.title}>{outcome.name}</h3>
+                <p className={styles.description}>{outcome.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Box>
     </Container>
   )
 }
