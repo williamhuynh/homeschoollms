@@ -12,6 +12,10 @@ const LearningOutcomePage = () => {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    setLoading(true)
+  }, [learningOutcomeId])
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const data = await getLearningOutcome(studentId, learningOutcomeId)
