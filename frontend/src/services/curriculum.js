@@ -1,9 +1,19 @@
+let curriculumInstance = null;
+
 export class NSWCurriculum {
   constructor() {
-    this.data = null;
+    if (!curriculumInstance) {
+      this.data = null;
+      this.isLoading = false;
+      curriculumInstance = this;
+    }
+    return curriculumInstance;
   }
 
   async load() {
+    if (this.data || this.isLoading) return;
+    
+    this.isLoading = true;
     try {
       const response = await fetch('/nsw_curriculum.json');
       if (!response.ok) {
@@ -12,6 +22,8 @@ export class NSWCurriculum {
       this.data = await response.json();
     } catch (err) {
       throw new Error(`Failed to load curriculum: ${err.message}`);
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -42,9 +54,7 @@ export class NSWCurriculum {
     if (!stage) {
       return [];
     }
-    const stageData = this.data.find(s => s.stage === stage);
-    console.log('Stage data:', stageData);
-    return stageData ? stageData.subjects : [];
+    return this.data.find(s => s.stage === stage)?.subjects || [];
   }
 
   getOutcomes(stage, subjectCode) {
@@ -55,3 +65,5 @@ export class NSWCurriculum {
     return subject ? subject.outcomes : [];
   }
 }
+
+export const curriculumService = new NSWCurriculum();

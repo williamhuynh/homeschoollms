@@ -3,6 +3,7 @@ import { ArrowLeft } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getLearningOutcome } from '../../services/api'
+import { curriculumService } from '../../services/curriculum'
 
 const LearningOutcomePage = () => {
   const navigate = useNavigate()
@@ -18,8 +19,12 @@ const LearningOutcomePage = () => {
   useEffect(() => {
     let isMounted = true
     
-    const fetchData = async () => {
+    const initializeData = async () => {
       try {
+        // Load curriculum data once
+        await curriculumService.load()
+        
+        // Fetch learning outcome data
         const data = await getLearningOutcome(studentId, learningOutcomeId)
         if (isMounted) {
           setLearningOutcome(data)
@@ -28,14 +33,14 @@ const LearningOutcomePage = () => {
         }
       } catch (err) {
         if (isMounted) {
-          console.error('Error fetching learning outcome:', err)
-          setError('Failed to load learning outcome. Please try again.')
+          console.error('Error:', err)
+          setError('Failed to load data. Please try again.')
           // Keep loading true to show spinner
         }
       }
     }
     
-    fetchData()
+    initializeData()
     
     return () => {
       isMounted = false
