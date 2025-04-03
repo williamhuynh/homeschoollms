@@ -134,7 +134,10 @@ const LearningOutcomePage = () => {
       </Box>
 
       <Box mt="80px" p={4}>
-        <Text fontSize="lg" mb={4}>
+        <Text fontSize="lg" fontWeight="bold" mb={2}>
+          Learning Outcome Description:
+        </Text>
+        <Text fontSize="md" mb={4}>
           {learningOutcome.description}
         </Text>
 
