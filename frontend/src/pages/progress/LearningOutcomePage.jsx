@@ -32,10 +32,18 @@ const LearningOutcomePage = () => {
           throw new Error('Missing stage or subject information')
         }
         
+        console.log('Searching for outcome:', {
+          stage,
+          subject: subject.code,
+          learningOutcomeId
+        })
         const outcomes = curriculum.getOutcomes(stage, subject.code)
-        const outcome = outcomes.find(o => o.code === learningOutcomeId)
+        console.log('Available outcomes:', outcomes)
+        const outcome = outcomes.find(o => 
+          o.code.toLowerCase() === learningOutcomeId.toLowerCase()
+        )
         if (!outcome) {
-          throw new Error('Learning outcome not found in curriculum')
+          throw new Error(`Learning outcome ${learningOutcomeId} not found in curriculum for ${subject.name}`)
         }
         
         if (isMounted) {
