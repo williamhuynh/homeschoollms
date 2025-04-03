@@ -39,3 +39,11 @@ async def update_outcome_mastery(
     current_user: UserInDB = Depends(get_current_user)
 ):
     return await LearningOutcomeService.update_mastery_status(student_id, outcome_id, is_mastered)
+
+@router.get("/learning-outcomes/{student_id}/{learning_outcome_id}")
+async def get_student_learning_outcome(
+    student_id: str,
+    learning_outcome_id: str,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    return await LearningOutcomeService.get_student_learning_outcome(student_id, learning_outcome_id)

@@ -85,3 +85,23 @@ class LearningOutcomeService:
         # Get updated student record
         student = await db.students.find_one({"_id": ObjectId(student_id)})
         return {"mastered": is_mastered, "outcome_id": outcome_id}
+
+    @staticmethod
+    async def get_student_learning_outcome(student_id: str, learning_outcome_id: str):
+        db = Database.get_db()
+        
+        # Get the learning outcome
+        outcome = await db.learning_outcomes.find_one({"_id": ObjectId(learning_outcome_id)})
+        if not outcome:
+            raise HTTPException(status_code=404, detail="Learning outcome not found")
+            
+        # Get student's evidence for this outcome
+        evidence = await db.student_evidence.find({
+            "student_id": ObjectId(student_id),
+            "learning_outcome_id": ObjectId(learning_outcome_id)
+        }).to_list(None)
+        
+        return {
+            **outcome,
+            "evidence": evidence or []
+        }
