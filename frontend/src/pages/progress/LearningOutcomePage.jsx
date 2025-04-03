@@ -133,7 +133,7 @@ const LearningOutcomePage = () => {
         </VStack>
       </Box>
 
-      <Box mt="80px" p={4}>
+      <Box mt="30%" p={4}>
         <Text fontSize="lg" fontWeight="bold" mb={2}>
           Learning Outcome Description:
         </Text>
