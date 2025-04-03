@@ -4,7 +4,7 @@ import { ArrowLeft } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useState, useEffect, useContext } from 'react'
 import { NSWCurriculum } from '../../services/curriculum'
-import { StudentsContext } from '../../contexts/StudentsContext'
+import { useStudents } from '../../contexts/StudentsContext'
 
 const LearningOutcomePage = () => {
   const navigate = useNavigate()
@@ -12,7 +12,7 @@ const LearningOutcomePage = () => {
   const [learningOutcome, setLearningOutcome] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const { students } = useContext(StudentsContext)
+  const { students } = useStudents()
   const student = students.find(s => s._id === studentId)
 
   useEffect(() => {
