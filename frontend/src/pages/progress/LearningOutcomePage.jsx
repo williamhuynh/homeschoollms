@@ -1,4 +1,4 @@
-import { Box, IconButton, Text, Container, Spinner, Center } from '@chakra-ui/react'
+import { Box, IconButton, Text, Container, Spinner, Center, VStack } from '@chakra-ui/react'
 import styles from '../../styles/LearningOutcomes.module.css'
 import { ArrowLeft } from 'react-feather'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
