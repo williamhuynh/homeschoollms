@@ -21,8 +21,15 @@ const LearningOutcomePage = () => {
         const curriculum = new NSWCurriculum()
         await curriculum.load()
         
-        // Get outcome from curriculum data
-        const outcome = curriculum.getOutcomeByCode(learningOutcomeId)
+        // Get outcomes for the subject
+        const stage = location.state?.stage || curriculum.getStageForGrade(student?.grade_level)
+        const subject = location.state?.subject
+        if (!stage || !subject) {
+          throw new Error('Missing stage or subject information')
+        }
+        
+        const outcomes = curriculum.getOutcomes(stage, subject.code)
+        const outcome = outcomes.find(o => o.code === learningOutcomeId)
         if (!outcome) {
           throw new Error('Learning outcome not found in curriculum')
         }
@@ -32,7 +39,7 @@ const LearningOutcomePage = () => {
             code: outcome.code,
             name: outcome.name,
             description: outcome.description,
-            grade_level: outcome.grade_level
+            grade_level: student?.grade_level
           })
           setError(null)
           setLoading(false)

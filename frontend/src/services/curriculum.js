@@ -64,6 +64,7 @@ export class NSWCurriculum {
     const subject = this.getSubjects(stage).find(s => s.code === subjectCode);
     return subject ? subject.outcomes : [];
   }
+
 }
 
 export const curriculumService = new NSWCurriculum();
