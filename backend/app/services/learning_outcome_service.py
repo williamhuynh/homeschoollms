@@ -90,15 +90,22 @@ class LearningOutcomeService:
     async def get_student_learning_outcome(student_id: str, learning_outcome_id: str):
         db = Database.get_db()
         
-        # Get the learning outcome
-        outcome = await db.learning_outcomes.find_one({"_id": ObjectId(learning_outcome_id)})
-        if not outcome:
-            raise HTTPException(status_code=404, detail="Learning outcome not found")
+        # Try to find by ObjectId first
+        try:
+            outcome = await db.learning_outcomes.find_one({"_id": ObjectId(learning_outcome_id)})
+        except:
+            outcome = None
             
+        # If not found by ObjectId, try to find by code
+        if not outcome:
+            outcome = await db.learning_outcomes.find_one({"code": learning_outcome_id})
+            if not outcome:
+                raise HTTPException(status_code=404, detail="Learning outcome not found")
+                
         # Get student's evidence for this outcome
         evidence = await db.student_evidence.find({
             "student_id": ObjectId(student_id),
-            "learning_outcome_id": ObjectId(learning_outcome_id)
+            "learning_outcome_id": outcome["_id"]
         }).to_list(None)
         
         return {
