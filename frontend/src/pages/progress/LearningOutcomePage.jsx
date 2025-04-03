@@ -3,8 +3,7 @@ import styles from '../../styles/LearningOutcomes.module.css'
 import { ArrowLeft } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { getLearningOutcome } from '../../services/api'
-import { curriculumService } from '../../services/curriculum'
+import { NSWCurriculum } from '../../services/curriculum'
 
 const LearningOutcomePage = () => {
   const navigate = useNavigate()
@@ -14,29 +13,35 @@ const LearningOutcomePage = () => {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    setLoading(true)
-  }, [learningOutcomeId])
-
-  useEffect(() => {
     let isMounted = true
     
     const initializeData = async () => {
       try {
-        // Load curriculum data once
-        await curriculumService.load()
+        // Initialize curriculum
+        const curriculum = new NSWCurriculum()
+        await curriculum.load()
         
-        // Fetch learning outcome data
-        const data = await getLearningOutcome(studentId, learningOutcomeId)
+        // Get outcome from curriculum data
+        const outcome = curriculum.getOutcomeByCode(learningOutcomeId)
+        if (!outcome) {
+          throw new Error('Learning outcome not found in curriculum')
+        }
+        
         if (isMounted) {
-          setLearningOutcome(data)
+          setLearningOutcome({
+            code: outcome.code,
+            name: outcome.name,
+            description: outcome.description,
+            grade_level: outcome.grade_level
+          })
           setError(null)
           setLoading(false)
         }
       } catch (err) {
         if (isMounted) {
           console.error('Error:', err)
-          setError('Failed to load data. Please try again.')
-          // Keep loading true to show spinner
+          setError('Failed to load curriculum data')
+          setLoading(false)
         }
       }
     }
@@ -46,7 +51,7 @@ const LearningOutcomePage = () => {
     return () => {
       isMounted = false
     }
-  }, [studentId, learningOutcomeId])
+  }, [learningOutcomeId])
 
   if (loading) {
     return (
@@ -110,25 +115,19 @@ const LearningOutcomePage = () => {
         </Text>
 
         <div className={styles.outcomeGrid}>
-          {learningOutcome.evidence.map((evidence) => (
-            <div 
-              key={evidence.id} 
-              className={styles.outcomeCard}
-              onClick={() => console.log('Open evidence:', evidence.id)}
-            >
-              <div className={styles.imageContainer}>
-                <img 
-                  className={styles.image}
-                  src={evidence.thumbnail || 'https://placehold.co/300x400'} 
-                  alt={evidence.description} 
-                />
-              </div>
-              <div className={styles.contentContainer}>
-                <h3 className={styles.title}>{new Date(evidence.date).toLocaleDateString()}</h3>
-                <p className={styles.description}>{evidence.description}</p>
-              </div>
+          <div className={styles.outcomeCard}>
+            <div className={styles.imageContainer}>
+              <img 
+                className={styles.image}
+                src="https://placehold.co/300x400?text=No+Evidence+Yet" 
+                alt="Placeholder" 
+              />
             </div>
-          ))}
+            <div className={styles.contentContainer}>
+              <h3 className={styles.title}>No Evidence Recorded</h3>
+              <p className={styles.description}>Add evidence to track progress</p>
+            </div>
+          </div>
         </div>
       </Box>
     </Container>
