@@ -34,8 +34,9 @@ const SubjectContentPage = () => {
         
         // Get outcomes for the selected subject
         if (student?.grade_level && subjectData) {
+          const stage = curriculum.getStageForGrade(student.grade_level)
           const subjectOutcomes = curriculum.getOutcomes(
-            student.grade_level,
+            stage,
             subjectData.code
           )
           setOutcomes(subjectOutcomes)
