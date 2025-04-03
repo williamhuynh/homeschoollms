@@ -114,7 +114,12 @@ const SubjectContentPage = () => {
             <div 
               key={outcome.code} 
               className={styles.outcomeCard}
-              onClick={() => navigate(`/students/${studentId}/learning-outcomes/${outcome.code}`)}
+              onClick={() => navigate(`/students/${studentId}/learning-outcomes/${outcome.code}`, {
+                state: {
+                  stage: curriculum.getStageForGrade(student.grade_level),
+                  subject: subjectData
+                }
+              })}
             >
               <div className={styles.imageContainer}>
                 <img 
