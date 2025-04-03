@@ -16,20 +16,30 @@ const LearningOutcomePage = () => {
   }, [learningOutcomeId])
 
   useEffect(() => {
+    let isMounted = true
+    
     const fetchData = async () => {
       try {
         const data = await getLearningOutcome(studentId, learningOutcomeId)
-        setLearningOutcome(data)
-        setError(null)
+        if (isMounted) {
+          setLearningOutcome(data)
+          setError(null)
+          setLoading(false)
+        }
       } catch (err) {
-        console.error('Error fetching learning outcome:', err)
-        setError('Failed to load learning outcome')
-      } finally {
-        setLoading(false)
+        if (isMounted) {
+          console.error('Error fetching learning outcome:', err)
+          setError('Failed to load learning outcome. Please try again.')
+          // Keep loading true to show spinner
+        }
       }
     }
     
     fetchData()
+    
+    return () => {
+      isMounted = false
+    }
   }, [studentId, learningOutcomeId])
 
   if (loading) {
