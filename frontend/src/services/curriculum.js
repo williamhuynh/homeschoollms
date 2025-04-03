@@ -61,7 +61,11 @@ export class NSWCurriculum {
     if (!this.data) {
       throw new Error('Curriculum data not loaded');
     }
-    const subject = this.getSubjects(stage).find(s => s.code === subjectCode);
+    const stageData = this.data.find(s => s.stage === stage);
+    if (!stageData) {
+      return [];
+    }
+    const subject = stageData.subjects.find(s => s.code === subjectCode);
     return subject ? subject.outcomes : [];
   }
 
