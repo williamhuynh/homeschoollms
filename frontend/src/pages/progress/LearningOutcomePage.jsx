@@ -2,8 +2,9 @@ import { Box, IconButton, Text, Container, Spinner, Center } from '@chakra-ui/re
 import styles from '../../styles/LearningOutcomes.module.css'
 import { ArrowLeft } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { NSWCurriculum } from '../../services/curriculum'
+import { StudentsContext } from '../../contexts/StudentsContext'
 
 const LearningOutcomePage = () => {
   const navigate = useNavigate()
@@ -11,6 +12,8 @@ const LearningOutcomePage = () => {
   const [learningOutcome, setLearningOutcome] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const { students } = useContext(StudentsContext)
+  const student = students.find(s => s._id === studentId)
 
   useEffect(() => {
     let isMounted = true
@@ -22,7 +25,7 @@ const LearningOutcomePage = () => {
         await curriculum.load()
         
         // Get outcomes for the subject
-        const stage = location.state?.stage || curriculum.getStageForGrade(student?.grade_level)
+        const stage = location.state?.stage || curriculum.getStageForGrade(student?.grade_level || 'Year 1')
         const subject = location.state?.subject
         if (!stage || !subject) {
           throw new Error('Missing stage or subject information')
