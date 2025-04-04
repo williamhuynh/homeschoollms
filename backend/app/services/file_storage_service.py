@@ -6,6 +6,16 @@ from ..config import settings
 
 class FileStorageService:
     def __init__(self):
+        import logging
+        logging.basicConfig(level=logging.ERROR)
+        logger = logging.getLogger(__name__)
+        
+        # Log the environment variables
+        logger.error(f"BACKBLAZE_ENDPOINT: {os.getenv('BACKBLAZE_ENDPOINT')}")
+        logger.error(f"BACKBLAZE_KEY_ID: {os.getenv('BACKBLAZE_KEY_ID')}")
+        logger.error(f"BACKBLAZE_APPLICATION_KEY: {'*****' if os.getenv('BACKBLAZE_APPLICATION_KEY') else None}")
+        logger.error(f"BACKBLAZE_BUCKET_NAME: {os.getenv('BACKBLAZE_BUCKET_NAME')}")
+        
         self.s3 = boto3.client(
             's3',
             endpoint_url=os.getenv('BACKBLAZE_ENDPOINT'),
@@ -14,6 +24,9 @@ class FileStorageService:
             config=Config(signature_version='s3v4')
         )
         self.bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME')
+        
+        # Log the s3 client
+        logger.error(f"S3 client: {self.s3}")
 
     async def upload_file(self, file: UploadFile, file_path: str):
         import logging
@@ -68,17 +81,25 @@ class FileStorageService:
                 logger.error("file_data is empty")
                 raise Exception("file_data is empty")
 
-            # Instead of resetting the file position and using upload_fileobj,
-            # use put_object with the file data we've already read
-            logger.error("Using put_object instead of upload_fileobj")
+            # Try a different approach: write the file data to a temporary file and use upload_file
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file.write(file_data)
+                temp_file_path = temp_file.name
             
-            # Upload to Backblaze B2 using put_object with file_data directly
-            self.s3.put_object(
+            logger.error(f"Temporary file path: {temp_file_path}")
+            
+            # Upload to Backblaze B2 using upload_file
+            logger.error("Using upload_file instead of put_object")
+            self.s3.upload_file(
+                Filename=temp_file_path,
                 Bucket=self.bucket_name,
                 Key=file_path,
-                Body=file_data,  # Pass file_data directly
-                ContentType=file.content_type
+                ExtraArgs={'ContentType': file.content_type}
             )
+            
+            # Clean up the temporary file
+            os.unlink(temp_file_path)
 
             # Log the current position of the file.file object after upload
             logger.error(f"Current position of file.file after upload: {file.file.tell()}")
