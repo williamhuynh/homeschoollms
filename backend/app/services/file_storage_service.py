@@ -30,13 +30,37 @@ class FileStorageService:
                 logger.error("file.file is None")
                 raise Exception("file.file is None")
 
+            # Log the type of file.file
+            logger.error(f"Type of file.file: {type(file.file)}")
+
+            # Log the seekable status of file.file
+            logger.error(f"Is file.file seekable? {file.file.seekable()}")
+
+            # Log the current position of the file.file object
+            logger.error(f"Current position of file.file before seek: {file.file.tell()}")
+
             # Check if file.file is seekable and seek to the beginning if it is
             if file.file.seekable():
                 file.file.seek(0)
+                logger.error(f"Seeked file.file to position: {file.file.tell()}")
 
-            # Log the current position of the file file object
-            logger.error(f"Current position of file.file: {file.file.tell()}")
+            # Log the file path
+            logger.error(f"Generated file path: {file_path}")
 
+            # Log the file content type
+            logger.error(f"File content type: {file.content_type}")
+
+            # Log the file size
+            logger.error(f"File size: {file.size}")
+
+            # Log the file data before upload
+            file_data = file.file.read()
+            logger.error(f"File data length: {len(file_data)}")
+
+            # Reset file position to the beginning
+            file.file.seek(0)
+
+            # Upload to Backblaze B2
             self.s3.upload_fileobj(
                 file.file,
                 self.bucket_name,
@@ -44,7 +68,7 @@ class FileStorageService:
                 ExtraArgs={'ContentType': file.content_type}
             )
 
-            # Log the current position of the file file object after upload
+            # Log the current position of the file.file object after upload
             logger.error(f"Current position of file.file after upload: {file.file.tell()}")
 
             return f"{self.bucket_name}/{file_path}"
