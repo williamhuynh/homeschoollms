@@ -21,9 +21,16 @@ class FileStorageService:
         logger = logging.getLogger(__name__)
 
         try:
-            # Log the file object and its file attribute
+            # Log the file object and its file attribute before passing to upload_fileobj
             logger.error(f"Received file object: {file}")
             logger.error(f"Received file.file: {file.file}")
+
+            # Check if file.file is seekable and seek to the beginning if it is
+            if file.file.seekable():
+                file.file.seek(0)
+
+            # Log the current position of the file file object
+            logger.error(f"Current position of file.file: {file.file.tell()}")
 
             self.s3.upload_fileobj(
                 file.file,
@@ -31,6 +38,10 @@ class FileStorageService:
                 file_path,
                 ExtraArgs={'ContentType': file.content_type}
             )
+
+            # Log the current position of the file file object after upload
+            logger.error(f"Current position of file.file after upload: {file.file.tell()}")
+
             return f"{self.bucket_name}/{file_path}"
         except Exception as e:
             logger.error(f"Error uploading file: {str(e)}")
