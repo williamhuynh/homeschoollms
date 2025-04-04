@@ -1,12 +1,14 @@
-import { Box, IconButton, Text, Container, Spinner, Center, VStack } from '@chakra-ui/react'
+import { Box, IconButton, Text, Container, Spinner, Center, VStack, useDisclosure } from '@chakra-ui/react'
 import styles from '../../styles/LearningOutcomes.module.css'
 import { ArrowLeft } from 'react-feather'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useState, useEffect, useContext } from 'react'
 import { NSWCurriculum } from '../../services/curriculum'
 import { useStudents } from '../../contexts/StudentsContext'
+import FileUploadModal from '../../components/common/FileUploadModal'
 
 const LearningOutcomePage = () => {
+  const { isOpen, onOpen, onClose } = useDisclosure()
   const navigate = useNavigate()
   const { studentId, learningOutcomeId } = useParams()
   const [learningOutcome, setLearningOutcome] = useState(null)
@@ -142,7 +144,7 @@ const LearningOutcomePage = () => {
         </Text>
 
         <div className={styles.outcomeGrid}>
-          <div className={styles.outcomeCard}>
+          <div className={styles.outcomeCard} onClick={onOpen}>
             <div className={styles.imageContainer}>
               <img 
                 className={styles.image}
@@ -157,6 +159,14 @@ const LearningOutcomePage = () => {
           </div>
         </div>
       </Box>
+      <FileUploadModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onSubmit={(data) => {
+          console.log('Uploading evidence:', data)
+          // TODO: Implement actual upload logic
+        }}
+      />
     </Container>
   )
 }
