@@ -56,17 +56,27 @@ class FileStorageService:
             # Log the file data before upload
             file_data = file.file.read()
             logger.error(f"File data length: {len(file_data)}")
+            logger.error(f"File data type: {type(file_data)}")
+            
+            # Check if file_data is None
+            if file_data is None:
+                logger.error("file_data is None")
+                raise Exception("file_data is None")
+                
+            # Check if file_data is empty
+            if len(file_data) == 0:
+                logger.error("file_data is empty")
+                raise Exception("file_data is empty")
 
             # Instead of resetting the file position and using upload_fileobj,
             # use put_object with the file data we've already read
             logger.error("Using put_object instead of upload_fileobj")
             
-            # Upload to Backblaze B2 using put_object
-            from io import BytesIO
+            # Upload to Backblaze B2 using put_object with file_data directly
             self.s3.put_object(
                 Bucket=self.bucket_name,
                 Key=file_path,
-                Body=BytesIO(file_data),
+                Body=file_data,  # Pass file_data directly
                 ContentType=file.content_type
             )
 
