@@ -58,6 +58,10 @@ async def upload_evidence(
     file: UploadFile = File(...),
     current_user: UserInDB = Depends(get_current_user)
 ):
+    import logging
+    logging.basicConfig(level=logging.ERROR)
+    logger = logging.getLogger(__name__)
+
     try:
         # Generate unique file path
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -70,4 +74,5 @@ async def upload_evidence(
         # TODO: Store file reference in database
         return {"message": "File uploaded successfully", "file_url": file_url}
     except Exception as e:
+        logger.error(f"Error uploading evidence: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
