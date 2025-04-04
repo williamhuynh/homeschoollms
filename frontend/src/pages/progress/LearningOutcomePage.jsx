@@ -74,6 +74,9 @@ const LearningOutcomePage = () => {
     }
   }, [learningOutcomeId])
 
+  console.log('Student ID:', studentId)
+  console.log('Learning Outcome ID:', learningOutcomeId)
+
   if (loading) {
     return (
       <Container maxW="container.sm" p={0}>

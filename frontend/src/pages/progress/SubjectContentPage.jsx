@@ -112,28 +112,28 @@ const SubjectContentPage = () => {
       <Box mt="80px">
         <div className={styles.outcomeGrid}>
           {outcomes.map((outcome) => (
-            <div 
-              key={outcome.code} 
-              className={styles.outcomeCard}
-              onClick={() => navigate(`/students/${studentId}/learning-outcomes/${outcome.code}`, {
-                state: {
-                  stage: curriculum.getStageForGrade(student.grade_level),
-                  subject: subjectData
-                }
-              })}
-            >
-              <div className={styles.imageContainer}>
-                <img 
-                  className={styles.image}
-                  src={outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome'} 
-                  alt={outcome.name} 
-                />
+              <div 
+                key={outcome.code} 
+                className={styles.outcomeCard}
+                onClick={() => navigate(`/students/${student._id}/learning-outcomes/${outcome.code}`, {
+                  state: {
+                    stage: curriculum.getStageForGrade(student.grade_level),
+                    subject: subjectData
+                  }
+                })}
+              >
+                <div className={styles.imageContainer}>
+                  <img 
+                    className={styles.image}
+                    src={outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome'} 
+                    alt={outcome.name} 
+                  />
+                </div>
+                <div className={styles.contentContainer}>
+                  <h3 className={styles.title}>{outcome.name}</h3>
+                  <p className={styles.description}>{outcome.description}</p>
+                </div>
               </div>
-              <div className={styles.contentContainer}>
-                <h3 className={styles.title}>{outcome.name}</h3>
-                <p className={styles.description}>{outcome.description}</p>
-              </div>
-            </div>
           ))}
         </div>
       </Box>
