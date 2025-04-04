@@ -20,32 +20,33 @@ const LoginPage = ({ setIsAuthenticated }) => {
     }));
   };
 
-  const handleLogin = async () => {
-    setIsLoading(true);
-    setError('');
+const handleLogin = async () => {
+  setIsLoading(true);
+  setError('');
+  
+  try {
+    // Call login API
+    const response = await login(credentials);
+    console.log('Login API Response:', response);
+   
+    // Store the token in localStorage
+    const token = response.data.token;
+    localStorage.setItem('authToken', token);
+    console.log('Stored Token:', token);
     
-    try {
-      // Call login API
-      const response = await login(credentials);
-      console.log('Login API Response:', response);
-     
-      // Debug: Verify token is stored
-      const token = localStorage.getItem('token');
-      console.log('Stored Token:', token);
-      
-      // Update authentication state
-      setIsAuthenticated(true);
-      navigate('/students');
-    } catch (error) {
-      console.error('Login failed:', error);
-      setError(
-        error.response?.data?.detail || 
-        'Login failed. Please check your credentials and try again.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Update authentication state
+    setIsAuthenticated(true);
+    navigate('/students');
+  } catch (error) {
+    console.error('Login failed:', error);
+    setError(
+      error.response?.data?.detail || 
+      'Login failed. Please check your credentials and try again.'
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
   
   return (
     <Box p={8} maxWidth="400px" mx="auto" mt={16}>
