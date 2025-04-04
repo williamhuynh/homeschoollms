@@ -12,21 +12,22 @@ import {
   Input,
   Textarea,
   Image,
-  Box
+Box,
+Text,
 } from '@chakra-ui/react'
 import { Upload } from 'react-feather'
 
-const FileUploadModal = ({ isOpen, onClose, onSubmit }) => {
+const FileUploadModal = ({ isOpen, onClose, onSubmit, studentId, learningOutcomeId }) => {
   const [selectedFile, setSelectedFile] = useState(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
 
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0]
-    if (file) {
-      setSelectedFile(URL.createObjectURL(file))
-    }
+const handleFileSelect = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    setSelectedFile(file);
   }
+}
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -97,8 +98,7 @@ const FileUploadModal = ({ isOpen, onClose, onSubmit }) => {
 
             {selectedFile && (
               <Box w="full" position="relative" paddingTop="133.33%">
-                <Image
-                  src={selectedFile}
+<Image src={URL.createObjectURL(selectedFile)}
                   alt="Preview"
                   position="absolute"
                   top={0}
