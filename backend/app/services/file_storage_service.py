@@ -16,7 +16,15 @@ class FileStorageService:
         self.bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME')
 
     async def upload_file(self, file: UploadFile, file_path: str):
+        import logging
+        logging.basicConfig(level=logging.ERROR)
+        logger = logging.getLogger(__name__)
+
         try:
+            # Log the file object and its file attribute
+            logger.error(f"Received file object: {file}")
+            logger.error(f"Received file.file: {file.file}")
+
             self.s3.upload_fileobj(
                 file.file,
                 self.bucket_name,
@@ -25,6 +33,7 @@ class FileStorageService:
             )
             return f"{self.bucket_name}/{file_path}"
         except Exception as e:
+            logger.error(f"Error uploading file: {str(e)}")
             raise Exception(f"Failed to upload file: {str(e)}")
 
     def generate_presigned_url(self, file_path: str, expiration=3600):
