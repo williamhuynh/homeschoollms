@@ -57,15 +57,17 @@ class FileStorageService:
             file_data = file.file.read()
             logger.error(f"File data length: {len(file_data)}")
 
-            # Reset file position to the beginning
-            file.file.seek(0)
-
-            # Upload to Backblaze B2
-            self.s3.upload_fileobj(
-                file.file,
-                self.bucket_name,
-                file_path,
-                ExtraArgs={'ContentType': file.content_type}
+            # Instead of resetting the file position and using upload_fileobj,
+            # use put_object with the file data we've already read
+            logger.error("Using put_object instead of upload_fileobj")
+            
+            # Upload to Backblaze B2 using put_object
+            from io import BytesIO
+            self.s3.put_object(
+                Bucket=self.bucket_name,
+                Key=file_path,
+                Body=BytesIO(file_data),
+                ContentType=file.content_type
             )
 
             # Log the current position of the file.file object after upload
