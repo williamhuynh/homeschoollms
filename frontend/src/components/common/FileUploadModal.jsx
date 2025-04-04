@@ -45,7 +45,7 @@ const handleSubmit = async () => {
     const formData = new FormData()
     formData.append('file', selectedFile)
       
-    const token = localStorage.getItem('authToken'); // Assuming the token is stored in localStorage
+const token = localStorage.getItem('token');
     console.log('Token:', token); // Debugging: Log the token to the console
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,

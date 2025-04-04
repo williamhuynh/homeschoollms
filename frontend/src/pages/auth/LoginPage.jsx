@@ -32,7 +32,7 @@ const handleLogin = async () => {
     // Check if the response contains the token
     if (response.data && response.data.token) {
       const token = response.data.token;
-      localStorage.setItem('authToken', token);
+localStorage.setItem('token', token);
       console.log('Stored Token:', token);
     } else {
       console.error('Token not found in response:', response.data);
