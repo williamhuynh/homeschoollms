@@ -46,6 +46,7 @@ const handleSubmit = async () => {
     formData.append('file', selectedFile)
       
     const token = localStorage.getItem('authToken'); // Assuming the token is stored in localStorage
+    console.log('Token:', token); // Debugging: Log the token to the console
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,
       {
@@ -57,6 +58,7 @@ const handleSubmit = async () => {
       }
     )
 
+    console.log('Response:', response); // Debugging: Log the response to the console
     if (!response.ok) {
       throw new Error('Upload failed')
     }
