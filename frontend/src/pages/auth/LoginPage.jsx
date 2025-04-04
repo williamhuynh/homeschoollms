@@ -29,10 +29,14 @@ const handleLogin = async () => {
     const response = await login(credentials);
     console.log('Login API Response:', response);
    
-    // Store the token in localStorage
-    const token = response.data.token;
-    localStorage.setItem('authToken', token);
-    console.log('Stored Token:', token);
+    // Check if the response contains the token
+    if (response.data && response.data.token) {
+      const token = response.data.token;
+      localStorage.setItem('authToken', token);
+      console.log('Stored Token:', token);
+    } else {
+      console.error('Token not found in response:', response.data);
+    }
     
     // Update authentication state
     setIsAuthenticated(true);
