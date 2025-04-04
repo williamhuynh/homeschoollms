@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from ..services.learning_outcome_service import LearningOutcomeService
+from ..services.file_storage_service import file_storage_service
 from ..models.schemas.learning_outcome import LearningOutcome
 from ..utils.auth_utils import get_current_user, get_current_user_with_org
 from typing import List, Optional
 from ..models.schemas.user import UserInDB
+from datetime import datetime
+import os
 
 router = APIRouter()
 
@@ -47,3 +50,24 @@ async def get_student_learning_outcome(
     current_user: UserInDB = Depends(get_current_user)
 ):
     return await LearningOutcomeService.get_student_learning_outcome(student_id, learning_outcome_id)
+
+@router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
+async def upload_evidence(
+    student_id: str,
+    learning_outcome_id: str,
+    file: UploadFile = File(...),
+    current_user: UserInDB = Depends(get_current_user)
+):
+    try:
+        # Generate unique file path
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        file_extension = os.path.splitext(file.filename)[1]
+        file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}{file_extension}"
+        
+        # Upload to Backblaze B2
+        file_url = await file_storage_service.upload_file(file, file_path)
+        
+        # TODO: Store file reference in database
+        return {"message": "File uploaded successfully", "file_url": file_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

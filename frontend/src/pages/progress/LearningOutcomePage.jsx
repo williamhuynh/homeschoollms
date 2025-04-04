@@ -162,6 +162,8 @@ const LearningOutcomePage = () => {
       <FileUploadModal
         isOpen={isOpen}
         onClose={onClose}
+        studentId={studentId}
+        learningOutcomeId={learningOutcomeId}
         onSubmit={(data) => {
           console.log('Uploading evidence:', data)
           // TODO: Implement actual upload logic

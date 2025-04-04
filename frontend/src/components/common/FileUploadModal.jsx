@@ -28,9 +28,42 @@ const FileUploadModal = ({ isOpen, onClose, onSubmit }) => {
     }
   }
 
-  const handleSubmit = () => {
-    onSubmit({ selectedFile, title, description })
-    onClose()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      setError('Please select a file')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      
+      const response = await fetch(
+        `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const result = await response.json()
+      onSubmit(result)
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Upload failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -92,9 +125,19 @@ const FileUploadModal = ({ isOpen, onClose, onSubmit }) => {
           </VStack>
         </ModalBody>
         <ModalFooter>
-          <Button colorScheme="teal" onClick={handleSubmit}>
-            Upload
+          <Button 
+            colorScheme="teal" 
+            onClick={handleSubmit}
+            isLoading={isLoading}
+            isDisabled={isLoading}
+          >
+            {isLoading ? 'Uploading...' : 'Upload'}
           </Button>
+          {error && (
+            <Text color="red.500" mt={2}>
+              {error}
+            </Text>
+          )}
         </ModalFooter>
       </ModalContent>
     </Modal>
