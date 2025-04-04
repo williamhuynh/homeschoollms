@@ -32,40 +32,40 @@ const handleFileSelect = (event) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const handleSubmit = async () => {
-    if (!selectedFile) {
-      setError('Please select a file')
-      return
-    }
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      
-      const response = await fetch(
-        `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,
-        {
-          method: 'POST',
-          body: formData
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error('Upload failed')
-      }
-
-      const result = await response.json()
-      onSubmit(result)
-      onClose()
-    } catch (err) {
-      setError(err.message || 'Upload failed. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
+const handleSubmit = async () => {
+  if (!selectedFile) {
+    setError('Please select a file')
+    return
   }
+
+  setIsLoading(true)
+  setError(null)
+
+  try {
+    const formData = new FormData()
+    formData.append('file', selectedFile)
+      
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,
+      {
+        method: 'POST',
+        body: formData
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Upload failed')
+    }
+
+    const result = await response.json()
+    onSubmit(result)
+    onClose()
+  } catch (err) {
+    setError(err.message || 'Upload failed. Please try again.')
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
