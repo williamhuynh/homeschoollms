@@ -25,6 +25,11 @@ class FileStorageService:
             logger.error(f"Received file object: {file}")
             logger.error(f"Received file.file: {file.file}")
 
+            # Check if file.file is None
+            if file.file is None:
+                logger.error("file.file is None")
+                raise Exception("file.file is None")
+
             # Check if file.file is seekable and seek to the beginning if it is
             if file.file.seekable():
                 file.file.seek(0)
