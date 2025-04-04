@@ -63,6 +63,9 @@ async def upload_evidence(
     logger = logging.getLogger(__name__)
 
     try:
+        # Log the file object
+        logger.error(f"Received file: {file}")
+
         # Generate unique file path
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         file_extension = os.path.splitext(file.filename)[1]
