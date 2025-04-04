@@ -63,17 +63,52 @@ async def upload_evidence(
     logger = logging.getLogger(__name__)
 
     try:
-        # Log the file object
-        logger.error(f"Received file: {file}")
+        # Log the file object and its file attribute
+        logger.error(f"Received file object: {file}")
+        logger.error(f"Received file.file: {file.file}")
+
+        # Check if file.file is None
+        if file.file is None:
+            logger.error("file.file is None")
+            raise Exception("file.file is None")
+
+        # Log the type of file.file
+        logger.error(f"Type of file.file: {type(file.file)}")
+
+        # Log the seekable status of file.file
+        logger.error(f"Is file.file seekable? {file.file.seekable()}")
+
+        # Log the current position of the file.file object
+        logger.error(f"Current position of file.file before seek: {file.file.tell()}")
+
+        # Check if file.file is seekable and seek to the beginning if it is
+        if file.file.seekable():
+            file.file.seek(0)
+            logger.error(f"Seeked file.file to position: {file.file.tell()}")
 
         # Generate unique file path
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         file_extension = os.path.splitext(file.filename)[1]
         file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}{file_extension}"
         
+        # Log the file path
+        logger.error(f"Generated file path: {file_path}")
+
+        # Log the file content type
+        logger.error(f"File content type: {file.content_type}")
+
+        # Log the file size
+        logger.error(f"File size: {file.size}")
+
         # Upload to Backblaze B2
         file_url = await file_storage_service.upload_file(file, file_path)
         
+        # Log the current position of the file.file object after upload
+        logger.error(f"Current position of file.file after upload: {file.file.tell()}")
+
+        # Log the file URL
+        logger.error(f"File URL: {file_url}")
+
         # TODO: Store file reference in database
         return {"message": "File uploaded successfully", "file_url": file_url}
     except Exception as e:
