@@ -51,6 +51,14 @@ async def get_student_learning_outcome(
 ):
     return await LearningOutcomeService.get_student_learning_outcome(student_id, learning_outcome_id)
 
+@router.get("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
+async def get_evidence(
+    student_id: str,
+    learning_outcome_id: str,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    return await LearningOutcomeService.get_evidence(student_id, learning_outcome_id)
+
 @router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
 async def upload_evidence(
     student_id: str,

@@ -112,3 +112,15 @@ class LearningOutcomeService:
             **outcome,
             "evidence": evidence or []
         }
+
+    @staticmethod
+    async def get_evidence(student_id: str, learning_outcome_id: str):
+        db = Database.get_db()
+        
+        # Get all evidence for this student and learning outcome
+        evidence = await db.student_evidence.find({
+            "student_id": ObjectId(student_id),
+            "learning_outcome_id": ObjectId(learning_outcome_id)
+        }).to_list(None)
+        
+        return evidence or []

@@ -247,4 +247,14 @@ export const getLearningOutcome = async (studentId, learningOutcomeId) => {
   }
 };
 
+export const getEvidenceForLearningOutcome = async (studentId, learningOutcomeId) => {
+  try {
+    const response = await apiToUse.get(`/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting evidence:', error);
+    throw error;
+  }
+};
+
 export default apiToUse;

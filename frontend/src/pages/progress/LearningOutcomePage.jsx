@@ -6,12 +6,14 @@ import { useState, useEffect, useContext } from 'react'
 import { NSWCurriculum } from '../../services/curriculum'
 import { useStudents } from '../../contexts/StudentsContext'
 import FileUploadModal from '../../components/common/FileUploadModal'
+import { getEvidenceForLearningOutcome } from '../../services/api'
 
 const LearningOutcomePage = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const navigate = useNavigate()
   const { studentId, learningOutcomeId } = useParams()
   const [learningOutcome, setLearningOutcome] = useState(null)
+  const [evidence, setEvidence] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { students } = useStudents()
@@ -34,19 +36,16 @@ const LearningOutcomePage = () => {
           throw new Error('Missing stage or subject information')
         }
         
-        console.log('Searching for outcome:', {
-          stage,
-          subject: subject.code,
-          learningOutcomeId
-        })
         const outcomes = curriculum.getOutcomes(stage, subject.code)
-        console.log('Available outcomes:', outcomes)
         const outcome = outcomes.find(o => 
           o.code.toLowerCase() === learningOutcomeId.toLowerCase()
         )
         if (!outcome) {
           throw new Error(`Learning outcome ${learningOutcomeId} not found in curriculum for ${subject.name}`)
         }
+        
+        // Fetch evidence for this learning outcome
+        const evidenceData = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
         
         if (isMounted) {
           setLearningOutcome({
@@ -55,13 +54,14 @@ const LearningOutcomePage = () => {
             description: outcome.description,
             grade_level: student?.grade_level
           })
+          setEvidence(evidenceData)
           setError(null)
           setLoading(false)
         }
       } catch (err) {
         if (isMounted) {
           console.error('Error:', err)
-          setError('Failed to load curriculum data')
+          setError('Failed to load data')
           setLoading(false)
         }
       }
@@ -147,19 +147,52 @@ const LearningOutcomePage = () => {
         </Text>
 
         <div className={styles.outcomeGrid}>
-          <div className={styles.outcomeCard} onClick={onOpen}>
-            <div className={styles.imageContainer}>
-              <img 
-                className={styles.image}
-                src="https://placehold.co/300x400?text=No+Evidence+Yet" 
-                alt="Placeholder" 
-              />
+          {evidence.length === 0 ? (
+            <div className={styles.outcomeCard} onClick={onOpen}>
+              <div className={styles.imageContainer}>
+                <img 
+                  className={styles.image}
+                  src="https://placehold.co/300x400?text=No+Evidence+Yet" 
+                  alt="Placeholder" 
+                />
+              </div>
+              <div className={styles.contentContainer}>
+                <h3 className={styles.title}>No Evidence Recorded</h3>
+                <p className={styles.description}>Add evidence to track progress</p>
+              </div>
             </div>
-            <div className={styles.contentContainer}>
-              <h3 className={styles.title}>No Evidence Recorded</h3>
-              <p className={styles.description}>Add evidence to track progress</p>
-            </div>
-          </div>
+          ) : (
+            <>
+              {evidence.map((item) => (
+                <div className={styles.outcomeCard} key={item._id}>
+                  <div className={styles.imageContainer}>
+                    <img 
+                      className={styles.image}
+                      src={item.fileUrl || 'https://placehold.co/300x400?text=Evidence'} 
+                      alt="Evidence" 
+                    />
+                  </div>
+                  <div className={styles.contentContainer}>
+                    <h3 className={styles.title}>{item.title || 'Evidence'}</h3>
+                    <p className={styles.description}>{item.description || 'Submitted evidence'}</p>
+                  </div>
+                </div>
+              ))}
+              <div className={styles.outcomeCard} onClick={onOpen}>
+                <div className={styles.imageContainer}>
+                  <img 
+                    className={styles.image}
+                    src="https://placehold.co/300x400?text=Add+More+Evidence" 
+                    alt="Add Evidence" 
+                  />
+                </div>
+                <div className={styles.contentContainer}>
+                  <h3 className={styles.title}>Add More Evidence</h3>
+                  <p className={styles.description}>Upload additional evidence</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </Box>
       <FileUploadModal
