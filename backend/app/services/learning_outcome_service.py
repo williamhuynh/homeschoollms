@@ -115,12 +115,24 @@ class LearningOutcomeService:
 
     @staticmethod
     async def get_evidence(student_id: str, learning_outcome_id: str):
-        db = Database.get_db()
+        import logging
+        logger = logging.getLogger(__name__)
         
-        # Get all evidence for this student and learning outcome
-        evidence = await db.student_evidence.find({
-            "student_id": ObjectId(student_id),
-            "learning_outcome_id": ObjectId(learning_outcome_id)
-        }).to_list(None)
-        
-        return evidence or []
+        try:
+            db = Database.get_db()
+            
+            logger.info(f"Converting IDs: student_id={student_id}, learning_outcome_id={learning_outcome_id}")
+            student_obj_id = ObjectId(student_id)
+            outcome_obj_id = ObjectId(learning_outcome_id)
+            
+            logger.info(f"Querying evidence for student {student_obj_id} and outcome {outcome_obj_id}")
+            evidence = await db.student_evidence.find({
+                "student_id": student_obj_id,
+                "learning_outcome_id": outcome_obj_id
+            }).to_list(None)
+            
+            logger.info(f"Found {len(evidence)} evidence records")
+            return evidence or []
+        except Exception as e:
+            logger.error(f"Error in get_evidence: {str(e)}", exc_info=True)
+            raise Exception(f"Failed to fetch evidence: {str(e)}")

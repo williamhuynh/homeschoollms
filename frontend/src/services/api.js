@@ -249,10 +249,20 @@ export const getLearningOutcome = async (studentId, learningOutcomeId) => {
 
 export const getEvidenceForLearningOutcome = async (studentId, learningOutcomeId) => {
   try {
+    console.log('Fetching evidence for:', { studentId, learningOutcomeId });
+    console.log('Current token:', localStorage.getItem('token'));
+    
     const response = await apiToUse.get(`/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`);
+    
+    console.log('Evidence API response:', response);
     return response.data;
   } catch (error) {
-    console.error('Error getting evidence:', error);
+    console.error('Error getting evidence:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: error.config
+    });
     throw error;
   }
 };

@@ -57,7 +57,17 @@ async def get_evidence(
     learning_outcome_id: str,
     current_user: UserInDB = Depends(get_current_user)
 ):
-    return await LearningOutcomeService.get_evidence(student_id, learning_outcome_id)
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"Fetching evidence for student {student_id} and outcome {learning_outcome_id}")
+        evidence = await LearningOutcomeService.get_evidence(student_id, learning_outcome_id)
+        logger.info(f"Found {len(evidence)} evidence records")
+        return evidence
+    except Exception as e:
+        logger.error(f"Error fetching evidence: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
 async def upload_evidence(
