@@ -22,8 +22,9 @@
 
 .imageContainer {
   position: relative;
-  padding-top: 100%; /* 1:1 Aspect Ratio */
+  padding-top: 133%; /* 4:3 Aspect Ratio */
   overflow: hidden;
+  background-color: #f5f5f5;
 }
 
 .image {

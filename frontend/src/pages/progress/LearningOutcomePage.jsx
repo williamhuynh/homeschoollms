@@ -184,13 +184,14 @@ const LearningOutcomePage = () => {
               {evidence.map((item) => (
                 <div className={styles.outcomeCard} key={item._id}>
                   <div className={styles.imageContainer}>
-                    <img 
+                    <img
                       className={styles.image}
-                      src={item.fileUrl || 'https://placehold.co/300x400?text=Evidence'} 
-                      alt="Evidence" 
+                      src={item.fileUrl}
+                      alt="Evidence"
+                      loading="lazy"
+                      aria-label={`Evidence for ${item.title}`}
                       onError={(e) => {
-                        console.error('Image failed to load:', e);
-                        e.target.src = 'https://placehold.co/300x400?text=Evidence';
+                        e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
                       }}
                     />
                   </div>
