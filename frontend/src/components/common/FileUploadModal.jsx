@@ -44,6 +44,8 @@ const handleSubmit = async () => {
   try {
     const formData = new FormData()
     formData.append('file', selectedFile)
+    formData.append('title', title)
+    formData.append('description', description)
       
 const token = localStorage.getItem('token');
     console.log('Token:', token); // Debugging: Log the token to the console
@@ -128,6 +130,17 @@ const token = localStorage.getItem('token');
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
             />
+            <Button 
+              colorScheme="blue" 
+              onClick={() => {
+                // Placeholder for AI description generation
+                setDescription("AI-generated description will appear here. This is a placeholder.");
+              }}
+              isDisabled={!selectedFile}
+              w="full"
+            >
+              Generate Description with AI
+            </Button>
           </VStack>
         </ModalBody>
         <ModalFooter>

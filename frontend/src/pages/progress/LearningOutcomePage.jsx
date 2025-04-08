@@ -214,6 +214,9 @@ const LearningOutcomePage = () => {
                   </div>
                   <div className={styles.contentContainer}>
                     <h3 className={styles.title}>{item.title || item.file_name || 'Evidence'}</h3>
+                    {item.description && (
+                      <p className={styles.description}>{item.description}</p>
+                    )}
                   </div>
                 </div>
               ))}
