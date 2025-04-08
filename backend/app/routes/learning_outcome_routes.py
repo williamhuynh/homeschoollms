@@ -66,8 +66,9 @@ async def get_evidence(
         logger.info(f"Found {len(evidence)} evidence records")
         return evidence
     except Exception as e:
-        logger.error(f"Error fetching evidence: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Error fetching evidence: {str(e)}")
+        # Return empty list instead of raising error to allow upload placeholder
+        return []
 
 @router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
 async def upload_evidence(
@@ -127,7 +128,18 @@ async def upload_evidence(
         # Log the file URL
         logger.error(f"File URL: {file_url}")
 
-        # TODO: Store file reference in database
+        # Store file reference in database
+        db = Database.get_db()
+        evidence_doc = {
+            "student_id": ObjectId(student_id),
+            "learning_outcome_id": ObjectId(learning_outcome_id),
+            "file_url": file_url,
+            "file_name": file.filename,
+            "uploaded_at": datetime.now(),
+            "uploaded_by": ObjectId(current_user.id)
+        }
+        await db.student_evidence.insert_one(evidence_doc)
+        
         return {"message": "File uploaded successfully", "file_url": file_url}
     except Exception as e:
         logger.error(f"Error uploading evidence: {str(e)}")
