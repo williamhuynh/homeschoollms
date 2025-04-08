@@ -184,16 +184,33 @@ const LearningOutcomePage = () => {
               {evidence.map((item) => (
                 <div className={styles.outcomeCard} key={item._id}>
                   <div className={styles.imageContainer}>
+                    {/* Debug: Log the fileUrl */}
+                    {console.log('Rendering image with URL:', item.fileUrl)}
+                    
+                    {/* Try with crossOrigin attribute */}
                     <img
                       className={styles.image}
                       src={item.fileUrl}
                       alt="Evidence"
                       loading="lazy"
+                      crossOrigin="anonymous"
                       aria-label={`Evidence for ${item.title}`}
+                      onLoad={(e) => {
+                        console.log('Image loaded successfully:', item.fileUrl);
+                      }}
                       onError={(e) => {
+                        console.error('Error loading image:', item.fileUrl, e);
                         e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
                       }}
+                      style={{ border: '1px solid #ddd' }}
                     />
+                    
+                    {/* Debug: Add a direct link to the image */}
+                    <div style={{ position: 'absolute', bottom: '5px', right: '5px', background: 'rgba(255,255,255,0.7)', padding: '2px 5px', borderRadius: '3px', fontSize: '10px' }}>
+                      <a href={item.fileUrl} target="_blank" rel="noopener noreferrer">
+                        Open Image
+                      </a>
+                    </div>
                   </div>
                   <div className={styles.contentContainer}>
                     <h3 className={styles.title}>{item.title || item.file_name || 'Evidence'}</h3>

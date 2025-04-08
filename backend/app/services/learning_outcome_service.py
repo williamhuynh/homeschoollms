@@ -132,17 +132,27 @@ class LearningOutcomeService:
                 else:
                     serialized_item[key] = value
             
-            # Ensure the file_url field is properly formatted
-            if "file_url" in serialized_item:
-                file_url = serialized_item["file_url"]
-                # If it doesn't start with http, add the Backblaze URL
-                if not file_url.startswith("http"):
-                    backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                    bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
-                    # Remove bucket name from the beginning if it's there
-                    if file_url.startswith(f"{bucket_name}/"):
-                        file_url = file_url[len(f"{bucket_name}/"):]
-                    serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                # Ensure the file_url field is properly formatted
+                if "file_url" in serialized_item:
+                    file_url = serialized_item["file_url"]
+                    # If it doesn't start with http, generate a presigned URL
+                    if not file_url.startswith("http"):
+                        from ..services.file_storage_service import file_storage_service
+                        
+                        # Remove bucket name from the beginning if it's there
+                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+                        if file_url.startswith(f"{bucket_name}/"):
+                            file_url = file_url[len(f"{bucket_name}/"):]
+                            
+                        # Generate a presigned URL with proper headers
+                        try:
+                            presigned_url = file_storage_service.generate_presigned_url(file_url)
+                            serialized_item["fileUrl"] = presigned_url
+                        except Exception as e:
+                            logger.error(f"Error generating presigned URL: {str(e)}")
+                            # Fallback to direct URL if presigned URL generation fails
+                            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+                            serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
             
             serialized_evidence.append(serialized_item)
         
@@ -205,14 +215,24 @@ class LearningOutcomeService:
                 # Ensure the file_url field is properly formatted
                 if "file_url" in serialized_item:
                     file_url = serialized_item["file_url"]
-                    # If it doesn't start with http, add the Backblaze URL
+                    # If it doesn't start with http, generate a presigned URL
                     if not file_url.startswith("http"):
-                        backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+                        from ..services.file_storage_service import file_storage_service
+                        
                         # Remove bucket name from the beginning if it's there
+                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
                         if file_url.startswith(f"{bucket_name}/"):
                             file_url = file_url[len(f"{bucket_name}/"):]
-                        serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                            
+                        # Generate a presigned URL with proper headers
+                        try:
+                            presigned_url = file_storage_service.generate_presigned_url(file_url)
+                            serialized_item["fileUrl"] = presigned_url
+                        except Exception as e:
+                            logger.error(f"Error generating presigned URL: {str(e)}")
+                            # Fallback to direct URL if presigned URL generation fails
+                            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+                            serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
                 
                 serializable_evidence.append(serialized_item)
             

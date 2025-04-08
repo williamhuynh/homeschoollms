@@ -129,7 +129,12 @@ class FileStorageService:
         try:
             url = self.s3.generate_presigned_url(
                 'get_object',
-                Params={'Bucket': self.bucket_name, 'Key': file_path},
+                Params={
+                    'Bucket': self.bucket_name, 
+                    'Key': file_path,
+                    'ResponseContentType': 'image/png',  # Set appropriate content type
+                    'ResponseContentDisposition': 'inline'  # Display in browser
+                },
                 ExpiresIn=expiration
             )
             return url
