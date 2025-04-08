@@ -4,6 +4,10 @@ from fastapi import HTTPException
 from bson import ObjectId
 from typing import List, Optional
 import os
+import logging
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 class LearningOutcomeService:
     @staticmethod
@@ -194,9 +198,14 @@ class LearningOutcomeService:
                 logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
             
             logger.info(f"Querying evidence for student {student_obj_id} and outcome {outcome_obj_id}")
+            # Only return evidence that is not marked as deleted
             evidence = await db.student_evidence.find({
                 "student_id": student_obj_id,
-                "learning_outcome_id": outcome_obj_id
+                "learning_outcome_id": outcome_obj_id,
+                "$or": [
+                    {"deleted": {"$exists": False}},
+                    {"deleted": False}
+                ]
             }).to_list(None)
             
             logger.info(f"Found {len(evidence)} evidence records")
@@ -240,3 +249,181 @@ class LearningOutcomeService:
         except Exception as e:
             logger.error(f"Error in get_evidence: {str(e)}", exc_info=True)
             raise Exception(f"Failed to fetch evidence: {str(e)}")
+            
+    @staticmethod
+    async def mark_evidence_as_deleted(student_id: str, learning_outcome_id: str, evidence_id: str):
+        """
+        Mark evidence as deleted without removing it from storage.
+        """
+        try:
+            db = Database.get_db()
+            
+            # Convert IDs to ObjectId
+            student_obj_id = ObjectId(student_id)
+            evidence_obj_id = ObjectId(evidence_id)
+            
+            # Try to find outcome by ObjectId first
+            try:
+                outcome_obj_id = ObjectId(learning_outcome_id)
+            except:
+                # If conversion fails, look up by code (case-insensitive)
+                import re
+                code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+                outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+                if not outcome:
+                    raise HTTPException(status_code=404, detail="Learning outcome not found")
+                outcome_obj_id = outcome["_id"]
+            
+            # Find the evidence
+            evidence = await db.student_evidence.find_one({
+                "_id": evidence_obj_id,
+                "student_id": student_obj_id,
+                "learning_outcome_id": outcome_obj_id
+            })
+            
+            if not evidence:
+                raise HTTPException(status_code=404, detail="Evidence not found")
+            
+            # Mark as deleted
+            result = await db.student_evidence.update_one(
+                {"_id": evidence_obj_id},
+                {"$set": {"deleted": True, "deleted_at": datetime.now()}}
+            )
+            
+            if result.modified_count == 0:
+                raise HTTPException(status_code=500, detail="Failed to mark evidence as deleted")
+                
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error marking evidence as deleted: {str(e)}", exc_info=True)
+            raise Exception(f"Failed to mark evidence as deleted: {str(e)}")
+    
+    @staticmethod
+    async def generate_evidence_download_url(student_id: str, learning_outcome_id: str, evidence_id: str):
+        """
+        Generate a download URL for the evidence file.
+        """
+        try:
+            db = Database.get_db()
+            
+            # Convert IDs to ObjectId
+            student_obj_id = ObjectId(student_id)
+            evidence_obj_id = ObjectId(evidence_id)
+            
+            # Try to find outcome by ObjectId first
+            try:
+                outcome_obj_id = ObjectId(learning_outcome_id)
+            except:
+                # If conversion fails, look up by code (case-insensitive)
+                import re
+                code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+                outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+                if not outcome:
+                    raise HTTPException(status_code=404, detail="Learning outcome not found")
+                outcome_obj_id = outcome["_id"]
+            
+            # Find the evidence
+            evidence = await db.student_evidence.find_one({
+                "_id": evidence_obj_id,
+                "student_id": student_obj_id,
+                "learning_outcome_id": outcome_obj_id
+            })
+            
+            if not evidence:
+                raise HTTPException(status_code=404, detail="Evidence not found")
+            
+            # Get the file URL
+            file_url = evidence.get("file_url")
+            if not file_url:
+                raise HTTPException(status_code=404, detail="File URL not found")
+            
+            # Generate a download URL with appropriate headers
+            from ..services.file_storage_service import file_storage_service
+            
+            # Remove bucket name from the beginning if it's there
+            bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+            if file_url.startswith(f"{bucket_name}/"):
+                file_url = file_url[len(f"{bucket_name}/"):]
+                
+            # Generate a presigned URL with download headers
+            try:
+                # Use a longer expiration for downloads (1 day)
+                download_url = file_storage_service.generate_presigned_url(
+                    file_url,
+                    expiration=86400,  # 24 hours
+                    content_disposition=f'attachment; filename="{evidence.get("file_name", "download")}"'
+                )
+                return download_url
+            except Exception as e:
+                logger.error(f"Error generating download URL: {str(e)}")
+                # Fallback to direct URL if presigned URL generation fails
+                backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+                return f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+        except Exception as e:
+            logger.error(f"Error generating download URL: {str(e)}", exc_info=True)
+            raise Exception(f"Failed to generate download URL: {str(e)}")
+    
+    @staticmethod
+    async def generate_evidence_share_url(student_id: str, learning_outcome_id: str, evidence_id: str):
+        """
+        Generate a shareable URL for the evidence file.
+        """
+        try:
+            db = Database.get_db()
+            
+            # Convert IDs to ObjectId
+            student_obj_id = ObjectId(student_id)
+            evidence_obj_id = ObjectId(evidence_id)
+            
+            # Try to find outcome by ObjectId first
+            try:
+                outcome_obj_id = ObjectId(learning_outcome_id)
+            except:
+                # If conversion fails, look up by code (case-insensitive)
+                import re
+                code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+                outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+                if not outcome:
+                    raise HTTPException(status_code=404, detail="Learning outcome not found")
+                outcome_obj_id = outcome["_id"]
+            
+            # Find the evidence
+            evidence = await db.student_evidence.find_one({
+                "_id": evidence_obj_id,
+                "student_id": student_obj_id,
+                "learning_outcome_id": outcome_obj_id
+            })
+            
+            if not evidence:
+                raise HTTPException(status_code=404, detail="Evidence not found")
+            
+            # Get the file URL
+            file_url = evidence.get("file_url")
+            if not file_url:
+                raise HTTPException(status_code=404, detail="File URL not found")
+            
+            # Generate a shareable URL with appropriate headers
+            from ..services.file_storage_service import file_storage_service
+            
+            # Remove bucket name from the beginning if it's there
+            bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+            if file_url.startswith(f"{bucket_name}/"):
+                file_url = file_url[len(f"{bucket_name}/"):]
+                
+            # Generate a presigned URL with inline display headers
+            try:
+                # Use a longer expiration for shares (7 days)
+                share_url = file_storage_service.generate_presigned_url(
+                    file_url,
+                    expiration=604800,  # 7 days
+                    content_disposition='inline'
+                )
+                return share_url
+            except Exception as e:
+                logger.error(f"Error generating share URL: {str(e)}")
+                # Fallback to direct URL if presigned URL generation fails
+                backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+                return f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+        except Exception as e:
+            logger.error(f"Error generating share URL: {str(e)}", exc_info=True)
+            raise Exception(f"Failed to generate share URL: {str(e)}")

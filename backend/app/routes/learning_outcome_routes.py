@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response
 from bson import ObjectId
 from ..services.learning_outcome_service import LearningOutcomeService
 from ..services.file_storage_service import file_storage_service
@@ -226,4 +226,64 @@ async def upload_evidence(
         return {"message": "File uploaded successfully", "file_url": file_url}
     except Exception as e:
         logger.error(f"Error uploading evidence: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}")
+async def delete_evidence(
+    student_id: str,
+    learning_outcome_id: str,
+    evidence_id: str,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Mark evidence as deleted without removing it from storage.
+    """
+    try:
+        result = await LearningOutcomeService.mark_evidence_as_deleted(
+            student_id, 
+            learning_outcome_id, 
+            evidence_id
+        )
+        return {"message": "Evidence marked as deleted", "success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}/download")
+async def download_evidence(
+    student_id: str,
+    learning_outcome_id: str,
+    evidence_id: str,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Generate a download URL for the evidence file.
+    """
+    try:
+        download_url = await LearningOutcomeService.generate_evidence_download_url(
+            student_id, 
+            learning_outcome_id, 
+            evidence_id
+        )
+        return {"download_url": download_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}/share")
+async def share_evidence(
+    student_id: str,
+    learning_outcome_id: str,
+    evidence_id: str,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Generate a shareable URL for the evidence file.
+    """
+    try:
+        share_url = await LearningOutcomeService.generate_evidence_share_url(
+            student_id, 
+            learning_outcome_id, 
+            evidence_id
+        )
+        return {"share_url": share_url}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

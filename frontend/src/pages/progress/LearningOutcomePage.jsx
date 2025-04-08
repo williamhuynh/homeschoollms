@@ -6,10 +6,17 @@ import { useState, useEffect, useContext } from 'react'
 import { NSWCurriculum } from '../../services/curriculum'
 import { useStudents } from '../../contexts/StudentsContext'
 import FileUploadModal from '../../components/common/FileUploadModal'
+import ImageViewerModal from '../../components/common/ImageViewerModal'
 import { getEvidenceForLearningOutcome } from '../../services/api'
 
 const LearningOutcomePage = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { 
+    isOpen: isImageViewerOpen, 
+    onOpen: onImageViewerOpen, 
+    onClose: onImageViewerClose 
+  } = useDisclosure()
+  const [selectedImage, setSelectedImage] = useState(null)
   const navigate = useNavigate()
   const { studentId, learningOutcomeId } = useParams()
   const [learningOutcome, setLearningOutcome] = useState(null)
@@ -20,6 +27,24 @@ const LearningOutcomePage = () => {
   const { students } = useStudents()
   const location = useLocation()
   const student = students.find(s => s._id === studentId)
+
+  const handleImageClick = (image) => {
+    setSelectedImage(image)
+    onImageViewerOpen()
+  }
+
+  const handleImageDeleted = async (imageId) => {
+    // Refresh the evidence list after deletion
+    try {
+      setEvidenceLoading(true)
+      const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+      setEvidence(updatedEvidence)
+    } catch (err) {
+      console.error('Error refreshing evidence after deletion:', err)
+    } finally {
+      setEvidenceLoading(false)
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -182,12 +207,12 @@ const LearningOutcomePage = () => {
           ) : (
             <>
               {evidence.map((item) => (
-                <div className={styles.outcomeCard} key={item._id}>
+                <div 
+                  className={styles.outcomeCard} 
+                  key={item._id}
+                  onClick={() => handleImageClick(item)}
+                >
                   <div className={styles.imageContainer}>
-                    {/* Debug: Log the fileUrl */}
-                    {console.log('Rendering image with URL:', item.fileUrl)}
-                    
-                    {/* Try with crossOrigin attribute */}
                     <img
                       className={styles.image}
                       src={item.fileUrl}
@@ -204,13 +229,6 @@ const LearningOutcomePage = () => {
                       }}
                       style={{ border: '1px solid #ddd' }}
                     />
-                    
-                    {/* Debug: Add a direct link to the image */}
-                    <div style={{ position: 'absolute', bottom: '5px', right: '5px', background: 'rgba(255,255,255,0.7)', padding: '2px 5px', borderRadius: '3px', fontSize: '10px' }}>
-                      <a href={item.fileUrl} target="_blank" rel="noopener noreferrer">
-                        Open Image
-                      </a>
-                    </div>
                   </div>
                   <div className={styles.contentContainer}>
                     <h3 className={styles.title}>{item.title || item.file_name || 'Evidence'}</h3>
@@ -255,6 +273,16 @@ const LearningOutcomePage = () => {
             setEvidenceLoading(false)
           }
         }}
+      />
+      
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={isImageViewerOpen}
+        onClose={onImageViewerClose}
+        image={selectedImage}
+        studentId={studentId}
+        learningOutcomeId={learningOutcomeId}
+        onImageDeleted={handleImageDeleted}
       />
     </Container>
   )

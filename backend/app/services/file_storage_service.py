@@ -125,16 +125,18 @@ class FileStorageService:
             logger.error(f"Error uploading file: {str(e)}")
             raise Exception(f"Failed to upload file: {str(e)}")
 
-    def generate_presigned_url(self, file_path: str, expiration=3600):
+    def generate_presigned_url(self, file_path: str, expiration=3600, content_disposition='inline'):
         try:
+            params = {
+                'Bucket': self.bucket_name, 
+                'Key': file_path,
+                'ResponseContentType': 'image/png',  # Set appropriate content type
+                'ResponseContentDisposition': content_disposition  # Can be 'inline' or 'attachment; filename="..."'
+            }
+            
             url = self.s3.generate_presigned_url(
                 'get_object',
-                Params={
-                    'Bucket': self.bucket_name, 
-                    'Key': file_path,
-                    'ResponseContentType': 'image/png',  # Set appropriate content type
-                    'ResponseContentDisposition': 'inline'  # Display in browser
-                },
+                Params=params,
                 ExpiresIn=expiration
             )
             return url

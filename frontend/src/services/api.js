@@ -298,4 +298,41 @@ export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
   }
 };
 
+// Evidence management functions
+export const deleteEvidence = async (studentId, learningOutcomeId, evidenceId) => {
+  try {
+    const response = await apiToUse.delete(
+      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting evidence:', error);
+    throw error;
+  }
+};
+
+export const getEvidenceDownloadUrl = async (studentId, learningOutcomeId, evidenceId) => {
+  try {
+    const response = await apiToUse.get(
+      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}/download`
+    );
+    return response.data.download_url;
+  } catch (error) {
+    console.error('Error getting evidence download URL:', error);
+    throw error;
+  }
+};
+
+export const getEvidenceShareUrl = async (studentId, learningOutcomeId, evidenceId) => {
+  try {
+    const response = await apiToUse.post(
+      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}/share`
+    );
+    return response.data.share_url;
+  } catch (error) {
+    console.error('Error getting evidence share URL:', error);
+    throw error;
+  }
+};
+
 export default apiToUse;
