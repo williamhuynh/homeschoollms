@@ -3,7 +3,7 @@ import { ArrowLeft } from 'react-feather'
 import styles from '../../styles/LearningOutcomes.module.css'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { getStudentBySlug } from '../../services/api'
+import { getStudentBySlug, getLatestEvidenceForOutcomes } from '../../services/api'
 import { NSWCurriculum } from '../../services/curriculum'
 
 const SubjectContentPage = () => {
@@ -16,6 +16,8 @@ const SubjectContentPage = () => {
   const [error, setError] = useState(null)
   const [outcomes, setOutcomes] = useState([])
   const [curriculum, setCurriculum] = useState(null)
+  const [evidenceMap, setEvidenceMap] = useState({})
+  const [evidenceLoading, setEvidenceLoading] = useState(false)
 
   // Initialize curriculum and fetch data
   useEffect(() => {
@@ -52,6 +54,29 @@ const SubjectContentPage = () => {
     
     fetchData()
   }, [studentId, student, curriculum, subjectData])
+  
+  // Fetch latest evidence for all outcomes
+  useEffect(() => {
+    const fetchEvidence = async () => {
+      if (outcomes.length > 0 && student?._id) {
+        setEvidenceLoading(true)
+        try {
+          // Get all outcome codes
+          const outcomeCodes = outcomes.map(outcome => outcome.code)
+          
+          // Fetch latest evidence for each outcome
+          const evidence = await getLatestEvidenceForOutcomes(student._id, outcomeCodes)
+          setEvidenceMap(evidence)
+        } catch (err) {
+          console.error('Error fetching evidence:', err)
+        } finally {
+          setEvidenceLoading(false)
+        }
+      }
+    }
+    
+    fetchEvidence()
+  }, [outcomes, student])
 
   if (loading) {
     return (
@@ -123,11 +148,29 @@ const SubjectContentPage = () => {
                 })}
               >
                 <div className={styles.imageContainer}>
-                  <img 
-                    className={styles.image}
-                    src={outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome'} 
-                    alt={outcome.name} 
-                  />
+                  {evidenceLoading ? (
+                    <Center h="100%">
+                      <Spinner size="md" color="blue.500" />
+                    </Center>
+                  ) : evidenceMap[outcome.code] ? (
+                    <img
+                      className={styles.image}
+                      src={evidenceMap[outcome.code].fileUrl}
+                      alt={`Evidence for ${outcome.name}`}
+                      loading="lazy"
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        console.error('Error loading evidence image:', e);
+                        e.target.src = outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome';
+                      }}
+                    />
+                  ) : (
+                    <img 
+                      className={styles.image}
+                      src={outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome'} 
+                      alt={outcome.name} 
+                    />
+                  )}
                 </div>
                 <div className={styles.contentContainer}>
                   <h3 className={styles.title}>{outcome.name}</h3>

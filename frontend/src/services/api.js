@@ -267,4 +267,35 @@ export const getEvidenceForLearningOutcome = async (studentId, learningOutcomeId
   }
 };
 
+export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
+  try {
+    console.log('Fetching latest evidence for outcomes:', { studentId, outcomeCodes });
+    
+    // Create a map to store the latest evidence for each outcome
+    const evidenceMap = {};
+    
+    // Fetch evidence for each outcome code
+    for (const outcomeCode of outcomeCodes) {
+      try {
+        const evidence = await getEvidenceForLearningOutcome(studentId, outcomeCode);
+        if (evidence && evidence.length > 0) {
+          // Sort by uploaded_at date (newest first) and take the first one
+          const sortedEvidence = evidence.sort((a, b) => {
+            return new Date(b.uploaded_at) - new Date(a.uploaded_at);
+          });
+          evidenceMap[outcomeCode] = sortedEvidence[0];
+        }
+      } catch (err) {
+        console.error(`Error fetching evidence for outcome ${outcomeCode}:`, err);
+        // Continue with other outcomes even if one fails
+      }
+    }
+    
+    return evidenceMap;
+  } catch (error) {
+    console.error('Error getting latest evidence for outcomes:', error);
+    return {};
+  }
+};
+
 export default apiToUse;
