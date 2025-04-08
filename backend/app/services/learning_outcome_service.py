@@ -146,13 +146,21 @@ class LearningOutcomeService:
                             
                         # Generate a presigned URL with proper headers
                         try:
+                            # Generate the presigned URL
                             presigned_url = file_storage_service.generate_presigned_url(file_url)
-                            serialized_item["fileUrl"] = presigned_url
+                            
+                            # Use our proxy endpoint to avoid CORS issues
+                            api_url = os.getenv('API_URL', 'https://homeschoollms-server.onrender.com')
+                            serialized_item["fileUrl"] = f"{api_url}/api/evidence-proxy?url={presigned_url}"
                         except Exception as e:
                             logger.error(f"Error generating presigned URL: {str(e)}")
                             # Fallback to direct URL if presigned URL generation fails
                             backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                            serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                            direct_url = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                            
+                            # Still use our proxy to avoid CORS issues
+                            api_url = os.getenv('API_URL', 'https://homeschoollms-server.onrender.com')
+                            serialized_item["fileUrl"] = f"{api_url}/api/evidence-proxy?url={direct_url}"
             
             serialized_evidence.append(serialized_item)
         
@@ -226,13 +234,21 @@ class LearningOutcomeService:
                             
                         # Generate a presigned URL with proper headers
                         try:
+                            # Generate the presigned URL
                             presigned_url = file_storage_service.generate_presigned_url(file_url)
-                            serialized_item["fileUrl"] = presigned_url
+                            
+                            # Use our proxy endpoint to avoid CORS issues
+                            api_url = os.getenv('API_URL', 'https://homeschoollms-server.onrender.com')
+                            serialized_item["fileUrl"] = f"{api_url}/api/evidence-proxy?url={presigned_url}"
                         except Exception as e:
                             logger.error(f"Error generating presigned URL: {str(e)}")
                             # Fallback to direct URL if presigned URL generation fails
                             backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                            serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                            direct_url = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                            
+                            # Still use our proxy to avoid CORS issues
+                            api_url = os.getenv('API_URL', 'https://homeschoollms-server.onrender.com')
+                            serialized_item["fileUrl"] = f"{api_url}/api/evidence-proxy?url={direct_url}"
                 
                 serializable_evidence.append(serialized_item)
             
