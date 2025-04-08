@@ -136,14 +136,76 @@ async def upload_evidence(
         # Try to convert learning outcome ID to ObjectId
         try:
             outcome_obj_id = ObjectId(learning_outcome_id)
-        except:
+            logger.error(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
+        except Exception as e:
+            logger.error(f"Failed to convert learning_outcome_id to ObjectId: {str(e)}")
             # If conversion fails, look up by code (case-insensitive)
             import re
+            
+            # Log the learning outcome ID we're searching for
+            logger.error(f"Looking up learning outcome by code: '{learning_outcome_id}'")
+            
+            # Check if any learning outcomes exist in the collection
+            count = await db.learning_outcomes.count_documents({})
+            logger.error(f"Total learning outcomes in database: {count}")
+            
+            # Get a sample of learning outcomes to see what's in the database
+            sample = await db.learning_outcomes.find().limit(5).to_list(None)
+            logger.error(f"Sample learning outcomes: {[lo.get('code', 'No code') for lo in sample]}")
+            
+            # Try exact match first (case-insensitive)
             code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+            logger.error(f"Regex pattern: {code_pattern.pattern}")
+            
             outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+            
             if not outcome:
-                raise HTTPException(status_code=404, detail="Learning outcome not found")
+                logger.error(f"No learning outcome found with exact code match: '{learning_outcome_id}'")
+                
+                # Try partial match as fallback
+                partial_pattern = re.compile(f"{re.escape(learning_outcome_id)}", re.IGNORECASE)
+                logger.error(f"Trying partial match with pattern: {partial_pattern.pattern}")
+                outcome = await db.learning_outcomes.find_one({"code": {"$regex": partial_pattern}})
+            
+            if not outcome:
+                logger.error(f"No learning outcome found with partial code match either")
+                
+                # Instead of failing, create the learning outcome in the database
+                logger.error(f"Creating new learning outcome with code: {learning_outcome_id}")
+                
+                # Extract subject code from learning outcome code (e.g., "ENE" from "ENE-OLC-01")
+                subject_code = learning_outcome_id.split('-')[0][:3] if len(learning_outcome_id) >= 3 else None
+                logger.error(f"Extracted subject code: {subject_code}")
+                
+                # Find the subject ID
+                subject = None
+                if subject_code:
+                    subject = await db.subjects.find_one({"code": subject_code})
+                    logger.error(f"Found subject: {subject}")
+                
+                # Create a new learning outcome
+                new_outcome = {
+                    "code": learning_outcome_id,
+                    "name": f"Auto-created: {learning_outcome_id}",
+                    "description": f"Automatically created learning outcome for evidence upload",
+                    "subject_id": subject["_id"] if subject else None,
+                    "grade_level": None,
+                    "is_standard": True,
+                    "created_at": datetime.now()
+                }
+                
+                # Insert the new learning outcome
+                result = await db.learning_outcomes.insert_one(new_outcome)
+                logger.error(f"Created new learning outcome with ID: {result.inserted_id}")
+                
+                # Get the newly created learning outcome
+                outcome = await db.learning_outcomes.find_one({"_id": result.inserted_id})
+                logger.error(f"Retrieved new learning outcome: {outcome}")
+            elif outcome:
+                logger.error(f"Found learning outcome with partial match: {outcome.get('code')}")
+                
             outcome_obj_id = outcome["_id"]
+            logger.error(f"Using learning outcome with ID: {outcome_obj_id}")
         
         evidence_doc = {
             "student_id": ObjectId(student_id),
