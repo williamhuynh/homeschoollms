@@ -132,10 +132,16 @@ class LearningOutcomeService:
                 
             # If not found by ObjectId, try to find by code
             if not outcome_obj_id:
+                logger.info(f"Looking up learning outcome by code: {learning_outcome_id}")
+                logger.info(f"Database name: {db.name}")
+                logger.info(f"Collection stats: {await db.learning_outcomes.count_documents({})}")
+                
                 outcome = await db.learning_outcomes.find_one({"code": learning_outcome_id})
                 if not outcome:
-                    raise Exception("Learning outcome not found")
+                    logger.info(f"No learning outcome found with code: {learning_outcome_id}")
+                    return []
                 outcome_obj_id = outcome["_id"]
+                logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
             
             logger.info(f"Querying evidence for student {student_obj_id} and outcome {outcome_obj_id}")
             evidence = await db.student_evidence.find({
