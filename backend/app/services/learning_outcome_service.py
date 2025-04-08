@@ -123,7 +123,19 @@ class LearningOutcomeService:
             
             logger.info(f"Converting IDs: student_id={student_id}, learning_outcome_id={learning_outcome_id}")
             student_obj_id = ObjectId(student_id)
-            outcome_obj_id = ObjectId(learning_outcome_id)
+            
+            # Try to find outcome by ObjectId first
+            try:
+                outcome_obj_id = ObjectId(learning_outcome_id)
+            except:
+                outcome_obj_id = None
+                
+            # If not found by ObjectId, try to find by code
+            if not outcome_obj_id:
+                outcome = await db.learning_outcomes.find_one({"code": learning_outcome_id})
+                if not outcome:
+                    raise Exception("Learning outcome not found")
+                outcome_obj_id = outcome["_id"]
             
             logger.info(f"Querying evidence for student {student_obj_id} and outcome {outcome_obj_id}")
             evidence = await db.student_evidence.find({
