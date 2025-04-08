@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from bson import ObjectId
 from ..services.learning_outcome_service import LearningOutcomeService
 from ..services.file_storage_service import file_storage_service
@@ -9,7 +9,6 @@ from typing import List, Optional
 from ..models.schemas.user import UserInDB
 from datetime import datetime
 import os
-import requests
 
 router = APIRouter()
 
@@ -72,39 +71,6 @@ async def get_evidence(
         logger.error(f"Error fetching evidence: {str(e)}")
         # Return empty list instead of raising error to allow upload placeholder
         return []
-
-@router.get("/evidence-proxy")
-async def proxy_evidence_image(url: str):
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    try:
-        # Log the requested URL
-        logger.info(f"Proxying image request for URL: {url}")
-        
-        # Make a request to the Backblaze URL
-        response = requests.get(url, stream=True)
-        
-        # Check if the request was successful
-        if response.status_code != 200:
-            logger.error(f"Error fetching image: {response.status_code}")
-            raise HTTPException(status_code=response.status_code, detail="Failed to fetch image")
-        
-        # Get the content type from the response
-        content_type = response.headers.get('Content-Type', 'image/png')
-        
-        # Return the image with the appropriate content type
-        return Response(
-            content=response.content,
-            media_type=content_type,
-            headers={
-                "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
-                "Access-Control-Allow-Origin": "*"  # Allow requests from any origin
-            }
-        )
-    except Exception as e:
-        logger.error(f"Error proxying image: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
 async def upload_evidence(
