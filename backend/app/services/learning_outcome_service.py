@@ -3,6 +3,7 @@ from ..models.schemas.learning_outcome import LearningOutcome
 from fastapi import HTTPException
 from bson import ObjectId
 from typing import List, Optional
+import os
 
 class LearningOutcomeService:
     @staticmethod
@@ -89,6 +90,8 @@ class LearningOutcomeService:
     @staticmethod
     async def get_student_learning_outcome(student_id: str, learning_outcome_id: str):
         db = Database.get_db()
+        import logging
+        logger = logging.getLogger(__name__)
         
         # Try to find by ObjectId first
         try:
@@ -103,16 +106,49 @@ class LearningOutcomeService:
             outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
             if not outcome:
                 raise HTTPException(status_code=404, detail="Learning outcome not found")
+        
+        # Convert outcome to a serializable dict
+        serialized_outcome = {}
+        for key, value in outcome.items():
+            if isinstance(value, ObjectId):
+                serialized_outcome[key] = str(value)
+            else:
+                serialized_outcome[key] = value
                 
         # Get student's evidence for this outcome
-        evidence = await db.student_evidence.find({
+        evidence_list = await db.student_evidence.find({
             "student_id": ObjectId(student_id),
             "learning_outcome_id": outcome["_id"]
         }).to_list(None)
         
+        # Convert evidence to serializable format
+        serialized_evidence = []
+        for item in evidence_list:
+            # Create a new dict with string IDs instead of ObjectId
+            serialized_item = {}
+            for key, value in item.items():
+                if isinstance(value, ObjectId):
+                    serialized_item[key] = str(value)
+                else:
+                    serialized_item[key] = value
+            
+            # Ensure the file_url field is properly formatted
+            if "file_url" in serialized_item:
+                file_url = serialized_item["file_url"]
+                # If it doesn't start with http, add the Backblaze URL
+                if not file_url.startswith("http"):
+                    backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+                    bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+                    # Remove bucket name from the beginning if it's there
+                    if file_url.startswith(f"{bucket_name}/"):
+                        file_url = file_url[len(f"{bucket_name}/"):]
+                    serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+            
+            serialized_evidence.append(serialized_item)
+        
         return {
-            **outcome,
-            "evidence": evidence or []
+            **serialized_outcome,
+            "evidence": serialized_evidence or []
         }
 
     @staticmethod
@@ -154,7 +190,33 @@ class LearningOutcomeService:
             }).to_list(None)
             
             logger.info(f"Found {len(evidence)} evidence records")
-            return evidence or []
+            
+            # Convert ObjectId fields to strings to make them JSON serializable
+            serializable_evidence = []
+            for item in evidence:
+                # Create a new dict with string IDs instead of ObjectId
+                serialized_item = {}
+                for key, value in item.items():
+                    if isinstance(value, ObjectId):
+                        serialized_item[key] = str(value)
+                    else:
+                        serialized_item[key] = value
+                
+                # Ensure the file_url field is properly formatted
+                if "file_url" in serialized_item:
+                    file_url = serialized_item["file_url"]
+                    # If it doesn't start with http, add the Backblaze URL
+                    if not file_url.startswith("http"):
+                        backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+                        # Remove bucket name from the beginning if it's there
+                        if file_url.startswith(f"{bucket_name}/"):
+                            file_url = file_url[len(f"{bucket_name}/"):]
+                        serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                
+                serializable_evidence.append(serialized_item)
+            
+            return serializable_evidence or []
         except Exception as e:
             logger.error(f"Error in get_evidence: {str(e)}", exc_info=True)
             raise Exception(f"Failed to fetch evidence: {str(e)}")

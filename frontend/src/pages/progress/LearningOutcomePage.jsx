@@ -188,11 +188,15 @@ const LearningOutcomePage = () => {
                       className={styles.image}
                       src={item.fileUrl || 'https://placehold.co/300x400?text=Evidence'} 
                       alt="Evidence" 
+                      onError={(e) => {
+                        console.error('Image failed to load:', e);
+                        e.target.src = 'https://placehold.co/300x400?text=Evidence';
+                      }}
                     />
                   </div>
                   <div className={styles.contentContainer}>
-                    <h3 className={styles.title}>{item.title || 'Evidence'}</h3>
-                    <p className={styles.description}>{item.description || 'Submitted evidence'}</p>
+                    <h3 className={styles.title}>{item.title || item.file_name || 'Evidence'}</h3>
+                    <p className={styles.description}>{item.description || `Uploaded on ${new Date(item.uploaded_at).toLocaleDateString()}`}</p>
                   </div>
                 </div>
               ))}
@@ -218,9 +222,18 @@ const LearningOutcomePage = () => {
         onClose={onClose}
         studentId={studentId}
         learningOutcomeId={learningOutcomeId}
-        onSubmit={(data) => {
-          console.log('Uploading evidence:', data)
-          // TODO: Implement actual upload logic
+        onSubmit={async (data) => {
+          console.log('Evidence uploaded successfully:', data)
+          // Refresh the evidence list
+          try {
+            setEvidenceLoading(true)
+            const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+            setEvidence(updatedEvidence)
+          } catch (err) {
+            console.error('Error refreshing evidence:', err)
+          } finally {
+            setEvidenceLoading(false)
+          }
         }}
       />
     </Container>
