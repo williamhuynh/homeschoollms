@@ -137,8 +137,10 @@ async def upload_evidence(
         try:
             outcome_obj_id = ObjectId(learning_outcome_id)
         except:
-            # If conversion fails, look up by code
-            outcome = await db.learning_outcomes.find_one({"code": learning_outcome_id})
+            # If conversion fails, look up by code (case-insensitive)
+            import re
+            code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+            outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
             if not outcome:
                 raise HTTPException(status_code=404, detail="Learning outcome not found")
             outcome_obj_id = outcome["_id"]

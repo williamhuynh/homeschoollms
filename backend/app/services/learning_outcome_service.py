@@ -96,9 +96,11 @@ class LearningOutcomeService:
         except:
             outcome = None
             
-        # If not found by ObjectId, try to find by code
+        # If not found by ObjectId, try to find by code (case-insensitive)
         if not outcome:
-            outcome = await db.learning_outcomes.find_one({"code": learning_outcome_id})
+            import re
+            code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+            outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
             if not outcome:
                 raise HTTPException(status_code=404, detail="Learning outcome not found")
                 
@@ -130,13 +132,15 @@ class LearningOutcomeService:
             except:
                 outcome_obj_id = None
                 
-            # If not found by ObjectId, try to find by code
+            # If not found by ObjectId, try to find by code (case-insensitive)
             if not outcome_obj_id:
                 logger.info(f"Looking up learning outcome by code: {learning_outcome_id}")
                 logger.info(f"Database name: {db.name}")
                 logger.info(f"Collection stats: {await db.learning_outcomes.count_documents({})}")
                 
-                outcome = await db.learning_outcomes.find_one({"code": learning_outcome_id})
+                import re
+                code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+                outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
                 if not outcome:
                     logger.info(f"No learning outcome found with code: {learning_outcome_id}")
                     return []
