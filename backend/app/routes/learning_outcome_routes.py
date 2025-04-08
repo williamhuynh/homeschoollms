@@ -132,9 +132,20 @@ async def upload_evidence(
 
         # Store file reference in database
         db = Database.get_db()
+        
+        # Try to convert learning outcome ID to ObjectId
+        try:
+            outcome_obj_id = ObjectId(learning_outcome_id)
+        except:
+            # If conversion fails, look up by code
+            outcome = await db.learning_outcomes.find_one({"code": learning_outcome_id})
+            if not outcome:
+                raise HTTPException(status_code=404, detail="Learning outcome not found")
+            outcome_obj_id = outcome["_id"]
+        
         evidence_doc = {
             "student_id": ObjectId(student_id),
-            "learning_outcome_id": ObjectId(learning_outcome_id),
+            "learning_outcome_id": outcome_obj_id,
             "file_url": file_url,
             "file_name": file.filename,
             "uploaded_at": datetime.now(),
