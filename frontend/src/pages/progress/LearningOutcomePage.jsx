@@ -15,6 +15,7 @@ const LearningOutcomePage = () => {
   const [learningOutcome, setLearningOutcome] = useState(null)
   const [evidence, setEvidence] = useState([])
   const [loading, setLoading] = useState(true)
+  const [evidenceLoading, setEvidenceLoading] = useState(false)
   const [error, setError] = useState(null)
   const { students } = useStudents()
   const location = useLocation()
@@ -45,18 +46,31 @@ const LearningOutcomePage = () => {
         }
         
         // Fetch evidence for this learning outcome
-        const evidenceData = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
-        
-        if (isMounted) {
-          setLearningOutcome({
-            code: outcome.code,
-            name: outcome.name,
-            description: outcome.description,
-            grade_level: student?.grade_level
-          })
-          setEvidence(evidenceData)
-          setError(null)
-          setLoading(false)
+        setEvidenceLoading(true)
+        try {
+          const evidenceData = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+          console.log('Evidence data:', evidenceData)
+          
+          if (isMounted) {
+            setLearningOutcome({
+              code: outcome.code,
+              name: outcome.name,
+              description: outcome.description,
+              grade_level: student?.grade_level
+            })
+            setEvidence(evidenceData)
+            setError(null)
+          }
+        } catch (err) {
+          console.error('Error fetching evidence:', err)
+          if (isMounted) {
+            setError('Failed to load evidence')
+          }
+        } finally {
+          if (isMounted) {
+            setEvidenceLoading(false)
+            setLoading(false)
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -147,7 +161,11 @@ const LearningOutcomePage = () => {
         </Text>
 
         <div className={styles.outcomeGrid}>
-          {evidence.length === 0 ? (
+          {evidenceLoading ? (
+            <Center>
+              <Spinner size="xl" color="blue.500" />
+            </Center>
+          ) : evidence.length === 0 ? (
             <div className={styles.outcomeCard} onClick={onOpen}>
               <div className={styles.imageContainer}>
                 <img 

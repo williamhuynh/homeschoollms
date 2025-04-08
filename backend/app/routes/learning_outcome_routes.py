@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from ..services.learning_outcome_service import LearningOutcomeService
 from ..services.file_storage_service import file_storage_service
+from ..utils.database_utils import Database
 from ..models.schemas.learning_outcome import LearningOutcome
 from ..utils.auth_utils import get_current_user, get_current_user_with_org
 from typing import List, Optional
