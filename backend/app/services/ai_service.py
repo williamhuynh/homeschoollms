@@ -101,11 +101,11 @@ async def generate_description_from_image(image_bytes: bytes, image_mime_type: s
         prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the image provided and write exactly four concise sentences:
 
 1. First, describe what your child is doing in the image.
-2. Then, only if it clearly relates to the learning outcome below, explain how it connects.
+2. Then, only if it clearly relates to the learning outcome below, explain how it connects, and reference the Learning Outcome.
 
 Learning outcome: "{learning_outcome}"
 
-Avoid vague or generic links. If no clear connection exists, just describe the photo.
+If no clear connection exists, just describe the photo.
 Use a warm, reflective tone suited to early childhood learning.
 Avoid emotive language as the purpose of this is factual evidence of learning activity. 
 Do not output any preamble such as 'the following is the journal entry', just output the entry itself."""
