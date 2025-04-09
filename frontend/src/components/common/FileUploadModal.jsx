@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { generateAIDescription } from '../../services/api'
 import {
   Modal,
   ModalOverlay,
@@ -17,10 +18,12 @@ Text,
 } from '@chakra-ui/react'
 import { Upload } from 'react-feather'
 
-const FileUploadModal = ({ isOpen, onClose, onSubmit, studentId, learningOutcomeId }) => {
+const FileUploadModal = ({ isOpen, onClose, onSubmit, studentId, learningOutcomeId, learningOutcomeDescription }) => {
   const [selectedFile, setSelectedFile] = useState(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationError, setGenerationError] = useState(null)
 
 const handleFileSelect = (event) => {
   const file = event.target.files[0];
@@ -31,6 +34,30 @@ const handleFileSelect = (event) => {
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  
+  const handleGenerateDescription = async () => {
+    if (!selectedFile) {
+      setGenerationError('Please select a file first')
+      return
+    }
+    
+    setIsGenerating(true)
+    setGenerationError(null)
+    
+    try {
+      const result = await generateAIDescription(selectedFile, learningOutcomeDescription)
+      if (result && result.description) {
+        setDescription(result.description)
+      } else {
+        setGenerationError('Failed to generate description')
+      }
+    } catch (err) {
+      console.error('Error generating AI description:', err)
+      setGenerationError(err.message || 'Failed to generate description')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
 const handleSubmit = async () => {
   if (!selectedFile) {
@@ -132,15 +159,19 @@ const token = localStorage.getItem('token');
             />
             <Button 
               colorScheme="blue" 
-              onClick={() => {
-                // Placeholder for AI description generation
-                setDescription("AI-generated description will appear here. This is a placeholder.");
-              }}
-              isDisabled={!selectedFile}
+              onClick={handleGenerateDescription}
+              isLoading={isGenerating}
+              loadingText="Generating..."
+              isDisabled={!selectedFile || isGenerating}
               w="full"
             >
               Generate Description with AI
             </Button>
+            {generationError && (
+              <Text color="red.500" fontSize="sm">
+                {generationError}
+              </Text>
+            )}
           </VStack>
         </ModalBody>
         <ModalFooter>

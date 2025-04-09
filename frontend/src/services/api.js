@@ -335,4 +335,39 @@ export const getEvidenceShareUrl = async (studentId, learningOutcomeId, evidence
   }
 };
 
+// AI Description Generation
+export const generateAIDescription = async (file, learningOutcomeDescription) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('learning_outcome', learningOutcomeDescription); // Match backend Form field name
+
+    // Log FormData contents for debugging (won't show file content directly)
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+    
+    console.log('Sending request to /api/v1/ai/generate-description');
+
+    const response = await apiToUse.post('/api/v1/ai/generate-description', formData, {
+      headers: {
+        // Content-Type is automatically set to 'multipart/form-data' by axios when using FormData
+      },
+    });
+    
+    console.log('AI Description Response:', response.data);
+    return response.data; // Should contain { description: "..." }
+  } catch (error) {
+    console.error('Error generating AI description:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: error.config
+    });
+    // Re-throw the error so the component can handle it
+    throw error; 
+  }
+};
+
+
 export default apiToUse;

@@ -260,6 +260,7 @@ const LearningOutcomePage = () => {
         onClose={onClose}
         studentId={studentId}
         learningOutcomeId={learningOutcomeId}
+        learningOutcomeDescription={learningOutcome.description}
         onSubmit={async (data) => {
           console.log('Evidence uploaded successfully:', data)
           // Refresh the evidence list

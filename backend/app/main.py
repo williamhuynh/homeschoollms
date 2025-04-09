@@ -11,7 +11,8 @@ from .routes import (
     content_routes, 
     progress_routes,
     subject_routes,
-    learning_outcome_routes
+    learning_outcome_routes,
+    ai_routes # Add import for AI routes
 )
 from bson.errors import InvalidId
 from .utils.error_handlers import http_error_handler, invalid_object_id_handler
@@ -49,6 +50,7 @@ app.include_router(content_routes.router, prefix="/api", tags=["content"])
 app.include_router(progress_routes.router, prefix="/api", tags=["progress"])
 app.include_router(subject_routes.router, prefix="/api", tags=["subjects"])
 app.include_router(learning_outcome_routes.router, prefix="/api", tags=["learning-outcomes"])
+app.include_router(ai_routes.router, prefix="/api", tags=["ai"]) # Include the AI router
 
 
 # Add error handlers
