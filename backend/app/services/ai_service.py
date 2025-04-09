@@ -34,8 +34,9 @@ try:
             print(f"- {m.name}", file=sys.stderr)
     
     # Use a more stable model version
-    model = genai.GenerativeModel('gemini-2.0-flash-lite')
-    print("Successfully initialized Gemini model", file=sys.stderr)
+    model_name = 'gemini-2.0-flash-lite'
+    model = genai.GenerativeModel(model_name)
+    print(f"Successfully initialized Gemini model: {model_name}", file=sys.stderr)
 except Exception as e:
     print(f"ERROR initializing Gemini model: {e}", file=sys.stderr)
     traceback.print_exc(file=sys.stderr)
