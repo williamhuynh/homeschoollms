@@ -106,7 +106,9 @@ async def generate_description_from_image(image_bytes: bytes, image_mime_type: s
 Learning outcome: "{learning_outcome}"
 
 Avoid vague or generic links. If no clear connection exists, just describe the photo.
-Use a warm, reflective tone suited to early childhood learning."""
+Use a warm, reflective tone suited to early childhood learning.
+Avoid emotive language as the purpose of this is factual evidence of learning activity. 
+Do not output any preamble such as 'the following is the journal entry', just output the entry itself."""
 
         print("Prompt prepared, sending to Gemini API...", file=sys.stderr)
         
