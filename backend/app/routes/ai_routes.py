@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from ..services import ai_service
-from ..utils.auth_utils import get_current_active_user # Assuming you want to protect this endpoint
+from ..utils.auth_utils import get_current_user # Using the available authentication function
 from ..models.schemas.user import User # For dependency injection type hint
 
 router = APIRouter(
     prefix="/api/v1/ai",
     tags=["ai"],
-    # dependencies=[Depends(get_current_active_user)] # Uncomment to protect endpoint
+    # dependencies=[Depends(get_current_user)] # Uncomment to protect endpoint
 )
 
 @router.post("/generate-description", response_model=dict)
@@ -14,7 +14,7 @@ async def generate_ai_description(
     *,
     file: UploadFile = File(...),
     learning_outcome: str = Form(...),
-    # current_user: User = Depends(get_current_active_user) # Uncomment if endpoint is protected
+    # current_user: User = Depends(get_current_user) # Uncomment if endpoint is protected
 ):
     """
     Receives an image file and learning outcome text, generates a description using AI.
