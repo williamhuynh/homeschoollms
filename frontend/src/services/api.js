@@ -338,20 +338,41 @@ export const getEvidenceShareUrl = async (studentId, learningOutcomeId, evidence
 // AI Description Generation
 export const generateAIDescription = async (file, learningOutcomeDescription) => {
   try {
+    // Validate inputs
+    if (!file) {
+      throw new Error('No file provided');
+    }
+    
+    if (!learningOutcomeDescription) {
+      throw new Error('No learning outcome description provided');
+    }
+    
+    // Log file details for debugging
+    console.log('File details:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: new Date(file.lastModified).toISOString()
+    });
+    
+    // Create FormData
     const formData = new FormData();
     formData.append('file', file);
     formData.append('learning_outcome', learningOutcomeDescription); // Match backend Form field name
 
-    // Log FormData contents for debugging (won't show file content directly)
+    // Log FormData contents for debugging
     for (let [key, value] of formData.entries()) {
-      console.log(`${key}: ${value}`);
+      console.log(`${key}: ${value instanceof File ? `File: ${value.name} (${value.type})` : value}`);
     }
     
     console.log('Sending request to /api/v1/ai/generate-description');
+    console.log('API base URL:', apiToUse.defaults.baseURL);
 
+    // Important: Set Content-Type to null to let the browser set the correct boundary
+    // This prevents axios from overriding the automatically set multipart/form-data header
     const response = await apiToUse.post('/api/v1/ai/generate-description', formData, {
       headers: {
-        // Content-Type is automatically set to 'multipart/form-data' by axios when using FormData
+        'Content-Type': null, // Let axios set the correct multipart/form-data header with boundary
       },
     });
     
@@ -362,8 +383,19 @@ export const generateAIDescription = async (file, learningOutcomeDescription) =>
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
-      config: error.config
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL
+      }
     });
+    
+    // If we have a response with data, log it in detail
+    if (error.response?.data) {
+      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
+    }
+    
     // Re-throw the error so the component can handle it
     throw error; 
   }
