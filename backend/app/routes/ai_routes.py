@@ -4,8 +4,6 @@ from ..utils.auth_utils import get_current_user # Using the available authentica
 from ..models.schemas.user import User # For dependency injection type hint
 
 router = APIRouter(
-    prefix="/api/v1/ai",
-    tags=["ai"],
     # dependencies=[Depends(get_current_user)] # Uncomment to protect endpoint
 )
 
