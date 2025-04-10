@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { 
   Box, 
   Button, 
@@ -10,7 +10,7 @@ import {
   VStack, 
   Alert, 
   AlertIcon, 
-  Link
+  Link as ChakraLink
 } from '@chakra-ui/react';
 import { resetPassword } from '../../services/supabase';
 
@@ -90,9 +90,9 @@ const ResetPasswordPage = () => {
         
         <Text textAlign="center">
           Remember your password?{' '}
-          <Link color="teal.500" href="/login">
+          <ChakraLink as={RouterLink} to="/login" color="teal.500">
             Back to Login
-          </Link>
+          </ChakraLink>
         </Text>
       </VStack>
     </Box>

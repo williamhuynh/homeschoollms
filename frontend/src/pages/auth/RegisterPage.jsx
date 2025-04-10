@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { 
   Box, 
   Button, 
@@ -10,7 +10,7 @@ import {
   VStack, 
   Alert, 
   AlertIcon, 
-  Link,
+  Link as ChakraLink,
   FormHelperText
 } from '@chakra-ui/react';
 import { signUp } from '../../services/supabase';
@@ -178,9 +178,9 @@ const RegisterPage = () => {
         
         <Text textAlign="center">
           Already have an account?{' '}
-          <Link color="teal.500" href="/login">
+          <ChakraLink as={RouterLink} to="/login" color="teal.500">
             Login
-          </Link>
+          </ChakraLink>
         </Text>
       </VStack>
     </Box>

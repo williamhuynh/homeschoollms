@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Button, Text, FormControl, FormLabel, Input, VStack, Alert, AlertIcon, Link } from '@chakra-ui/react';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Box, Button, Text, FormControl, FormLabel, Input, VStack, Alert, AlertIcon, Link as ChakraLink } from '@chakra-ui/react';
 import { signIn } from '../../services/supabase';
 
 const LoginPage = ({ setIsAuthenticated }) => {
@@ -91,9 +91,9 @@ const handleLogin = async () => {
         
         <Text textAlign="center">
           Don't have an account?{' '}
-          <Link color="teal.500" href="/register">
+          <ChakraLink as={RouterLink} to="/register" color="teal.500">
             Register
-          </Link>
+          </ChakraLink>
         </Text>
       </VStack>
     </Box>
