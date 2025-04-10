@@ -4,10 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from .config.settings import settings  # Add this import
-from .models.schemas.student import AccessLevel, ParentAccess
-from bson import ObjectId
 import logging
-from datetime import datetime
 from .routes import (
     auth,
     user_routes, 
@@ -69,84 +66,6 @@ async def startup_db_client():
     
     # Initialize the database connection for Database utility
     Database.initialize(app.mongodb)
-    
-    # Run the parent access migration
-    await migrate_parent_access()
-
-async def migrate_parent_access():
-    """
-    Migrate existing students to use the new parent_access field.
-    This function will:
-    1. Check if migration has already been run
-    2. Find all students in the database
-    3. For each student, create parent_access entries based on the existing parent_ids
-    4. Set all existing parents to have admin access level
-    5. Mark migration as complete
-    """
-    try:
-        logging.info("Checking if parent access migration is needed...")
-        db = Database.get_db()
-        
-        # Check if migration has already been run by looking for a flag in the database
-        migration_status = await db.migration_status.find_one({"name": "parent_access_migration"})
-        if migration_status and migration_status.get("completed", False):
-            logging.info("Parent access migration has already been run. Skipping.")
-            return
-            
-        # Get all students
-        students = []
-        async for student in db.students.find():
-            students.append(student)
-        
-        logging.info(f"Found {len(students)} students to migrate")
-        
-        # Process each student
-        for student in students:
-            student_id = student["_id"]
-            parent_ids = student.get("parent_ids", [])
-            existing_parent_access = student.get("parent_access", [])
-            
-            # Skip if student already has parent_access entries for all parent_ids
-            if existing_parent_access and len(existing_parent_access) >= len(parent_ids):
-                existing_parent_ids = [access["parent_id"] for access in existing_parent_access]
-                if all(parent_id in existing_parent_ids for parent_id in parent_ids):
-                    logging.info(f"Student {student_id} already has parent_access entries for all parent_ids. Skipping.")
-                    continue
-            
-            # Create parent_access entries for each parent_id
-            parent_access_entries = []
-            for parent_id in parent_ids:
-                # Check if this parent already has an entry in parent_access
-                if existing_parent_access and any(access["parent_id"] == parent_id for access in existing_parent_access):
-                    continue
-                    
-                # Create a new parent_access entry with admin access
-                parent_access = {
-                    "parent_id": parent_id,
-                    "access_level": AccessLevel.ADMIN
-                }
-                parent_access_entries.append(parent_access)
-            
-            if parent_access_entries:
-                # Update the student with the new parent_access entries
-                result = await db.students.update_one(
-                    {"_id": student_id},
-                    {"$push": {"parent_access": {"$each": parent_access_entries}}}
-                )
-                logging.info(f"Updated student {student_id}: Added {len(parent_access_entries)} parent_access entries. Modified: {result.modified_count}")
-            else:
-                logging.info(f"No new parent_access entries needed for student {student_id}")
-        
-        logging.info("Parent access migration completed successfully!")
-        
-        # Mark migration as complete
-        await db.migration_status.update_one(
-            {"name": "parent_access_migration"},
-            {"$set": {"completed": True, "completed_at": datetime.now().isoformat()}},
-            upsert=True
-        )
-    except Exception as e:
-        logging.error(f"Error during parent access migration: {str(e)}")
 
 @app.get("/health")
 async def health_check():
