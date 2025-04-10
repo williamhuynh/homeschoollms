@@ -48,7 +48,18 @@ class AuthService:
         return UserInDB(**user)
     
     @staticmethod
-    async def create_user(email: str, hashed_password: str, first_name: str, last_name: str):
+    async def create_user(
+        email: str, 
+        hashed_password: str, 
+        first_name: str, 
+        last_name: str, 
+        role: str = "parent",
+        is_verified: bool = False,
+        profile_image: str = None,
+        last_login = None,
+        organization_id = None,
+        family_id = None
+    ):
         db = Database.get_db()
         user_data = {
             "email": email,
@@ -56,12 +67,12 @@ class AuthService:
             "first_name": first_name,
             "last_name": last_name,
             "is_active": True,
-            "role": "parent",  # Default role
-            "is_verified": False,
-            "profile_image": None,
-            "last_login": None,
-            "organization_id": None,
-            "family_id": None
+            "role": role,
+            "is_verified": is_verified,
+            "profile_image": profile_image,
+            "last_login": last_login,
+            "organization_id": organization_id,
+            "family_id": family_id
         }
         result = await db.users.insert_one(user_data)
         if result.inserted_id:

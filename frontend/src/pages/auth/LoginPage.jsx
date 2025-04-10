@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Text, FormControl, FormLabel, Input, VStack, Alert, AlertIcon } from '@chakra-ui/react';
-import { login } from '../../services/api';
+import { Box, Button, Text, FormControl, FormLabel, Input, VStack, Alert, AlertIcon, Link } from '@chakra-ui/react';
+import { signIn } from '../../services/supabase';
 
 const LoginPage = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({
-    username: 'test@example.com',
-    password: 'password'
+    email: '',
+    password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,26 +25,22 @@ const handleLogin = async () => {
   setError('');
   
   try {
-    // Call login API
-    const response = await login(credentials);
-    console.log('Login API Response:', response);
-   
-    // Check if the response contains the token
-    if (response.data && response.data.token) {
-      const token = response.data.token;
-localStorage.setItem('token', token);
-      console.log('Stored Token:', token);
-    } else {
-      console.error('Token not found in response:', response.data);
-    }
+    // Call Supabase signIn function
+    const { session } = await signIn(credentials.email, credentials.password);
     
-    // Update authentication state
-    setIsAuthenticated(true);
-    navigate('/students');
+    if (session) {
+      console.log('Login successful, session:', session);
+      
+      // Update authentication state
+      setIsAuthenticated(true);
+      navigate('/students');
+    } else {
+      throw new Error('No session returned after login');
+    }
   } catch (error) {
     console.error('Login failed:', error);
     setError(
-      error.response?.data?.detail || 
+      error.message || 
       'Login failed. Please check your credentials and try again.'
     );
   } finally {
@@ -67,9 +63,9 @@ localStorage.setItem('token', token);
         <FormControl>
           <FormLabel>Email</FormLabel>
           <Input 
-            name="username" 
+            name="email" 
             type="email" 
-            value={credentials.username}
+            value={credentials.email}
             onChange={handleChange}
           />
         </FormControl>
@@ -92,6 +88,13 @@ localStorage.setItem('token', token);
         >
           Login
         </Button>
+        
+        <Text textAlign="center">
+          Don't have an account?{' '}
+          <Link color="teal.500" href="/register">
+            Register
+          </Link>
+        </Text>
       </VStack>
     </Box>
   );

@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Optional
 
 class Settings(BaseSettings):
     # MongoDB settings
@@ -10,6 +10,12 @@ class Settings(BaseSettings):
     JWT_SECRET: str = None  # For backward compatibility
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    
+    # Supabase settings
+    supabase_url: Optional[str] = None
+    supabase_anon_key: Optional[str] = None
+    supabase_service_key: Optional[str] = None
+    supabase_jwt_secret: Optional[str] = None
     
     def __init__(self, **data):
         super().__init__(**data)

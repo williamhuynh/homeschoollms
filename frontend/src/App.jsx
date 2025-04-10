@@ -2,6 +2,9 @@ import { ChakraProvider } from '@chakra-ui/react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import LoginPage from './pages/auth/LoginPage'
+import RegisterPage from './pages/auth/RegisterPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
+import { supabase, getSession } from './services/supabase'
 import StudentSelection from './pages/students/StudentSelection'
 import StudentProgressPage from './pages/progress/StudentProgressPage'
 import SubjectContentPage from './pages/progress/SubjectContentPage'
@@ -15,23 +18,47 @@ import { FileUploadModalProvider } from './contexts/FileUploadModalContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
 function App() {
-  // Check for token on initial load
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('token') !== null;
-  });
+  // Check for Supabase session on initial load
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // For development purposes only - remove in production
-  const isAuthenticatedOverride = true;
+  const isAuthenticatedOverride = false;
 
-  // Update authentication state when token changes
+  // Initialize and set up Supabase auth state listener
   useEffect(() => {
-    const handleStorageChange = () => {
-      setIsAuthenticated(localStorage.getItem('token') !== null);
+    // Check for existing session
+    const checkSession = async () => {
+      try {
+        const session = await getSession();
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.error('Error checking session:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    checkSession();
+    
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Supabase auth event:', event);
+        setIsAuthenticated(!!session);
+      }
+    );
+    
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  // Show loading state
+  if (isLoading && !isAuthenticatedOverride) {
+    return <div>Loading...</div>;
+  }
 
 
   return (
@@ -48,6 +75,14 @@ function App() {
             <Route 
               path="/login" 
               element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
+            />
+            <Route 
+              path="/register" 
+              element={<RegisterPage />}
+            />
+            <Route 
+              path="/reset-password" 
+              element={<ResetPasswordPage />}
             />
             <Route 
               path="/students" 

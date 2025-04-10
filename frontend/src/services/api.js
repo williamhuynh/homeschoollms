@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase, getSession } from './supabase';
 
 // Create API instance with base URL
 const api = axios.create({
@@ -17,11 +18,18 @@ const productionApi = axios.create({
 });
 
 // Add request interceptor to include JWT token for both API instances
-const addAuthToken = (config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+const addAuthToken = async (config) => {
+  try {
+    // Get session from Supabase
+    const session = await getSession();
+    
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+    }
+  } catch (error) {
+    console.error('Error getting Supabase session:', error);
   }
+  
   return config;
 };
 
@@ -33,27 +41,17 @@ const apiToUse = window.location.hostname === 'localhost' ? api : productionApi;
 
 export const login = async (credentials) => {
   try {
-    // FastAPI OAuth2 expects form data with username and password fields
-    const formData = new URLSearchParams();
-    formData.append('username', credentials.username);
-    formData.append('password', credentials.password);
-
-    const response = await apiToUse.post('/api/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+    // Use Supabase for authentication
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: credentials.email || credentials.username,
+      password: credentials.password,
     });
     
-    console.log('API Login Response:', response.data);
+    if (error) throw error;
     
-    // Verify token is in response
-    if (response.data.access_token) {
-      localStorage.setItem('token', response.data.access_token);
-    } else {
-      console.error('No access_token in response:', response.data);
-    }
+    console.log('Supabase Login Response:', data);
     
-    return response.data;
+    return { data: { token: data.session?.access_token } };
   } catch (error) {
     console.error('Login Error:', error);
     throw error;
@@ -279,8 +277,15 @@ export const updateProgress = async (studentId, contentId, progressData) => {
 };
 
 
-export const logout = () => {
-  localStorage.removeItem('token')
+export const logout = async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Logout Error:', error);
+    throw error;
+  }
 };
 
 export const getLearningOutcome = async (studentId, learningOutcomeId) => {
