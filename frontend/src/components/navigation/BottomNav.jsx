@@ -1,12 +1,17 @@
 // src/components/navigation/BottomNav.jsx
 import { Box, Flex, IconButton } from '@chakra-ui/react'
 import { Home, Plus, Settings } from 'react-feather'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import { useFileUploadModal } from '../../contexts/FileUploadModalContext'
 
 const BottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { studentId } = location.state?.student || {}
+  const params = useParams()
+  const { openModal } = useFileUploadModal()
+  
+  // Try to get studentId from location state or URL params
+  const studentId = location.state?.student?.studentId || params.studentId
 
   return (
     <Box 
@@ -33,8 +38,8 @@ const BottomNav = () => {
           colorScheme="teal"
           rounded="full"
           size="lg"
-          onClick={() => navigate(`/students/${studentId}/content/create`)}
-          aria-label="Create"
+          onClick={() => openModal({ studentId })}
+          aria-label="Upload Evidence"
         />
         <IconButton
           icon={<Settings />}

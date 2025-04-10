@@ -413,5 +413,58 @@ export const generateAIDescription = async (files, learningOutcomeDescription) =
   }
 };
 
+// New function for uploading evidence
+export const uploadEvidence = async (studentId, learningOutcomeId, formData) => {
+  try {
+    // Log FormData contents for debugging
+    console.log('--- FormData for Evidence Upload ---');
+    for (let [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
+      } else {
+        console.log(`${key}: ${value}`);
+      }
+    }
+    console.log('---------------------------------');
+    
+    console.log(`Sending request to /api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`);
+    console.log('API base URL:', apiToUse.defaults.baseURL);
+
+    // Use the correct API instance and endpoint
+    // Pass learningOutcomeId in the path, other data is in formData
+    const response = await apiToUse.post(
+      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`, 
+      formData, 
+      {
+        headers: {
+          // Let browser set Content-Type for FormData
+          'Content-Type': null, 
+        },
+      }
+    );
+    
+    console.log('Evidence Upload Response:', response.data);
+    return response.data; // Should contain { message: "...", uploaded_files: [...] }
+  } catch (error) {
+    console.error('Error uploading evidence:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL
+      }
+    });
+    
+    if (error.response?.data) {
+      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
+    }
+    
+    throw error; // Re-throw for component handling
+  }
+};
+
 
 export default apiToUse;

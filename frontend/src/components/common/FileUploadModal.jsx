@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react' // Added useCallback
-import { generateAIDescription } from '../../services/api'
+import { useState, useCallback, useEffect } from 'react' // Added useEffect
+import { generateAIDescription, uploadEvidence } from '../../services/api'
+import { curriculumService } from '../../services/curriculum'
 import {
   Modal,
   ModalOverlay,
@@ -15,21 +16,153 @@ import {
   Image,
   Box,
   Text,
-  HStack, // Added HStack for preview
-  IconButton, // Added IconButton for removing images
+  HStack,
+  IconButton,
+  FormControl,
+  FormLabel,
+  FormErrorMessage,
+  Spinner,
+  InputGroup,
+  InputLeftElement,
 } from '@chakra-ui/react'
-import { Upload, X as XIcon } from 'react-feather' // Added XIcon
+import { Upload, X as XIcon, MapPin } from 'react-feather'
+import Select from 'react-select'
 
 const MAX_FILES = 10; // Define max files constant
 
-const FileUploadModal = ({ isOpen, onClose, onSubmit, studentId, learningOutcomeId, learningOutcomeDescription }) => {
-  const [selectedFiles, setSelectedFiles] = useState([]) // Changed state to handle multiple files
+const FileUploadModal = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  studentId, 
+  studentGrade,
+  learningOutcomeId, 
+  learningOutcomeDescription,
+  initialLearningAreaCode,
+  initialLearningOutcomeCode
+}) => {
+  const [selectedFiles, setSelectedFiles] = useState([])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [location, setLocation] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationError, setGenerationError] = useState(null)
+  
+  // Learning areas and outcomes state
+  const [learningAreasList, setLearningAreasList] = useState([])
+  const [learningOutcomesList, setLearningOutcomesList] = useState([])
+  const [selectedLearningArea, setSelectedLearningArea] = useState(null)
+  const [selectedLearningOutcome, setSelectedLearningOutcome] = useState(null)
+  const [isLoadingAreas, setIsLoadingAreas] = useState(false)
+  const [isLoadingOutcomes, setIsLoadingOutcomes] = useState(false)
+  const [curriculumError, setCurriculumError] = useState(null)
+  
+  // Form validation
+  const [titleError, setTitleError] = useState('')
 
-const handleFileSelect = useCallback((event) => {
+  // Load curriculum data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const loadCurriculum = async () => {
+        try {
+          setIsLoadingAreas(true)
+          setCurriculumError(null)
+          
+          // Load curriculum data
+          await curriculumService.load()
+          
+          // Get student stage based on grade
+          const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
+          
+          // Get subjects for this stage
+          const subjects = curriculumService.getSubjects(studentGrade || 'Year 1')
+          
+          // Format for react-select
+          const formattedSubjects = subjects.map(subject => ({
+            value: subject.code,
+            label: `${subject.name} (${subject.code})`,
+            subject: subject
+          }))
+          
+          setLearningAreasList(formattedSubjects)
+          
+          // If initialLearningAreaCode is provided, select it
+          if (initialLearningAreaCode) {
+            const initialArea = formattedSubjects.find(
+              area => area.value.toLowerCase() === initialLearningAreaCode.toLowerCase()
+            )
+            if (initialArea) {
+              setSelectedLearningArea(initialArea)
+            }
+          }
+        } catch (err) {
+          console.error('Error loading curriculum:', err)
+          setCurriculumError('Failed to load curriculum data')
+        } finally {
+          setIsLoadingAreas(false)
+        }
+      }
+      
+      loadCurriculum()
+      
+      // Reset form when modal opens
+      setTitle('')
+      setDescription('')
+      setLocation('')
+      setSelectedFiles([])
+      setTitleError('')
+    }
+  }, [isOpen, studentGrade, initialLearningAreaCode])
+  
+  // Load outcomes when learning area changes
+  useEffect(() => {
+    if (selectedLearningArea) {
+      const loadOutcomes = async () => {
+        try {
+          setIsLoadingOutcomes(true)
+          setCurriculumError(null)
+          
+          // Get student stage based on grade
+          const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
+          
+          // Get outcomes for this subject
+          const outcomes = curriculumService.getOutcomes(stage, selectedLearningArea.value)
+          
+          // Format for react-select
+          const formattedOutcomes = outcomes.map(outcome => ({
+            value: outcome.code,
+            label: `${outcome.code}: ${outcome.name}`,
+            outcome: outcome
+          }))
+          
+          setLearningOutcomesList(formattedOutcomes)
+          
+          // If initialLearningOutcomeCode is provided and this is the first load, select it
+          if (initialLearningOutcomeCode && !selectedLearningOutcome) {
+            const initialOutcome = formattedOutcomes.find(
+              outcome => outcome.value.toLowerCase() === initialLearningOutcomeCode.toLowerCase()
+            )
+            if (initialOutcome) {
+              setSelectedLearningOutcome(initialOutcome)
+            }
+          }
+        } catch (err) {
+          console.error('Error loading outcomes:', err)
+          setCurriculumError('Failed to load learning outcomes')
+        } finally {
+          setIsLoadingOutcomes(false)
+        }
+      }
+      
+      loadOutcomes()
+    } else {
+      // Clear outcomes if no area is selected
+      setLearningOutcomesList([])
+      setSelectedLearningOutcome(null)
+    }
+  }, [selectedLearningArea, studentGrade, initialLearningOutcomeCode])
+
+  const handleFileSelect = useCallback((event) => {
   const files = Array.from(event.target.files);
   const newFiles = files.filter(file => 
     !selectedFiles.some(existingFile => existingFile.name === file.name && existingFile.lastModified === file.lastModified)
@@ -60,6 +193,20 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   
+  const validateForm = () => {
+    let isValid = true
+    
+    // Validate title (required)
+    if (!title.trim()) {
+      setTitleError('Title is required')
+      isValid = false
+    } else {
+      setTitleError('')
+    }
+    
+    return isValid
+  }
+  
   const handleGenerateDescription = async () => {
     if (selectedFiles.length === 0) {
       setGenerationError('Please select at least one file first')
@@ -86,55 +233,53 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
     }
   }
 
-const handleSubmit = async () => {
-  if (selectedFiles.length === 0) {
-    setError('Please select at least one file')
-    return
-  }
-  if (selectedFiles.length > MAX_FILES) {
-    setError(`You can only upload a maximum of ${MAX_FILES} files. Please remove some.`)
-    return
-  }
-
-  setIsLoading(true)
-  setError(null)
-
-  try {
-    const formData = new FormData()
-    // Append each file with the key 'files'
-    selectedFiles.forEach(({ file }) => {
-      formData.append('files', file) 
-    });
-    formData.append('title', title)
-    formData.append('description', description)
-      
-    const token = localStorage.getItem('token');
-    console.log('Token:', token); // Debugging: Log the token to the console
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      }
-    )
-
-    console.log('Response:', response); // Debugging: Log the response to the console
-    if (!response.ok) {
-      throw new Error('Upload failed')
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return
+    }
+    
+    if (selectedFiles.length === 0) {
+      setError('Please select at least one file')
+      return
+    }
+    if (selectedFiles.length > MAX_FILES) {
+      setError(`You can only upload a maximum of ${MAX_FILES} files. Please remove some.`)
+      return
     }
 
-    const result = await response.json()
-    onSubmit(result)
-    onClose()
-  } catch (err) {
-    setError(err.message || 'Upload failed. Please try again.')
-  } finally {
-    setIsLoading(false)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const formData = new FormData()
+      
+      // Append each file with the key 'files'
+      selectedFiles.forEach(({ file }) => {
+        formData.append('files', file) 
+      });
+      
+      // Required fields
+      formData.append('title', title)
+      
+      // Optional fields
+      formData.append('description', description)
+      
+      // New fields
+      if (location) formData.append('location', location)
+      if (selectedLearningArea) formData.append('learning_area_code', selectedLearningArea.value)
+      if (selectedLearningOutcome) formData.append('learning_outcome_code', selectedLearningOutcome.value)
+      
+      // Use the API service instead of direct fetch
+      const result = await uploadEvidence(studentId, learningOutcomeId, formData)
+      
+      onSubmit(result)
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Upload failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
-}
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -206,26 +351,86 @@ const handleSubmit = async () => {
             {/* Removed single image preview */}
             {/* {selectedFile && ( ... )} */} 
             
-            <Input
-              placeholder="Title (Optional)" // Made title optional
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <Textarea
-              placeholder="Description (Optional - AI can generate this)" // Made description optional
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-            />
+            <FormControl isInvalid={!!titleError} isRequired>
+              <FormLabel>Title</FormLabel>
+              <Input
+                placeholder="Enter a title for this evidence"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              {titleError && <FormErrorMessage>{titleError}</FormErrorMessage>}
+            </FormControl>
+            
+            <FormControl>
+              <FormLabel>Location</FormLabel>
+              <InputGroup>
+                <InputLeftElement pointerEvents="none">
+                  <MapPin size={16} color="gray.300" />
+                </InputLeftElement>
+                <Input
+                  placeholder="Where was this evidence created? (Optional)"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </InputGroup>
+            </FormControl>
+            
+            <FormControl>
+              <FormLabel>Learning Area</FormLabel>
+              {isLoadingAreas ? (
+                <Spinner size="sm" />
+              ) : (
+                <Select
+                  options={learningAreasList}
+                  value={selectedLearningArea}
+                  onChange={setSelectedLearningArea}
+                  placeholder="Select a learning area..."
+                  isClearable
+                  isSearchable
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+              )}
+            </FormControl>
+            
+            <FormControl>
+              <FormLabel>Learning Outcome</FormLabel>
+              {isLoadingOutcomes ? (
+                <Spinner size="sm" />
+              ) : (
+                <Select
+                  options={learningOutcomesList}
+                  value={selectedLearningOutcome}
+                  onChange={setSelectedLearningOutcome}
+                  placeholder="Select a learning outcome..."
+                  isClearable
+                  isSearchable
+                  isDisabled={!selectedLearningArea}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+              )}
+            </FormControl>
+            
+            <FormControl>
+              <FormLabel>Description</FormLabel>
+              <Textarea
+                placeholder="Description (Optional - AI can generate this)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+              />
+            </FormControl>
+            
             <Button 
               colorScheme="blue" 
               onClick={handleGenerateDescription}
               isLoading={isGenerating}
               loadingText="Generating..."
-              isDisabled={selectedFiles.length === 0 || isGenerating} // Check selectedFiles length
+              isDisabled={selectedFiles.length === 0 || isGenerating}
               w="full"
             >
-              Generate Description with AI
+              ✨ {/* Sparkles emoji */}
             </Button>
             {generationError && (
               <Text color="red.500" fontSize="sm">

@@ -11,6 +11,7 @@ import AdminPage from './pages/admin/AdminPage'
 import BottomNav from './components/navigation/BottomNav'
 import AddStudent from './pages/students/AddStudent'
 import { StudentsProvider } from './contexts/StudentsContext'
+import { FileUploadModalProvider } from './contexts/FileUploadModalContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
     <ChakraProvider>
       <StudentsProvider>
         <BrowserRouter>
+          <FileUploadModalProvider>
           <Routes>
             <Route path="/" element={
               isAuthenticatedOverride || isAuthenticated ? 
@@ -122,6 +124,7 @@ function App() {
               } 
             />
           </Routes>
+          </FileUploadModalProvider>
         </BrowserRouter>
       </StudentsProvider>
     </ChakraProvider>

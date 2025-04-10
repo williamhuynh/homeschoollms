@@ -85,56 +85,51 @@ async def upload_evidence(
     student_id: str,
     learning_outcome_id: str,
     files: List[UploadFile] = File(...), # Changed to accept a list of files
-    title: str = Form(""),
+    title: str = Form(...), # Make title mandatory on backend too for consistency
     description: str = Form(""),
+    location: Optional[str] = Form(None), # New optional field
+    learning_area_code: Optional[str] = Form(None), # New optional field
+    learning_outcome_code: Optional[str] = Form(None), # New optional field
     current_user: UserInDB = Depends(get_current_user)
 ):
-    logger.info(f"Received {len(files)} file(s) for student {student_id}, outcome {learning_outcome_id}")
-    logger.info(f"Title: '{title}', Description: '{description}'")
+    logger.info(f"Received {len(files)} file(s) for student {student_id}, path outcome {learning_outcome_id}")
+    logger.info(f"Form data - Title: '{title}', Desc: '{description}', Loc: '{location}', Area: '{learning_area_code}', Outcome: '{learning_outcome_code}'")
 
     uploaded_files_info = []
     db = Database.get_db()
     outcome_obj_id = None
+    outcome_code_to_use = learning_outcome_code or learning_outcome_id # Prioritize form input
 
     # --- Find or Create Learning Outcome (only needs to be done once) ---
+    logger.info(f"Attempting to find/create learning outcome using code: {outcome_code_to_use}")
     try:
-        outcome_obj_id = ObjectId(learning_outcome_id)
-        logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
+        # Try converting first, might be an ObjectId passed in path
+        outcome_obj_id = ObjectId(outcome_code_to_use)
+        logger.info(f"Successfully converted outcome code/id to ObjectId: {outcome_obj_id}")
+        # Verify it exists
+        if not await db.learning_outcomes.find_one({"_id": outcome_obj_id}):
+             logger.warning(f"ObjectId {outcome_obj_id} provided but not found in DB. Will proceed to lookup by code.")
+             outcome_obj_id = None # Reset to trigger code lookup
     except Exception:
-        logger.warning(f"Failed to convert learning_outcome_id '{learning_outcome_id}' to ObjectId. Looking up by code.")
-        
+        logger.info(f"'{outcome_code_to_use}' is not an ObjectId. Looking up by code.")
+        outcome_obj_id = None # Ensure it's None before code lookup
+
+    if not outcome_obj_id:
         # Look up by code (case-insensitive)
-        code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+        code_pattern = re.compile(f"^{re.escape(outcome_code_to_use)}$", re.IGNORECASE)
         outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
         
         if not outcome:
-            logger.warning(f"No learning outcome found with code: '{learning_outcome_id}'. Attempting to create.")
-            # Extract subject code
-            subject_code = learning_outcome_id.split('-')[0][:3] if len(learning_outcome_id) >= 3 else None
-            subject = await db.subjects.find_one({"code": subject_code}) if subject_code else None
-            
-            new_outcome_data = {
-                "code": learning_outcome_id,
-                "name": f"Auto-created: {learning_outcome_id}",
-                "description": f"Automatically created learning outcome for evidence upload",
-                "subject_id": subject["_id"] if subject else None,
-                "grade_level": None, # Or try to infer if possible
-                "is_standard": True,
-                "created_at": datetime.now()
-            }
-            try:
-                result = await db.learning_outcomes.insert_one(new_outcome_data)
-                outcome_obj_id = result.inserted_id
-                logger.info(f"Created new learning outcome with ID: {outcome_obj_id}")
-            except Exception as insert_err:
-                 logger.error(f"Failed to create new learning outcome: {insert_err}")
-                 raise HTTPException(status_code=500, detail="Failed to find or create learning outcome.")
+            logger.warning(f"No learning outcome found with code: '{outcome_code_to_use}'. Cannot auto-create without more context.")
+            # We won't auto-create here anymore, rely on the dropdowns providing valid codes
+            raise HTTPException(status_code=404, detail=f"Learning outcome '{outcome_code_to_use}' not found.")
         else:
             outcome_obj_id = outcome["_id"]
-            logger.info(f"Found existing learning outcome with ID: {outcome_obj_id}")
+            logger.info(f"Found existing learning outcome with ID: {outcome_obj_id} for code {outcome_code_to_use}")
 
     if not outcome_obj_id:
-         raise HTTPException(status_code=404, detail=f"Learning outcome '{learning_outcome_id}' not found and could not be created.")
+         # This case should ideally not be reached if the above logic is correct
+         raise HTTPException(status_code=404, detail=f"Learning outcome '{outcome_code_to_use}' could not be resolved.")
     # --- End Find or Create Learning Outcome ---
 
     # --- Process each uploaded file ---
@@ -169,16 +164,19 @@ async def upload_evidence(
             # Store file reference in database
             evidence_doc = {
                 "student_id": ObjectId(student_id),
-                "learning_outcome_id": outcome_obj_id,
+                "learning_outcome_id": outcome_obj_id, # The resolved ObjectId
+                "learning_area_code": learning_area_code, # New field
+                "learning_outcome_code": outcome_code_to_use, # Store the code used
+                "location": location, # New field
                 "file_url": file_url,
                 "file_name": file.filename,
-                "title": title or file.filename,  # Use filename as fallback if title is empty for the batch
-                "description": description, # Use same description for the batch
+                "title": title, # Title is now mandatory
+                "description": description,
                 "uploaded_at": datetime.now(),
                 "uploaded_by": ObjectId(current_user.id)
             }
             insert_result = await db.student_evidence.insert_one(evidence_doc)
-            logger.info(f"Evidence record created with ID: {insert_result.inserted_id}")
+            logger.info(f"Evidence record created with ID: {insert_result.inserted_id} for file {file.filename}")
             
             uploaded_files_info.append({
                 "filename": file.filename,

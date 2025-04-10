@@ -5,12 +5,12 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useState, useEffect, useContext } from 'react'
 import { NSWCurriculum } from '../../services/curriculum'
 import { useStudents } from '../../contexts/StudentsContext'
-import FileUploadModal from '../../components/common/FileUploadModal'
+import { useFileUploadModal } from '../../contexts/FileUploadModalContext'
 import ImageViewerModal from '../../components/common/ImageViewerModal'
 import { getEvidenceForLearningOutcome } from '../../services/api'
 
 const LearningOutcomePage = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { openModal } = useFileUploadModal()
   const { 
     isOpen: isImageViewerOpen, 
     onOpen: onImageViewerOpen, 
@@ -191,7 +191,26 @@ const LearningOutcomePage = () => {
               <Spinner size="xl" color="blue.500" />
             </Center>
           ) : evidence.length === 0 ? (
-            <div className={styles.outcomeCard} onClick={onOpen}>
+              <div className={styles.outcomeCard} onClick={() => openModal({
+                studentId,
+                learningOutcomeId,
+                learningOutcomeDescription: learningOutcome.description,
+                initialLearningAreaCode: location.state?.subject?.code,
+                initialLearningOutcomeCode: learningOutcome.code,
+                onSubmit: async (data) => {
+                  console.log('Evidence uploaded successfully:', data)
+                  // Refresh the evidence list
+                  try {
+                    setEvidenceLoading(true)
+                    const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+                    setEvidence(updatedEvidence)
+                  } catch (err) {
+                    console.error('Error refreshing evidence:', err)
+                  } finally {
+                    setEvidenceLoading(false)
+                  }
+                }
+              })}>
               <div className={styles.imageContainer}>
                 <img 
                   className={styles.image}
@@ -238,7 +257,26 @@ const LearningOutcomePage = () => {
                   </div>
                 </div>
               ))}
-              <div className={styles.outcomeCard} onClick={onOpen}>
+              <div className={styles.outcomeCard} onClick={() => openModal({
+                studentId,
+                learningOutcomeId,
+                learningOutcomeDescription: learningOutcome.description,
+                initialLearningAreaCode: location.state?.subject?.code,
+                initialLearningOutcomeCode: learningOutcome.code,
+                onSubmit: async (data) => {
+                  console.log('Evidence uploaded successfully:', data)
+                  // Refresh the evidence list
+                  try {
+                    setEvidenceLoading(true)
+                    const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+                    setEvidence(updatedEvidence)
+                  } catch (err) {
+                    console.error('Error refreshing evidence:', err)
+                  } finally {
+                    setEvidenceLoading(false)
+                  }
+                }
+              })}>
                 <div className={styles.imageContainer}>
                   <img 
                     className={styles.image}
@@ -255,26 +293,6 @@ const LearningOutcomePage = () => {
           )}
         </div>
       </Box>
-      <FileUploadModal
-        isOpen={isOpen}
-        onClose={onClose}
-        studentId={studentId}
-        learningOutcomeId={learningOutcomeId}
-        learningOutcomeDescription={learningOutcome.description}
-        onSubmit={async (data) => {
-          console.log('Evidence uploaded successfully:', data)
-          // Refresh the evidence list
-          try {
-            setEvidenceLoading(true)
-            const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
-            setEvidence(updatedEvidence)
-          } catch (err) {
-            console.error('Error refreshing evidence:', err)
-          } finally {
-            setEvidenceLoading(false)
-          }
-        }}
-      />
       
       {/* Image Viewer Modal */}
       <ImageViewerModal
