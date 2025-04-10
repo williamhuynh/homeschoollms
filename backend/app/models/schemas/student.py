@@ -3,6 +3,11 @@ from datetime import date
 from enum import Enum
 from .base import MongoBaseModel, PyObjectId
 
+class AccessLevel(str, Enum):
+    ADMIN = "admin"
+    CONTENT = "content"
+    VIEW = "view"
+
 class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
@@ -18,6 +23,10 @@ class StudentSubject(MongoBaseModel):
     mastered_outcome_ids: List[PyObjectId] = []
     progress: float = 0.0
 
+class ParentAccess(MongoBaseModel):
+    parent_id: PyObjectId
+    access_level: AccessLevel = AccessLevel.VIEW
+
 class Student(MongoBaseModel):
     first_name: str
     last_name: str
@@ -25,7 +34,8 @@ class Student(MongoBaseModel):
     gender: Gender
     grade_level: str
     slug: Optional[str] = None
-    parent_ids: List[PyObjectId]  # Multiple parents/guardians
+    parent_ids: List[PyObjectId] = []  # Kept for backward compatibility
+    parent_access: List[ParentAccess] = []  # New structure with access levels
     organization_id: Optional[PyObjectId]
     family_id: Optional[PyObjectId]
     subjects: Dict[str, StudentSubject] = {}  # Key: subject_id

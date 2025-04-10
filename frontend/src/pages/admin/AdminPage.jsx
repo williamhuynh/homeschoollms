@@ -3,6 +3,7 @@ import { ArrowLeft } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import UpdateStudentSlugs from '../../components/admin/UpdateStudentSlugs'
 import DeleteStudent from '../../components/admin/DeleteStudent'
+import ManageParentAccess from '../../components/admin/ManageParentAccess'
 
 const AdminPage = () => {
   const navigate = useNavigate()
@@ -29,6 +30,12 @@ const AdminPage = () => {
             <Divider my={2} />
             <DeleteStudent />
           </VStack>
+        </Box>
+
+        <Divider my={4} />
+        
+        <Box>
+          <ManageParentAccess />
         </Box>
       </VStack>
     </Container>

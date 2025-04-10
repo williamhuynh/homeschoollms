@@ -8,6 +8,12 @@ class Database:
     db = None
 
     @classmethod
+    def initialize(cls, db):
+        """Initialize the database connection with an existing database instance."""
+        cls.db = db
+        cls.client = db.client
+
+    @classmethod
     def get_db(cls):
         if not cls.client:
             cls.client = AsyncIOMotorClient(os.getenv("MONGODB_URL"))

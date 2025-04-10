@@ -44,7 +44,7 @@ const BottomNav = () => {
         <IconButton
           icon={<Settings />}
           variant="ghost"
-          onClick={() => console.log('Settings clicked')}
+          onClick={() => navigate('/admin')}
           aria-label="Settings"
         />
       </Flex>

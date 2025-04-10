@@ -1,8 +1,9 @@
 from ..utils.database_utils import Database
-from ..models.schemas.student import Student, StudentSubject
+from ..models.schemas.student import Student, StudentSubject, ParentAccess, AccessLevel
+from ..services.user_service import UserService
 from fastapi import HTTPException
 from bson import ObjectId
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 import re
 
@@ -48,7 +49,16 @@ class StudentService:
     async def create_student(student: Student, parent_id: str):
         db = Database.get_db()
         student_dict = student.dict()
+        
+        # Add parent to parent_ids for backward compatibility
         student_dict["parent_ids"] = [ObjectId(parent_id)]
+        
+        # Add parent to parent_access with admin access
+        parent_access = ParentAccess(
+            parent_id=ObjectId(parent_id),
+            access_level=AccessLevel.ADMIN
+        )
+        student_dict["parent_access"] = [parent_access.dict()]
         
         # Generate a slug from the student's name
         if not student_dict.get("slug"):
@@ -162,3 +172,205 @@ class StudentService:
                 status_code=400,
                 detail=f"Error deleting student: {str(e)}"
             )
+    
+    @staticmethod
+    async def check_admin_access(student_id: str, parent_id: str) -> bool:
+        """Check if a parent has admin access to a student."""
+        db = Database.get_db()
+        student = await db.students.find_one({"_id": ObjectId(student_id)})
+        
+        if not student:
+            return False
+        
+        # Check if parent has admin access in parent_access
+        for access in student.get("parent_access", []):
+            if str(access.get("parent_id")) == parent_id and access.get("access_level") == "admin":
+                return True
+        
+        # For backward compatibility, if parent is in parent_ids and there's no parent_access entry,
+        # consider them as having admin access (original creator)
+        if ObjectId(parent_id) in student.get("parent_ids", []) and not student.get("parent_access"):
+            return True
+            
+        return False
+    
+    @staticmethod
+    async def get_student_parents(student_id: str) -> List[Dict[str, Any]]:
+        """Get all parents with access to a student."""
+        db = Database.get_db()
+        student = await StudentService.get_student_by_id(student_id)
+        
+        result = []
+        
+        # Process parent_access entries
+        for access in student.parent_access:
+            try:
+                parent = await UserService.get_user_by_id(str(access.parent_id))
+                result.append({
+                    "parent_id": str(access.parent_id),
+                    "email": parent.email,
+                    "full_name": parent.full_name,
+                    "access_level": access.access_level
+                })
+            except HTTPException:
+                # Skip if user not found
+                continue
+        
+        # For backward compatibility, check parent_ids that aren't in parent_access
+        for parent_id in student.parent_ids:
+            # Skip if already processed in parent_access
+            if any(access.parent_id == parent_id for access in student.parent_access):
+                continue
+                
+            try:
+                parent = await UserService.get_user_by_id(str(parent_id))
+                result.append({
+                    "parent_id": str(parent_id),
+                    "email": parent.email,
+                    "full_name": parent.full_name,
+                    "access_level": "admin"  # Default for backward compatibility
+                })
+            except HTTPException:
+                # Skip if user not found
+                continue
+        
+        return result
+    
+    @staticmethod
+    async def add_parent_access(student_id: str, parent_email: str, access_level: AccessLevel, current_parent_id: str) -> Dict[str, Any]:
+        """Add a parent to a student with a specific access level."""
+        db = Database.get_db()
+        
+        # Check if current parent has admin access
+        has_admin = await StudentService.check_admin_access(student_id, current_parent_id)
+        if not has_admin:
+            raise HTTPException(status_code=403, detail="Only parents with admin access can add other parents")
+        
+        # Find the user by email
+        user = await db.users.find_one({"email": parent_email})
+        if not user:
+            raise HTTPException(status_code=404, detail=f"User with email {parent_email} not found")
+        
+        parent_id = user["_id"]
+        
+        # Get the student
+        student = await StudentService.get_student_by_id(student_id)
+        
+        # Check if parent already has access
+        for access in student.parent_access:
+            if access.parent_id == parent_id:
+                raise HTTPException(status_code=400, detail="Parent already has access to this student")
+        
+        # Add parent to parent_access
+        parent_access = ParentAccess(parent_id=parent_id, access_level=access_level)
+        
+        update_result = await db.students.update_one(
+            {"_id": ObjectId(student_id)},
+            {
+                "$push": {"parent_access": parent_access.dict()},
+                "$addToSet": {"parent_ids": parent_id}  # For backward compatibility
+            }
+        )
+        
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="Failed to add parent access")
+        
+        return {
+            "success": True,
+            "message": f"Added {access_level} access for {parent_email} to student {student.first_name} {student.last_name}"
+        }
+    
+    @staticmethod
+    async def update_parent_access(student_id: str, parent_id: str, access_level: AccessLevel, current_parent_id: str) -> Dict[str, Any]:
+        """Update a parent's access level."""
+        db = Database.get_db()
+        
+        # Check if current parent has admin access
+        has_admin = await StudentService.check_admin_access(student_id, current_parent_id)
+        if not has_admin:
+            raise HTTPException(status_code=403, detail="Only parents with admin access can update parent access")
+        
+        # Get the student
+        student = await StudentService.get_student_by_id(student_id)
+        
+        # Find the parent access entry
+        parent_access_index = None
+        for i, access in enumerate(student.parent_access):
+            if str(access.parent_id) == parent_id:
+                parent_access_index = i
+                break
+        
+        if parent_access_index is None:
+            # For backward compatibility, if parent is in parent_ids but not in parent_access
+            if ObjectId(parent_id) in student.parent_ids:
+                # Add a new parent_access entry
+                parent_access = ParentAccess(parent_id=ObjectId(parent_id), access_level=access_level)
+                update_result = await db.students.update_one(
+                    {"_id": ObjectId(student_id)},
+                    {"$push": {"parent_access": parent_access.dict()}}
+                )
+            else:
+                raise HTTPException(status_code=404, detail="Parent does not have access to this student")
+        else:
+            # Update the existing parent_access entry
+            update_result = await db.students.update_one(
+                {"_id": ObjectId(student_id)},
+                {"$set": {f"parent_access.{parent_access_index}.access_level": access_level}}
+            )
+        
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="Failed to update parent access")
+        
+        return {
+            "success": True,
+            "message": f"Updated access level to {access_level} for parent"
+        }
+    
+    @staticmethod
+    async def remove_parent_access(student_id: str, parent_id: str, current_parent_id: str) -> Dict[str, Any]:
+        """Remove a parent's access to a student."""
+        db = Database.get_db()
+        
+        # Check if current parent has admin access
+        has_admin = await StudentService.check_admin_access(student_id, current_parent_id)
+        if not has_admin:
+            raise HTTPException(status_code=403, detail="Only parents with admin access can remove parent access")
+        
+        # Get the student
+        student = await StudentService.get_student_by_id(student_id)
+        
+        # Check if trying to remove the last admin
+        admin_count = 0
+        is_target_admin = False
+        
+        for access in student.parent_access:
+            if access.access_level == AccessLevel.ADMIN:
+                admin_count += 1
+                if str(access.parent_id) == parent_id:
+                    is_target_admin = True
+        
+        # If there's only one admin and trying to remove them, prevent it
+        if admin_count == 1 and is_target_admin:
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot remove the last admin. Assign admin access to another parent first."
+            )
+        
+        # Remove parent from parent_access
+        update_result = await db.students.update_one(
+            {"_id": ObjectId(student_id)},
+            {
+                "$pull": {
+                    "parent_access": {"parent_id": ObjectId(parent_id)},
+                    "parent_ids": ObjectId(parent_id)  # Also remove from parent_ids
+                }
+            }
+        )
+        
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="Failed to remove parent access")
+        
+        return {
+            "success": True,
+            "message": f"Removed access for parent"
+        }

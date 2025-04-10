@@ -200,6 +200,52 @@ export const deleteStudent = async (studentId) => {
   }
 };
 
+// Parent Access Management
+export const getStudentParents = async (studentId) => {
+  try {
+    const response = await apiToUse.get(`/api/students/${studentId}/parents`);
+    return response.data;
+  } catch (error) {
+    console.error('Get Student Parents Error:', error);
+    throw error;
+  }
+};
+
+export const addParentAccess = async (studentId, email, accessLevel) => {
+  try {
+    const response = await apiToUse.post(`/api/students/${studentId}/parents`, {
+      email,
+      access_level: accessLevel
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Add Parent Access Error:', error);
+    throw error;
+  }
+};
+
+export const updateParentAccess = async (studentId, parentId, accessLevel) => {
+  try {
+    const response = await apiToUse.put(`/api/students/${studentId}/parents/${parentId}`, {
+      access_level: accessLevel
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Update Parent Access Error:', error);
+    throw error;
+  }
+};
+
+export const removeParentAccess = async (studentId, parentId) => {
+  try {
+    const response = await apiToUse.delete(`/api/students/${studentId}/parents/${parentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Remove Parent Access Error:', error);
+    throw error;
+  }
+};
+
 // Content API
 export const getContentBySubject = async (subjectId) => {
   try {
