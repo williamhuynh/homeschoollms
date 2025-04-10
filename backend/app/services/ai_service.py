@@ -6,6 +6,12 @@ import io
 import sys
 import traceback
 from fastapi import HTTPException, status
+from typing import List, Dict, Union # Added List, Dict, Union
+import logging # Added logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO) # Uncomment for more detailed logs
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,133 +24,145 @@ if not api_key:
 else:
     try:
         genai.configure(api_key=api_key)
-        print(f"Google AI configured with API key: {api_key[:5]}...{api_key[-5:]}", file=sys.stderr)
+        logger.info(f"Google AI configured with API key: {api_key[:5]}...{api_key[-5:]}")
     except Exception as e:
-        print(f"ERROR configuring Google AI: {e}", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
+        logger.error(f"ERROR configuring Google AI: {e}", exc_info=True)
 
-# Initialize the Generative Model (using a stable model version instead of latest)
-# Using a stable model version to avoid compatibility issues
+# Initialize the Generative Model (using a model that supports multiple images)
 model = None
+# Models supporting multiple images include gemini-1.5-flash-latest, gemini-1.5-pro-latest
+# Let's use flash for speed/cost unless pro is needed for complexity.
+model_name = 'gemini-1.5-flash-latest' 
 try:
     # List available models for debugging
-    print("Available models:", file=sys.stderr)
+    logger.debug("Available models:")
     for m in genai.list_models():
         if 'generateContent' in m.supported_generation_methods:
-            print(f"- {m.name}", file=sys.stderr)
-    
-    # Use a more stable model version
-    model_name = 'gemini-2.0-flash-lite'
+            logger.debug(f"- {m.name}")
+            
     model = genai.GenerativeModel(model_name)
-    print(f"Successfully initialized Gemini model: {model_name}", file=sys.stderr)
+    logger.info(f"Successfully initialized Gemini model: {model_name}")
 except Exception as e:
-    print(f"ERROR initializing Gemini model: {e}", file=sys.stderr)
-    traceback.print_exc(file=sys.stderr)
+    logger.error(f"ERROR initializing Gemini model '{model_name}': {e}", exc_info=True)
     # We'll let the endpoint handle this when it's called
 
-async def generate_description_from_image(image_bytes: bytes, image_mime_type: str, learning_outcome: str) -> str:
+async def generate_description_from_images(images: List[Dict[str, Union[bytes, str]]], learning_outcome: str) -> str:
     """
-    Generates a four-sentence description for an image based on a learning outcome using Gemini.
+    Generates a four-sentence description for one or more images based on a learning outcome using Gemini.
 
     Args:
-        image_bytes: The image file as bytes.
-        image_mime_type: The MIME type of the image (e.g., 'image/jpeg', 'image/png').
-        learning_outcome: The learning outcome text to potentially connect the image to.
+        images: A list of dictionaries, each containing 'bytes' and 'mime_type' for an image.
+        learning_outcome: The learning outcome text to potentially connect the image(s) to.
 
     Returns:
         A string containing the generated four-sentence description.
 
     Raises:
         HTTPException: If the API key is not configured, the model failed to initialize,
-                       or the generation fails.
+                       input validation fails, or the generation fails.
     """
-    # Log the request details for debugging
-    print(f"Generating description for image of type: {image_mime_type}", file=sys.stderr)
-    print(f"Learning outcome: {learning_outcome[:50]}{'...' if len(learning_outcome) > 50 else ''}", file=sys.stderr)
-    print(f"Image size: {len(image_bytes)} bytes", file=sys.stderr)
+    logger.info(f"Generating description for {len(images)} image(s).")
+    logger.info(f"Learning outcome: {learning_outcome[:100]}{'...' if len(learning_outcome) > 100 else ''}")
     
     if not api_key:
         error_msg = "Google AI API key is not configured."
-        print(f"ERROR: {error_msg}", file=sys.stderr)
+        logger.error(error_msg)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, # 422 for config/validation issues
             detail=error_msg
         )
         
     if not model:
-        error_msg = "Gemini model failed to initialize."
-        print(f"ERROR: {error_msg}", file=sys.stderr)
+        error_msg = f"Gemini model '{model_name}' failed to initialize."
+        logger.error(error_msg)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, # 422 for config/validation issues
             detail=error_msg
         )
-
-    try:
-        # Validate image format
-        if not image_mime_type.startswith('image/'):
-            raise ValueError(f"Invalid image MIME type: {image_mime_type}")
-            
-        # Prepare the image for the API
-        try:
-            img = Image.open(io.BytesIO(image_bytes))
-            print(f"Successfully opened image: {img.format}, {img.size}", file=sys.stderr)
-        except Exception as img_error:
-            print(f"ERROR opening image: {img_error}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
-            raise ValueError(f"Failed to process image: {str(img_error)}")
         
+    if not images:
+         raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No valid images provided to generate description."
+        )
+
+    prepared_images = []
+    try:
+        # Validate and prepare images
+        for i, image_data in enumerate(images):
+            image_bytes = image_data.get("bytes")
+            image_mime_type = image_data.get("mime_type")
+
+            if not image_bytes or not image_mime_type:
+                 logger.warning(f"Skipping image {i+1} due to missing data.")
+                 continue # Skip incomplete image data
+
+            if not image_mime_type.startswith('image/'):
+                logger.warning(f"Skipping image {i+1} due to invalid MIME type: {image_mime_type}")
+                continue # Skip non-image files
+
+            try:
+                img = Image.open(io.BytesIO(image_bytes))
+                # Optional: Add validation like checking img.format, img.size if needed
+                prepared_images.append(img)
+                logger.debug(f"Successfully prepared image {i+1}: {img.format}, {img.size}")
+            except Exception as img_error:
+                logger.warning(f"Failed to process image {i+1}: {img_error}. Skipping.")
+                # Decide if one bad image should stop the process or just be skipped
+                continue 
+
+        if not prepared_images:
+            raise ValueError("No valid images could be processed.")
+            
         # Validate learning outcome
         if not learning_outcome or len(learning_outcome.strip()) == 0:
             raise ValueError("Learning outcome cannot be empty")
         
-        # Construct the prompt
-        prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the image provided and write exactly four concise sentences:
+        # Construct the prompt for multiple images
+        prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the images provided and write exactly four concise sentences summarizing the activity shown across all images:
 
-1. First, describe what your child is doing in the image.
-2. Then, only if it clearly relates to the learning outcome below, explain how it connects, and reference the Learning Outcome.
+1. First, describe what your child is doing, drawing connections between the images if possible.
+2. Then, only if it clearly relates to the learning outcome below, explain how the activity connects, and reference the Learning Outcome.
 
 Learning outcome: "{learning_outcome}"
 
-If no clear connection exists, just describe the photo.
+If no clear connection exists, just describe the photos.
 Use a warm, reflective tone suited to early childhood learning.
 Avoid emotive language as the purpose of this is factual evidence of learning activity. 
 Do not output any preamble such as 'the following is the journal entry', just output the entry itself."""
 
-        print("Prompt prepared, sending to Gemini API...", file=sys.stderr)
+        logger.info(f"Prompt prepared for {len(prepared_images)} images. Sending to Gemini API...")
         
-        # Prepare the content parts (prompt and image)
-        content_parts = [
-            prompt,
-            img 
-        ]
+        # Prepare the content parts (prompt followed by all images)
+        content_parts = [prompt] + prepared_images
 
         # Generate content
-        print("Calling Gemini API...", file=sys.stderr)
         response = await model.generate_content_async(content_parts) # Use async version
-        print("Received response from Gemini API", file=sys.stderr)
+        logger.info("Received response from Gemini API")
 
         # Extract and clean the text
         generated_text = response.text.strip()
-        print(f"Generated text length: {len(generated_text)}", file=sys.stderr)
+        logger.info(f"Generated text length: {len(generated_text)}")
         
-        # Basic validation (ensure it's roughly 4 sentences, though Gemini should handle this)
-        if generated_text.count('.') < 2 or generated_text.count('.') > 6: 
-             print(f"Warning: Generated text might not have exactly 4 sentences: {generated_text}", file=sys.stderr)
+        # Basic validation (optional)
+        # if generated_text.count('.') < 2 or generated_text.count('.') > 6: 
+        #      logger.warning(f"Generated text might not have exactly 4 sentences: {generated_text}")
 
         return generated_text
 
     except ValueError as ve:
-        # Client-side validation errors
-        print(f"Validation error: {ve}", file=sys.stderr)
+        # Handle specific validation errors (e.g., no valid images, empty outcome)
+        logger.error(f"Input validation error: {ve}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid input: {str(ve)}"
         )
     except Exception as e:
-        print(f"ERROR during Gemini API call: {e}", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
-        # Return a more specific error code for API issues
+        # Handle errors during the Gemini API call or other unexpected issues
+        logger.error(f"ERROR during Gemini API call: {e}", exc_info=True)
+        # Check for specific API errors if possible, otherwise return a generic error
+        # Example: Check if e is a specific genai API error type
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Failed to generate description using AI: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, # Use 500 for internal/API errors
+            detail=f"Failed to generate description using AI due to an internal error."
         )

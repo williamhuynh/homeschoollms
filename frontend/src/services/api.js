@@ -336,34 +336,46 @@ export const getEvidenceShareUrl = async (studentId, learningOutcomeId, evidence
 };
 
 // AI Description Generation
-export const generateAIDescription = async (file, learningOutcomeDescription) => {
+export const generateAIDescription = async (files, learningOutcomeDescription) => { // Changed 'file' to 'files' (array)
   try {
     // Validate inputs
-    if (!file) {
-      throw new Error('No file provided');
+    if (!files || files.length === 0) { // Check if files array is empty
+      throw new Error('No files provided');
     }
     
     if (!learningOutcomeDescription) {
       throw new Error('No learning outcome description provided');
     }
     
-    // Log file details for debugging
-    console.log('File details:', {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      lastModified: new Date(file.lastModified).toISOString()
-    });
+    // Log file details for debugging (log the first file for brevity)
+    if (files.length > 0) {
+      const firstFile = files[0];
+      console.log(`Generating description for ${files.length} file(s). First file details:`, {
+        name: firstFile.name,
+        type: firstFile.type,
+        size: firstFile.size,
+        lastModified: new Date(firstFile.lastModified).toISOString()
+      });
+    }
     
     // Create FormData
     const formData = new FormData();
-    formData.append('file', file);
+    // Append all files with the key 'files'
+    files.forEach((file, index) => {
+      formData.append('files', file); 
+    });
     formData.append('learning_outcome', learningOutcomeDescription); // Match backend Form field name
 
     // Log FormData contents for debugging
+    console.log('--- FormData for AI Description ---');
     for (let [key, value] of formData.entries()) {
-      console.log(`${key}: ${value instanceof File ? `File: ${value.name} (${value.type})` : value}`);
+      if (value instanceof File) {
+        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
+      } else {
+        console.log(`${key}: ${value}`);
+      }
     }
+    console.log('---------------------------------');
     
     console.log('Sending request to /api/v1/ai/generate-description');
     console.log('API base URL:', apiToUse.defaults.baseURL);

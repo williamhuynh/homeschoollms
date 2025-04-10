@@ -5,10 +5,13 @@ from ..services.file_storage_service import file_storage_service
 from ..utils.database_utils import Database
 from ..models.schemas.learning_outcome import LearningOutcome
 from ..utils.auth_utils import get_current_user, get_current_user_with_org
-from typing import List, Optional
+from typing import List, Optional, Dict, Any # Added List
 from ..models.schemas.user import UserInDB
 from datetime import datetime
 import os
+import uuid # Added for unique filenames
+import logging # Added for better logging control
+import re # Added for outcome code lookup
 
 router = APIRouter()
 
@@ -72,161 +75,135 @@ async def get_evidence(
         # Return empty list instead of raising error to allow upload placeholder
         return []
 
+# Configure logger
+logger = logging.getLogger(__name__)
+# Set level to INFO or DEBUG for more detailed logs if needed
+# logging.basicConfig(level=logging.INFO) 
+
 @router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
 async def upload_evidence(
     student_id: str,
     learning_outcome_id: str,
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...), # Changed to accept a list of files
     title: str = Form(""),
     description: str = Form(""),
     current_user: UserInDB = Depends(get_current_user)
 ):
-    import logging
-    logging.basicConfig(level=logging.ERROR)
-    logger = logging.getLogger(__name__)
+    logger.info(f"Received {len(files)} file(s) for student {student_id}, outcome {learning_outcome_id}")
+    logger.info(f"Title: '{title}', Description: '{description}'")
 
+    uploaded_files_info = []
+    db = Database.get_db()
+    outcome_obj_id = None
+
+    # --- Find or Create Learning Outcome (only needs to be done once) ---
     try:
-        # Log the file object and its file attribute
-        logger.error(f"Received file object: {file}")
-        logger.error(f"Received file.file: {file.file}")
-        logger.error(f"Received title: {title}")
-        logger.error(f"Received description: {description}")
-
-        # Check if file.file is None
-        if file.file is None:
-            logger.error("file.file is None")
-            raise Exception("file.file is None")
-
-        # Log the type of file.file
-        logger.error(f"Type of file.file: {type(file.file)}")
-
-        # Log the seekable status of file.file
-        logger.error(f"Is file.file seekable? {file.file.seekable()}")
-
-        # Log the current position of the file.file object
-        logger.error(f"Current position of file.file before seek: {file.file.tell()}")
-
-        # Check if file.file is seekable and seek to the beginning if it is
-        if file.file.seekable():
-            file.file.seek(0)
-            logger.error(f"Seeked file.file to position: {file.file.tell()}")
-
-        # Generate unique file path
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        file_extension = os.path.splitext(file.filename)[1]
-        file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}{file_extension}"
+        outcome_obj_id = ObjectId(learning_outcome_id)
+        logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
+    except Exception:
+        logger.warning(f"Failed to convert learning_outcome_id '{learning_outcome_id}' to ObjectId. Looking up by code.")
         
-        # Log the file path
-        logger.error(f"Generated file path: {file_path}")
-
-        # Log the file content type
-        logger.error(f"File content type: {file.content_type}")
-
-        # Log the file size
-        logger.error(f"File size: {file.size}")
-
-        # Upload to Backblaze B2
-        file_url = await file_storage_service.upload_file(file, file_path)
+        # Look up by code (case-insensitive)
+        code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
+        outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
         
-        # Log the current position of the file.file object after upload
-        logger.error(f"Current position of file.file after upload: {file.file.tell()}")
-
-        # Log the file URL
-        logger.error(f"File URL: {file_url}")
-
-        # Store file reference in database
-        db = Database.get_db()
-        
-        # Try to convert learning outcome ID to ObjectId
-        try:
-            outcome_obj_id = ObjectId(learning_outcome_id)
-            logger.error(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
-        except Exception as e:
-            logger.error(f"Failed to convert learning_outcome_id to ObjectId: {str(e)}")
-            # If conversion fails, look up by code (case-insensitive)
-            import re
+        if not outcome:
+            logger.warning(f"No learning outcome found with code: '{learning_outcome_id}'. Attempting to create.")
+            # Extract subject code
+            subject_code = learning_outcome_id.split('-')[0][:3] if len(learning_outcome_id) >= 3 else None
+            subject = await db.subjects.find_one({"code": subject_code}) if subject_code else None
             
-            # Log the learning outcome ID we're searching for
-            logger.error(f"Looking up learning outcome by code: '{learning_outcome_id}'")
-            
-            # Check if any learning outcomes exist in the collection
-            count = await db.learning_outcomes.count_documents({})
-            logger.error(f"Total learning outcomes in database: {count}")
-            
-            # Get a sample of learning outcomes to see what's in the database
-            sample = await db.learning_outcomes.find().limit(5).to_list(None)
-            logger.error(f"Sample learning outcomes: {[lo.get('code', 'No code') for lo in sample]}")
-            
-            # Try exact match first (case-insensitive)
-            code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
-            logger.error(f"Regex pattern: {code_pattern.pattern}")
-            
-            outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
-            
-            if not outcome:
-                logger.error(f"No learning outcome found with exact code match: '{learning_outcome_id}'")
-                
-                # Try partial match as fallback
-                partial_pattern = re.compile(f"{re.escape(learning_outcome_id)}", re.IGNORECASE)
-                logger.error(f"Trying partial match with pattern: {partial_pattern.pattern}")
-                outcome = await db.learning_outcomes.find_one({"code": {"$regex": partial_pattern}})
-            
-            if not outcome:
-                logger.error(f"No learning outcome found with partial code match either")
-                
-                # Instead of failing, create the learning outcome in the database
-                logger.error(f"Creating new learning outcome with code: {learning_outcome_id}")
-                
-                # Extract subject code from learning outcome code (e.g., "ENE" from "ENE-OLC-01")
-                subject_code = learning_outcome_id.split('-')[0][:3] if len(learning_outcome_id) >= 3 else None
-                logger.error(f"Extracted subject code: {subject_code}")
-                
-                # Find the subject ID
-                subject = None
-                if subject_code:
-                    subject = await db.subjects.find_one({"code": subject_code})
-                    logger.error(f"Found subject: {subject}")
-                
-                # Create a new learning outcome
-                new_outcome = {
-                    "code": learning_outcome_id,
-                    "name": f"Auto-created: {learning_outcome_id}",
-                    "description": f"Automatically created learning outcome for evidence upload",
-                    "subject_id": subject["_id"] if subject else None,
-                    "grade_level": None,
-                    "is_standard": True,
-                    "created_at": datetime.now()
-                }
-                
-                # Insert the new learning outcome
-                result = await db.learning_outcomes.insert_one(new_outcome)
-                logger.error(f"Created new learning outcome with ID: {result.inserted_id}")
-                
-                # Get the newly created learning outcome
-                outcome = await db.learning_outcomes.find_one({"_id": result.inserted_id})
-                logger.error(f"Retrieved new learning outcome: {outcome}")
-            elif outcome:
-                logger.error(f"Found learning outcome with partial match: {outcome.get('code')}")
-                
+            new_outcome_data = {
+                "code": learning_outcome_id,
+                "name": f"Auto-created: {learning_outcome_id}",
+                "description": f"Automatically created learning outcome for evidence upload",
+                "subject_id": subject["_id"] if subject else None,
+                "grade_level": None, # Or try to infer if possible
+                "is_standard": True,
+                "created_at": datetime.now()
+            }
+            try:
+                result = await db.learning_outcomes.insert_one(new_outcome_data)
+                outcome_obj_id = result.inserted_id
+                logger.info(f"Created new learning outcome with ID: {outcome_obj_id}")
+            except Exception as insert_err:
+                 logger.error(f"Failed to create new learning outcome: {insert_err}")
+                 raise HTTPException(status_code=500, detail="Failed to find or create learning outcome.")
+        else:
             outcome_obj_id = outcome["_id"]
-            logger.error(f"Using learning outcome with ID: {outcome_obj_id}")
-        
-        evidence_doc = {
-            "student_id": ObjectId(student_id),
-            "learning_outcome_id": outcome_obj_id,
-            "file_url": file_url,
-            "file_name": file.filename,
-            "title": title or file.filename,  # Use filename as fallback if title is empty
-            "description": description,
-            "uploaded_at": datetime.now(),
-            "uploaded_by": ObjectId(current_user.id)
-        }
-        await db.student_evidence.insert_one(evidence_doc)
-        
-        return {"message": "File uploaded successfully", "file_url": file_url}
-    except Exception as e:
-        logger.error(f"Error uploading evidence: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+            logger.info(f"Found existing learning outcome with ID: {outcome_obj_id}")
+
+    if not outcome_obj_id:
+         raise HTTPException(status_code=404, detail=f"Learning outcome '{learning_outcome_id}' not found and could not be created.")
+    # --- End Find or Create Learning Outcome ---
+
+    # --- Process each uploaded file ---
+    for file in files:
+        try:
+            logger.info(f"Processing file: {file.filename} ({file.content_type}, Size: {file.size})")
+
+            # Basic validation
+            if not file.filename:
+                 logger.warning("Skipping file with no filename.")
+                 continue
+            if file.size == 0:
+                 logger.warning(f"Skipping empty file: {file.filename}")
+                 continue
+
+            # Ensure file pointer is at the beginning
+            await file.seek(0) 
+
+            # Generate unique file path using UUID
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            unique_id = uuid.uuid4()
+            file_extension = os.path.splitext(file.filename)[1]
+            # Example path: evidence/student_id/outcome_id/20250410202100-uuid-guid.jpg
+            file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}-{unique_id}{file_extension}"
+            
+            logger.info(f"Generated file path: {file_path}")
+
+            # Upload to Backblaze B2
+            file_url = await file_storage_service.upload_file(file, file_path)
+            logger.info(f"File uploaded successfully to: {file_url}")
+
+            # Store file reference in database
+            evidence_doc = {
+                "student_id": ObjectId(student_id),
+                "learning_outcome_id": outcome_obj_id,
+                "file_url": file_url,
+                "file_name": file.filename,
+                "title": title or file.filename,  # Use filename as fallback if title is empty for the batch
+                "description": description, # Use same description for the batch
+                "uploaded_at": datetime.now(),
+                "uploaded_by": ObjectId(current_user.id)
+            }
+            insert_result = await db.student_evidence.insert_one(evidence_doc)
+            logger.info(f"Evidence record created with ID: {insert_result.inserted_id}")
+            
+            uploaded_files_info.append({
+                "filename": file.filename,
+                "file_url": file_url,
+                "evidence_id": str(insert_result.inserted_id)
+            })
+
+        except Exception as e:
+            logger.error(f"Error processing file {file.filename}: {str(e)}")
+            # Decide whether to continue with other files or raise immediately
+            # For now, let's raise immediately to signal a partial failure
+            raise HTTPException(status_code=500, detail=f"Error processing file {file.filename}: {str(e)}")
+        finally:
+            # Ensure file is closed even if errors occur
+             await file.close()
+             logger.debug(f"Closed file: {file.filename}")
+    # --- End file processing loop ---
+
+    if not uploaded_files_info:
+         raise HTTPException(status_code=400, detail="No valid files were processed.")
+
+    return {
+        "message": f"{len(uploaded_files_info)} file(s) uploaded successfully", 
+        "uploaded_files": uploaded_files_info
+    }
 
 @router.delete("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}")
 async def delete_evidence(
