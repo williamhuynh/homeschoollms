@@ -74,12 +74,13 @@ class StudentService:
         result = await db.students.insert_one(student_dict)
         created_student = await db.students.find_one({"_id": result.inserted_id})
         return Student(**created_student)
-    
+
     @staticmethod
-    async def get_students_for_parent(current_user: UserInDB = Depends(get_current_user)) -> List[Student]:
+    async def get_students_for_parent(user_id: str) -> List[Student]:
+        """Get all students associated with a parent."""
         db = Database.get_db()
         students = []
-        async for student in db.students.find({"parent_ids": ObjectId(current_user.id)}):
+        async for student in db.students.find({"parent_ids": ObjectId(user_id)}):
             students.append(Student(**student))
         return students
 
@@ -132,7 +133,6 @@ class StudentService:
         subject_dict = subject.dict()
         if isinstance(subject_dict["start_date"], date):
             subject_dict["start_date"] = subject_dict["start_date"].isoformat()
-        
         update_result = await db.students.update_one(
             {"_id": ObjectId(student_id)},
             {
@@ -140,8 +140,8 @@ class StudentService:
                 "$addToSet": {"active_subjects": ObjectId(subject_id)}
             }
         )
-        
         if update_result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="Failed to enroll in subject")
             raise HTTPException(status_code=400, detail="Failed to enroll in subject")
         
         return await StudentService.get_student_by_id(student_id)
@@ -163,7 +163,7 @@ class StudentService:
             student = await StudentService.get_student_by_id(student_id)
 
             # Delete the student
-            result = await db.students.delete_one({"_id": ObjectId(student.id)})
+            result = await db.students.delete_one({"_id": ObjectId(student_id)})
             
             if result.deleted_count == 0:
                 raise HTTPException(status_code=404, detail="Student not found or could not be deleted")
@@ -205,7 +205,7 @@ class StudentService:
         result = []
         
         # Process parent_access entries
-        for access in student.parent_access:
+        for access in student.get("parent_access", []):
             try:
                 parent = await UserService.get_user_by_id(str(access.parent_id))
                 result.append({
@@ -297,8 +297,8 @@ class StudentService:
         
         # Find the parent access entry
         parent_access_index = None
-        for i, access in enumerate(student.parent_access):
-            if str(access.parent_id) == parent_id:
+        for i, access in enumerate(student.get("parent_access", [])):
+            if str(access.get("parent_id")) == parent_id:
                 parent_access_index = i
                 break
         
@@ -345,10 +345,10 @@ class StudentService:
         admin_count = 0
         is_target_admin = False
         
-        for access in student.parent_access:
+        for access in student.get("parent_access", []):
             if access.access_level == AccessLevel.ADMIN:
                 admin_count += 1
-                if str(access.parent_id) == parent_id:
+                if str(access.get("parent_id")) == parent_id:
                     is_target_admin = True
         
         # If there's only one admin and trying to remove them, prevent it
