@@ -68,7 +68,7 @@ const LazyImage = ({
         observerRef.current.unobserve(containerRef.current);
       }
     };
-  }, []);
+  }, [width, height, aspectRatio]);
 
   return (
     <Box 
