@@ -34,10 +34,11 @@ class SupabaseService:
             
             # Decode the token without verification first to get the user ID
             unverified_payload = jwt.decode(
-                token, 
+                token,
+                key=None,  # Explicitly pass None for the key argument
                 options={"verify_signature": False}
             )
-            
+
             # Get the user ID from the token
             user_id = unverified_payload.get("sub")
             if not user_id:
