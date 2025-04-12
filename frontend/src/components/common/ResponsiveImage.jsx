@@ -224,27 +224,26 @@ return (
         }}
       />
     )}
-      )}
-      <Box
-        as="img"
-        ref={imgRef}
-        src={currentSrc || (error ? fallbackSrc : null)}
-        alt={alt}
-        width="100%"
-        height="100%"
-        objectFit={objectFit}
-        borderRadius={borderRadius}
-        opacity={loading ? 0.3 : 1}
-        transition="opacity 0.3s ease"
-        onError={handleError}
-        style={{
-          filter: loading ? 'blur(10px)' : 'none',
-          transition: 'filter 0.3s ease, opacity 0.3s ease',
-          aspectRatio: dimensions.width ? dimensions.width / dimensions.height : 'auto'
-        }}
-      />
-    </Box>
-  );
+    <Box
+      as="img"
+      ref={imgRef}
+      src={currentSrc || (error ? fallbackSrc : null)}
+      alt={alt}
+      width="100%"
+      height="100%"
+      objectFit={objectFit}
+      borderRadius={borderRadius}
+      opacity={loading ? 0.3 : 1}
+      transition="opacity 0.3s ease"
+      onError={handleError}
+      style={{
+        filter: loading ? 'blur(10px)' : 'none',
+        transition: 'filter 0.3s ease, opacity 0.3s ease',
+        aspectRatio: dimensions.width ? dimensions.width / dimensions.height : 'auto'
+      }}
+    />
+  </Box>
+);
 };
 
 export default ResponsiveImage;
