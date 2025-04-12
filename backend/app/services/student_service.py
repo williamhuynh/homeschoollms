@@ -243,23 +243,23 @@ class StudentService:
         result = []
         
         # Process parent_access entries
-        for access in student.get("parent_access", []):
+        for access in student.dict().get("parent_access", []):
             try:
-                parent = await UserService.get_user_by_id(str(access.parent_id))
+                parent = await UserService.get_user_by_id(str(access.get("parent_id")))
                 result.append({
-                    "parent_id": str(access.parent_id),
+                    "parent_id": str(access.get("parent_id")),
                     "email": parent.email,
                     "full_name": parent.full_name,
-                    "access_level": access.access_level
+                    "access_level": access.get("access_level")
                 })
             except HTTPException:
                 # Skip if user not found
                 continue
         
         # For backward compatibility, check parent_ids that aren't in parent_access
-        for parent_id in student.parent_ids:
+        for parent_id in student.dict().get("parent_ids", []):
             # Skip if already processed in parent_access
-            if any(access.parent_id == parent_id for access in student.parent_access):
+            if any(str(access.get("parent_id")) == str(parent_id) for access in student.dict().get("parent_access", [])):
                 continue
                 
             try:
@@ -297,8 +297,8 @@ class StudentService:
         student = await StudentService.get_student_by_id(student_id)
         
         # Check if parent already has access
-        for access in student.parent_access:
-            if access.parent_id == parent_id:
+        for access in student.dict().get("parent_access", []):
+            if str(access.get("parent_id")) == str(parent_id):
                 raise HTTPException(status_code=400, detail="Parent already has access to this student")
         
         # Add parent to parent_access
@@ -319,6 +319,8 @@ class StudentService:
             "success": True,
             "message": f"Added {access_level} access for {parent_email} to student {student.first_name} {student.last_name}"
         }
+    
+# End of class
     
     @staticmethod
     async def update_parent_access(student_id: str, parent_id: str, access_level: AccessLevel, current_parent_id: str) -> Dict[str, Any]:
@@ -342,7 +344,7 @@ class StudentService:
         
         if parent_access_index is None:
             # For backward compatibility, if parent is in parent_ids but not in parent_access
-            if ObjectId(parent_id) in student.parent_ids:
+            if ObjectId(parent_id) in student.dict().get("parent_ids", []):
                 # Add a new parent_access entry
                 parent_access = ParentAccess(parent_id=ObjectId(parent_id), access_level=access_level)
                 update_result = await db.students.update_one(
