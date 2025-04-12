@@ -62,6 +62,17 @@ const ResponsiveImage = ({
     // Determine if we should use WebP format
     const [supportsWebP, setSupportsWebP] = useState(false);
     
+    // Function to check WebP support
+    const isWebPSupported = () => {
+      return new Promise(resolve => {
+        const webP = new Image();
+        webP.onload = webP.onerror = function() {
+          resolve(webP.height === 1);
+        };
+        webP.src = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=';
+      });
+    };
+    
     useEffect(() => {
       isWebPSupported().then(supported => {
         setSupportsWebP(supported);
@@ -159,7 +170,7 @@ const ResponsiveImage = ({
         const transformOptions = {
           width: containerWidth * (window.devicePixelRatio || 1),
           height: containerHeight * (window.devicePixelRatio || 1),
-          format: supportsWebP ? 'webp' : undefined,
+          format: supportsWebP ? 'webp' : undefined, // Use WebP if supported
           quality: 80
         };
         
@@ -168,7 +179,6 @@ const ResponsiveImage = ({
         if (currentSrc?.includes('_thumb_small')) currentSize = 'small';
         else if (currentSrc?.includes('_thumb_medium')) currentSize = 'medium';
         else if (currentSrc?.includes('_thumb_large')) currentSize = 'large';
-        else currentSize = 'original';
         else currentSize = 'original';
         
         // Only reload if we need a larger size than currently displayed
