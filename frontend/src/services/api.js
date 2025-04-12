@@ -374,6 +374,16 @@ export const getEvidenceDownloadUrl = async (studentId, learningOutcomeId, evide
   }
 };
 
+export const getCurrentUser = async () => {
+  try {
+    const response = await apiToUse.get('/api/users/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    throw error;
+  }
+};
+
 export const getEvidenceShareUrl = async (studentId, learningOutcomeId, evidenceId) => {
   try {
     const response = await apiToUse.post(

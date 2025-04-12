@@ -1,7 +1,8 @@
 import { Container, Heading, VStack, IconButton, Flex, useToast, Text, Center, Spinner, Link, Box, Button } from '@chakra-ui/react'
-import { Plus, Settings } from 'react-feather'
+import { Plus } from 'react-feather' // Removed Settings import
 import { useNavigate } from 'react-router-dom'
 import StudentList from '../../components/students/StudentList'
+import BottomNav from '../../components/navigation/BottomNav' // Import BottomNav
 import { useEffect, useState } from 'react'
 import { useStudents } from '../../contexts/StudentsContext'
 import { getStudents } from '../../services/api'
@@ -76,17 +77,13 @@ const StudentSelection = () => {
   }, []) // Empty dependency array to run only once on mount
 
   return (
-    <Container maxW="container.sm" py={8}>
+    // Add paddingBottom to account for fixed BottomNav height (adjust value as needed)
+    <Container maxW="container.sm" py={8} pb="80px"> 
       <VStack spacing={8} align="stretch">
         <Flex justify="space-between" align="center" px={4}>
           <Heading size="xl">Your Students</Heading>
           <Flex gap={2}>
-            <IconButton
-              icon={<Settings size={20} />}
-              variant="ghost"
-              aria-label="Admin settings"
-              onClick={() => navigate('/admin')}
-            />
+            {/* Removed Settings IconButton */}
             <IconButton
               icon={<Plus />}
               variant="solid"
@@ -182,6 +179,7 @@ const StudentSelection = () => {
           />
         )}
       </VStack>
+      <BottomNav /> {/* Add BottomNav component */}
     </Container>
   )
 }

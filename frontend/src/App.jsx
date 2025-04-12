@@ -11,6 +11,7 @@ import SubjectContentPage from './pages/progress/SubjectContentPage'
 import LearningOutcomePage from './pages/progress/LearningOutcomePage'
 import ContentCreatePage from './pages/content/ContentCreatePage'
 import AdminPage from './pages/admin/AdminPage'
+import ProfilePage from './pages/profile/ProfilePage' // Import the new ProfilePage
 import BottomNav from './components/navigation/BottomNav'
 import AddStudent from './pages/students/AddStudent'
 import { StudentsProvider } from './contexts/StudentsContext'
@@ -155,6 +156,15 @@ function App() {
               element={
                 isAuthenticatedOverride || isAuthenticated ? 
                   <AdminPage /> : 
+                  <Navigate to="/login" replace />
+              } 
+            />
+            {/* Profile Page Route */}
+            <Route 
+              path="/profile" 
+              element={
+                isAuthenticatedOverride || isAuthenticated ? 
+                  <ProfilePage /> : 
                   <Navigate to="/login" replace />
               } 
             />

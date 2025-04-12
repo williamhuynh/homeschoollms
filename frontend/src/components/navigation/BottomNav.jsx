@@ -1,6 +1,6 @@
 // src/components/navigation/BottomNav.jsx
 import { Box, Flex, IconButton } from '@chakra-ui/react'
-import { Home, Plus, Settings } from 'react-feather'
+import { Home, Plus, User } from 'react-feather' // Changed Settings to User
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useFileUploadModal } from '../../contexts/FileUploadModalContext'
 
@@ -42,10 +42,10 @@ const BottomNav = () => {
           aria-label="Upload Evidence"
         />
         <IconButton
-          icon={<Settings />}
+          icon={<User />} // Changed icon
           variant="ghost"
-          onClick={() => navigate('/admin')}
-          aria-label="Settings"
+          onClick={() => navigate('/profile')} // Changed route
+          aria-label="Profile" // Changed label
         />
       </Flex>
     </Box>
