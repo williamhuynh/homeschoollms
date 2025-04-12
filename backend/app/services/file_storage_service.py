@@ -100,8 +100,8 @@ class FileStorageService:
                 logger.error("file_data is empty")
                 raise Exception("file_data is empty")
 
-            # Try a completely different approach: use boto3.resource instead of boto3.client
-            logger.error("Using boto3.resource instead of boto3.client")
+            # Upload using boto3.resource
+            logger.error("Using boto3.resource")
             
             # Create a new boto3 resource
             s3_resource = boto3.resource(
@@ -139,34 +139,32 @@ class FileStorageService:
                 except Exception as e:
                     logger.error(f"Error generating thumbnail: {str(e)}")
                     # Continue even if thumbnail generation fails
-            
-            # Construct the file URL
+
+            # Generate presigned URLs for immediate access
+            presigned_url = self.generate_presigned_url(file_path)
+            logger.error(f"Generated presigned URL: {presigned_url}")
+
+            # Store the presigned URL in the database or cache for immediate use
+            # But return Edge Function URLs for the frontend
             file_url = f"{self.bucket_name}/{file_path}"
             
-            # If Vercel Edge Function is configured, use it
-            if VERCEL_URL:
-                # Remove trailing slash from VERCEL_URL and leading slash from EDGE_FUNCTION_PATH
-                base_url = VERCEL_URL.rstrip('/')
-                path = EDGE_FUNCTION_PATH.lstrip('/')
-                edge_function_file_url = f"{base_url}/{path}/{file_path}"
-                # For original images, we can add parameters for optimization if needed
-                # edge_function_file_url = f"{edge_function_file_url}?format=webp"
-            else:
-                # Fall back to CDN if available, or direct Backblaze URL
-                edge_function_file_url = f"{CDN_URL}/{file_path}" if CDN_URL else file_url
+            # Always use Edge Function URLs for the frontend
+            if not VERCEL_URL:
+                logger.error("VERCEL_URL not configured")
+                raise Exception("VERCEL_URL environment variable must be configured")
             
-            # Construct the thumbnail URL
+            # Construct Edge Function URLs
+            base_url = VERCEL_URL.rstrip('/')
+            path = EDGE_FUNCTION_PATH.lstrip('/')
+            edge_function_file_url = f"{base_url}/{path}/{file_url}"
+            
+            # Construct the thumbnail URL using Edge Function
             edge_function_thumbnail_url = None
             if thumbnail_url:
-                thumbnail_path = thumbnail_url.split('/')[-1]
-                if VERCEL_URL:
-                    # Use Edge Function for thumbnail with size parameters
-                    base_url = VERCEL_URL.rstrip('/')
-                    path = EDGE_FUNCTION_PATH.lstrip('/')
-                    edge_function_thumbnail_url = f"{base_url}/{path}/{thumbnail_path}"
-                else:
-                    # Fall back to CDN if available, or direct Backblaze URL
-                    edge_function_thumbnail_url = f"{CDN_URL}/{thumbnail_path}" if CDN_URL else thumbnail_url
+                thumbnail_path = f"{self.bucket_name}/{thumbnail_url.split('/')[-1]}"
+                edge_function_thumbnail_url = f"{base_url}/{path}/{thumbnail_path}"
+            
+            logger.error(f"Returning URLs - File: {edge_function_file_url}, Thumbnail: {edge_function_thumbnail_url}")
             
             return {
                 "file_url": edge_function_file_url,
