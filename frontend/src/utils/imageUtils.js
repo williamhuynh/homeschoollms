@@ -67,7 +67,16 @@ export const getAppropriateImageSize = ({
  * @returns {string} - The URL for the requested size with transformations
  */
 export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
-  if (!image) return null;
+  if (!image) {
+    console.log('getThumbnailUrl: No image provided');
+    return null;
+  }
+  
+  console.log('getThumbnailUrl input:', {
+    image,
+    size,
+    options
+  });
   
   // Get the base URL for the requested size
   let baseUrl;
@@ -90,8 +99,20 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
       break;
   }
   
+  console.log('Selected base URL:', {
+    size,
+    baseUrl,
+    fallbackChain: {
+      thumbnail_small_url: image.thumbnail_small_url,
+      thumbnail_medium_url: image.thumbnail_medium_url,
+      thumbnail_large_url: image.thumbnail_large_url,
+      original_url: image.original_url
+    }
+  });
+  
   // If no URL is available or no transformations requested, return the base URL
   if (!baseUrl || Object.keys(options).length === 0) {
+    console.log('Returning base URL without transformations:', baseUrl);
     return baseUrl;
   }
   
@@ -101,8 +122,15 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
   // Check if the URL is already using our Edge Function
   const isEdgeFunction = normalizedUrl.includes('/api/images/');
   
+  console.log('URL normalization:', {
+    originalUrl: baseUrl,
+    normalizedUrl,
+    isEdgeFunction
+  });
+  
   // If it's not an Edge Function URL, we can't apply transformations
   if (!isEdgeFunction) {
+    console.log('Not an Edge Function URL, returning normalized URL:', normalizedUrl);
     return normalizedUrl;
   }
   
@@ -127,8 +155,18 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
   if (options.quality) {
     url.searchParams.set('quality', options.quality);
   }
+  const finalUrl = url.toString();
+  console.log('Final transformed URL:', {
+    finalUrl,
+    appliedTransformations: {
+      width: options.width,
+      height: options.height,
+      format: options.format,
+      quality: options.quality
+    }
+  });
   
-  return url.toString();
+  return finalUrl;
 };
 
 /**

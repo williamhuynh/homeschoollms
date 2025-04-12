@@ -50,6 +50,16 @@ const ResponsiveImage = ({
     
     // Start with small thumbnail (or fallback to original if no thumbnails)
     const smallSrc = getThumbnailUrl(image, 'small');
+    console.log('Initial thumbnail URL:', {
+      image,
+      smallSrc,
+      thumbnails: {
+        small: image.thumbnail_small_url,
+        medium: image.thumbnail_medium_url,
+        large: image.thumbnail_large_url,
+        original: image.original_url
+      }
+    });
     setCurrentSrc(smallSrc);
     
     // Determine appropriate size based on container
@@ -70,9 +80,14 @@ const ResponsiveImage = ({
       format: supportsWebP ? 'webp' : undefined,
       quality: 80
     };
-    
     // Prepare the next image to load based on size and transformations
     const nextSrc = getThumbnailUrl(image, size, transformOptions);
+    console.log('Next image URL:', {
+      size,
+      transformOptions,
+      nextSrc
+    });
+    
     
     // If we're already using the best size, no need to load another image
     if (nextSrc === smallSrc) {
@@ -173,6 +188,11 @@ const ResponsiveImage = ({
 
   // Handle image load error
   const handleError = () => {
+    console.error('Image load error:', {
+      currentSrc,
+      image,
+      dimensions
+    });
     setError(true);
     setLoading(false);
   };
