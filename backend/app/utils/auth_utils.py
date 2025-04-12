@@ -8,6 +8,7 @@ from ..services.auth_service import AuthService
 from ..services.supabase_service import SupabaseService
 from ..config.settings import settings
 import os
+import logging # Import logging
 
 # Ensure we have a valid secret key
 SECRET_KEY = settings.jwt_secret
@@ -36,11 +37,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     )
     
     # First try to verify as a Supabase token
+    logging.info(f"Checking for Supabase settings: URL set? {'Yes' if settings.supabase_url else 'No'}, Secret set? {'Yes' if settings.supabase_jwt_secret else 'No'}")
     if settings.supabase_url and settings.supabase_jwt_secret:
+        logging.info("Attempting Supabase token verification.")
         try:
             # Verify token with Supabase
             supabase_user = await SupabaseService.verify_token(token)
             if supabase_user:
+                logging.info("Supabase token verified successfully.")
                 # Get or create user in our database
                 email = supabase_user.get("email")
                 if not email:
@@ -70,16 +74,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
                 
                 return user
         except Exception as e:
-            print(f"Supabase token verification failed: {e}")
+            logging.error(f"Supabase token verification failed: {e}", exc_info=True)
             # Continue to try legacy token verification
+    else:
+        logging.info("Supabase URL or JWT Secret not set, skipping Supabase verification.")
     
     # Legacy token verification
+    logging.info("Attempting legacy token verification.")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        logging.error(f"Legacy JWTError: {e}", exc_info=True)
         raise credentials_exception
         
     user = await AuthService.get_user_by_email(email)

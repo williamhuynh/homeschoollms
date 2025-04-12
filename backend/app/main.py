@@ -18,8 +18,12 @@ from .routes import (
 from bson.errors import InvalidId
 from .utils.error_handlers import http_error_handler, invalid_object_id_handler
 from .utils.database_utils import Database
+import logging  # Import logging
 
 import os
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Load environment variables
 load_dotenv()
