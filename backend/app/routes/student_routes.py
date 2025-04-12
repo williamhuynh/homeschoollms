@@ -3,7 +3,7 @@ from ..services.student_service import StudentService
 from ..models.schemas.student import Student, AccessLevel
 from ..models.schemas.user import UserInDB
 from ..utils.auth_utils import get_current_user
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, EmailStr
 
 router = APIRouter()
@@ -46,10 +46,15 @@ async def get_students_with_slash(
 
 @router.get("/students/for-parent", response_model=List[Student])
 async def get_students_for_parent(
+    access_level: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_user)
 ):
-    """Get all students associated with the current user (parent)."""
-    return await StudentService.get_students_for_parent(str(current_user.id))
+    """
+    Get all students associated with the current user (parent).
+    
+    Optionally filter by access level (admin, content, view).
+    """
+    return await StudentService.get_students_for_parent(str(current_user.id), access_level)
 
 @router.get("/students/by-slug/{slug}", response_model=Student)
 async def get_student_by_slug(

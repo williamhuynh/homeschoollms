@@ -115,13 +115,17 @@ export const createStudent = async (studentData) => {
   }
 };
 
-export const getStudents = async () => {
+export const getStudents = async (accessLevel = null) => {
   try {
     console.log('Using API:', apiToUse.defaults.baseURL);
     console.log('Token in localStorage:', localStorage.getItem('token'));
-    console.log('Making request to /api/students/for-parent');
+    console.log(`Making request to /api/students/for-parent${accessLevel ? `?access_level=${accessLevel}` : ''}`);
     
-    const response = await apiToUse.get('/api/students/for-parent');
+    // Add access_level as a query parameter if provided
+    const response = await apiToUse.get('/api/students/for-parent', {
+      params: accessLevel ? { access_level: accessLevel } : {}
+    });
+    
     console.log('Students API response:', response);
     
     // Ensure IDs are in the correct format
@@ -148,6 +152,11 @@ export const getStudents = async () => {
     console.log('Returning empty array instead of throwing error');
     return [];
   }
+};
+
+// Function to get students with admin access specifically
+export const getStudentsWithAdminAccess = async () => {
+  return getStudents('admin');
 };
 
 export const getStudentBySlug = async (slug) => {

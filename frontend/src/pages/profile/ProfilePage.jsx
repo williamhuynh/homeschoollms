@@ -126,26 +126,24 @@ const ProfilePage = () => {
           </VStack>
         </Center>
 
-        {/* Conditional Admin Tools Link */}
-        {user && user.access_level === 10 && ( // Assuming 10 is the admin level
-          <Button 
-            as={RouterLink} // Use RouterLink for internal navigation
-            to="/admin" 
-            leftIcon={<Settings size={20} />} 
-            variant="outline"
-            colorScheme="gray"
-            mt={6} // Add margin top
-          >
-            Admin Tools
-          </Button>
-        )}
+        {/* Admin Tools Link - Available to all users */}
+        <Button
+          as={RouterLink} // Use RouterLink for internal navigation
+          to="/admin"
+          leftIcon={<Settings size={20} />}
+          variant="outline"
+          colorScheme="gray"
+          mt={6} // Add margin top
+        >
+          Admin Tools
+        </Button>
 
         {/* Logout Button */}
-        <Button 
-          leftIcon={<LogOut size={20} />} 
-          colorScheme="red" 
+        <Button
+          leftIcon={<LogOut size={20} />}
+          colorScheme="red"
           onClick={handleLogout}
-          mt={user?.access_level === 10 ? 2 : 6} // Adjust margin based on admin button presence
+          mt={2} // Always use consistent margin since Admin Tools button is always present
         >
           Logout
         </Button>

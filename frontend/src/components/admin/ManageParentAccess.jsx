@@ -8,7 +8,7 @@ import {
   Divider,
   useToast
 } from '@chakra-ui/react';
-import { getStudents } from '../../services/api';
+import { getStudentsWithAdminAccess } from '../../services/api';
 import ParentAccessList from './ParentAccessList';
 import AddParentAccess from './AddParentAccess';
 
@@ -22,7 +22,8 @@ const ManageParentAccess = () => {
     const fetchStudents = async () => {
       try {
         setIsLoading(true);
-        const fetchedStudents = await getStudents();
+        // Only fetch students for which the current user has admin access
+        const fetchedStudents = await getStudentsWithAdminAccess();
         setStudents(fetchedStudents);
         
         // Select the first student by default if available
@@ -64,20 +65,28 @@ const ManageParentAccess = () => {
     <Box>
       <Heading size="md" mb={4}>Parent Access Management</Heading>
       <VStack spacing={4} align="stretch">
-        <Box>
-          <Text mb={2}>Select a student:</Text>
-          <Select 
-            value={selectedStudentId} 
-            onChange={handleStudentChange}
-            isDisabled={isLoading || students.length === 0}
-          >
-            {students.map(student => (
-              <option key={student.id} value={student.id}>
-                {student.first_name} {student.last_name}
-              </option>
-            ))}
-          </Select>
-        </Box>
+        {students.length === 0 && !isLoading ? (
+          <Box p={4} borderWidth="1px" borderRadius="md" bg="yellow.50">
+            <Text>
+              You don't have admin access to any students. Only students for which you have admin access will appear here.
+            </Text>
+          </Box>
+        ) : (
+          <Box>
+            <Text mb={2}>Select a student:</Text>
+            <Select
+              value={selectedStudentId}
+              onChange={handleStudentChange}
+              isDisabled={isLoading || students.length === 0}
+            >
+              {students.map(student => (
+                <option key={student.id} value={student.id}>
+                  {student.first_name} {student.last_name}
+                </option>
+              ))}
+            </Select>
+          </Box>
+        )}
 
         {selectedStudentId && (
           <>

@@ -76,12 +76,50 @@ class StudentService:
         return Student(**created_student)
 
     @staticmethod
-    async def get_students_for_parent(user_id: str) -> List[Student]:
-        """Get all students associated with a parent."""
+    async def get_students_for_parent(user_id: str, access_level: Optional[str] = None) -> List[Student]:
+        """
+        Get all students associated with a parent, optionally filtered by access level.
+        
+        Args:
+            user_id: The ID of the parent user
+            access_level: Optional filter for access level (admin, content, view)
+            
+        Returns:
+            List of Student objects
+        """
         db = Database.get_db()
         students = []
-        async for student in db.students.find({"parent_ids": ObjectId(user_id)}):
-            students.append(Student(**student))
+        
+        # Base query to find students associated with the parent
+        query = {"$or": [
+            {"parent_ids": ObjectId(user_id)},  # For backward compatibility
+            {"parent_access.parent_id": ObjectId(user_id)}  # New structure
+        ]}
+        
+        async for student in db.students.find(query):
+            # If no access level filter, include all students
+            if access_level is None:
+                students.append(Student(**student))
+                continue
+                
+            # Check if parent has the specified access level for this student
+            has_access = False
+            
+            # Check in parent_access array
+            for access in student.get("parent_access", []):
+                if str(access.get("parent_id")) == user_id and access.get("access_level") == access_level:
+                    has_access = True
+                    break
+            
+            # For backward compatibility, if parent is in parent_ids and there's no parent_access entry,
+            # consider them as having admin access
+            if not has_access and access_level == "admin":
+                if ObjectId(user_id) in student.get("parent_ids", []) and not student.get("parent_access"):
+                    has_access = True
+            
+            if has_access:
+                students.append(Student(**student))
+                
         return students
 
     @staticmethod

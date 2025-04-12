@@ -15,7 +15,7 @@ import {
   AlertDialogOverlay,
   useDisclosure
 } from '@chakra-ui/react';
-import { deleteStudent, getStudents } from '../../services/api';
+import { deleteStudent, getStudentsWithAdminAccess } from '../../services/api';
 
 /**
  * A component that allows administrators to delete a student.
@@ -37,7 +37,8 @@ const DeleteStudent = () => {
   const loadStudents = async () => {
     setIsLoadingStudents(true);
     try {
-      const studentsData = await getStudents();
+      // Only fetch students for which the current user has admin access
+      const studentsData = await getStudentsWithAdminAccess();
       setStudents(studentsData);
     } catch (error) {
       console.error('Error loading students:', error);
@@ -126,12 +127,19 @@ const DeleteStudent = () => {
   };
 
   const selectedStudent = students.find(student => student.id === selectedStudentId);
-
   return (
     <Box p={4} borderWidth="1px" borderRadius="lg">
       <Text mb={4}>
         This utility allows you to delete a student. This action cannot be undone.
       </Text>
+      
+      {students.length === 0 && !isLoadingStudents && (
+        <Box p={4} mb={4} borderWidth="1px" borderRadius="md" bg="yellow.50">
+          <Text>
+            You don't have admin access to any students. Only students for which you have admin access can be deleted.
+          </Text>
+        </Box>
+      )}
       
       <FormControl mb={4}>
         <FormLabel>Select Student to Delete</FormLabel>
