@@ -151,7 +151,7 @@ const ResponsiveImage = ({
         observerRef.current.unobserve(imgRef.current);
       }
     };
-  }, [image]);
+  }, [image, supportsWebP]);
 
   // Handle window resize to potentially load different size
   useEffect(() => {
