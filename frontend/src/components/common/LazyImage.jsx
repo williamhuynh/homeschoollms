@@ -89,6 +89,7 @@ const LazyImage = ({
           objectFit={objectFit}
           borderRadius={borderRadius}
           onLoad={() => setIsLoaded(true)}
+          isVisible={isVisible} // Pass isVisible state down
         />
       ) : (
         <Skeleton

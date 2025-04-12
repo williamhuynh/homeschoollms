@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Box, Skeleton } from '@chakra-ui/react';
-import { getAppropriateImageSize, getThumbnailUrl, preloadImage } from '../../utils/imageUtils';
+import { getAppropriateImageSize, getThumbnailUrl, preloadImage, isWebPSupported } from '../../utils/imageUtils';
 
 /**
  * A responsive image component that uses thumbnails, lazy loading, and progressive loading
@@ -29,11 +29,14 @@ const ResponsiveImage = ({
   objectFit = 'cover',
   borderRadius = 'md',
   fallbackSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  isVisible = false, // Add isVisible prop
   ...props
 }) => {
   const [loading, setLoading] = useState(true);
   const [currentSrc, setCurrentSrc] = useState(null);
   const [error, setError] = useState(false);
+    // Determine if we should use WebP format
+    const [supportsWebP, setSupportsWebP] = useState(false);
   const imgRef = useRef(null);
   const observerRef = useRef(null);
 
@@ -58,26 +61,6 @@ const ResponsiveImage = ({
       displayType: 'thumbnail',
       highDensityDisplay: window.devicePixelRatio > 1
     });
-    
-    // Determine if we should use WebP format
-    const [supportsWebP, setSupportsWebP] = useState(false);
-    
-    // Function to check WebP support
-    const isWebPSupported = () => {
-      return new Promise(resolve => {
-        const webP = new Image();
-        webP.onload = webP.onerror = function() {
-          resolve(webP.height === 1);
-        };
-        webP.src = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=';
-      });
-    };
-    
-    useEffect(() => {
-      isWebPSupported().then(supported => {
-        setSupportsWebP(supported);
-      });
-    }, []);
     
     // Prepare transformation options
     const transformOptions = {
@@ -129,29 +112,23 @@ const ResponsiveImage = ({
       });
   };
 
-  // Set up intersection observer for lazy loading
+  // Check WebP support on mount
   useEffect(() => {
-    if (!imgRef.current) return;
-
-    observerRef.current = new IntersectionObserver((entries) => {
-      const [entry] = entries;
-      if (entry.isIntersecting) {
-        loadImageProgressively();
-        // Unobserve after loading starts
-        observerRef.current.unobserve(imgRef.current);
-      }
-    }, {
-      rootMargin: '200px', // Start loading when image is 200px from viewport
+    isWebPSupported().then(supported => {
+      setSupportsWebP(supported);
     });
+  }, []);
 
-    observerRef.current.observe(imgRef.current);
+  // Load image when component becomes visible
+  useEffect(() => {
+    if (isVisible && image) {
+      loadImageProgressively();
+    }
+    // We only want this to run when isVisible changes from false to true,
+    // or when the image prop itself changes while visible.
+  }, [isVisible, image]);
 
-    return () => {
-      if (observerRef.current && imgRef.current) {
-        observerRef.current.unobserve(imgRef.current);
-      }
-    };
-  }, [image, supportsWebP]);
+
 
   // Handle window resize to potentially load different size
   useEffect(() => {
