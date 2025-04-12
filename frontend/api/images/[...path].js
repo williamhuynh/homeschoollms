@@ -2,6 +2,7 @@
 // This file should be placed in the /api/images directory in your Vercel project
 
 import { createClient } from '@vercel/edge';
+import sharp from 'sharp';
 
 // Cache configuration
 const CACHE_CONTROL = {
@@ -68,20 +69,9 @@ export default async function handler(req) {
     const needsTransformation = width > 0 || height > 0 || format;
     
     if (needsTransformation) {
-      // In Vercel Edge Functions, we can use the Sharp library via the Edge Runtime
-      // This requires adding the Sharp package to your project dependencies
-      // and configuring Vercel to use it in Edge Functions
-      
-      // For this implementation, we'll use a placeholder for the transformation logic
-      // In a real implementation, you would use the Sharp library or a similar image
-      // processing library compatible with Edge Functions
-      
-      // Example of how this would work with Sharp:
-      /*
-      import sharp from 'sharp';
-      
       let transformer = sharp(Buffer.from(imageData));
       
+      // Apply resize if width or height is specified
       if (width > 0 || height > 0) {
         transformer = transformer.resize(width || null, height || null, {
           fit: 'inside',
@@ -89,6 +79,7 @@ export default async function handler(req) {
         });
       }
       
+      // Apply format conversion if specified
       if (format) {
         switch (format.toLowerCase()) {
           case 'webp':
@@ -111,20 +102,15 @@ export default async function handler(req) {
         }
       }
       
+      // Transform the image
       const transformedImageData = await transformer.toBuffer();
-      */
       
-      // For now, we'll just return the original image
-      // In a real implementation, replace this with the transformed image
-      
-      // Add a note in the response headers that transformation was requested but not applied
-      return new Response(imageData, {
+      return new Response(transformedImageData, {
         headers: {
           'Content-Type': contentType,
           'Cache-Control': `public, max-age=${CACHE_CONTROL.maxAge}, stale-while-revalidate=${CACHE_CONTROL.staleWhileRevalidate}`,
-          'Content-Length': imageData.byteLength.toString(),
+          'Content-Length': transformedImageData.byteLength.toString(),
           'Access-Control-Allow-Origin': '*',
-          'X-Image-Transform': 'Transformation requested but not implemented in this example',
         },
       });
     }

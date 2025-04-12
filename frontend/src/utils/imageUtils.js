@@ -104,7 +104,8 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
   }
   
   // Apply transformations by adding query parameters
-  const url = new URL(baseUrl, window.location.origin);
+  // Handle both relative and absolute URLs correctly
+  const url = baseUrl.startsWith('http') ? new URL(baseUrl) : new URL(baseUrl, window.location.origin);
   
   if (options.width) {
     url.searchParams.set('width', options.width);

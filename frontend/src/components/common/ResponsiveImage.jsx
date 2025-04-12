@@ -35,8 +35,9 @@ const ResponsiveImage = ({
   const [loading, setLoading] = useState(true);
   const [currentSrc, setCurrentSrc] = useState(null);
   const [error, setError] = useState(false);
-    // Determine if we should use WebP format
-    const [supportsWebP, setSupportsWebP] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [supportsWebP, setSupportsWebP] = useState(false);
+  const containerRef = useRef(null);
   const imgRef = useRef(null);
   const observerRef = useRef(null);
 
@@ -188,20 +189,41 @@ const ResponsiveImage = ({
       />
     );
   }
+// Calculate and set initial dimensions
+useEffect(() => {
+  if (containerRef.current) {
+    const { clientWidth, clientHeight } = containerRef.current;
+    setDimensions({
+      width: clientWidth,
+      height: clientHeight
+    });
+  }
+}, [width, height]);
 
-  return (
-    <Box position="relative" width={width} height={height} {...props}>
-      {loading && (
-        <Skeleton
-          position="absolute"
-          top="0"
-          left="0"
-          width="100%"
-          height="100%"
-          borderRadius={borderRadius}
-          startColor="gray.100"
-          endColor="gray.300"
-        />
+return (
+  <Box
+    ref={containerRef}
+    position="relative"
+    width={width}
+    height={height}
+    overflow="hidden"
+    {...props}
+  >
+    {loading && (
+      <Skeleton
+        position="absolute"
+        top="0"
+        left="0"
+        width="100%"
+        height="100%"
+        borderRadius={borderRadius}
+        startColor="gray.100"
+        endColor="gray.300"
+        style={{
+          aspectRatio: dimensions.width ? dimensions.width / dimensions.height : 'auto'
+        }}
+      />
+    )}
       )}
       <Box
         as="img"
@@ -215,9 +237,10 @@ const ResponsiveImage = ({
         opacity={loading ? 0.3 : 1}
         transition="opacity 0.3s ease"
         onError={handleError}
-        style={{ 
+        style={{
           filter: loading ? 'blur(10px)' : 'none',
-          transition: 'filter 0.3s ease, opacity 0.3s ease'
+          transition: 'filter 0.3s ease, opacity 0.3s ease',
+          aspectRatio: dimensions.width ? dimensions.width / dimensions.height : 'auto'
         }}
       />
     </Box>
