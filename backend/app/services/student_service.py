@@ -1,11 +1,13 @@
 from ..utils.database_utils import Database
 from ..models.schemas.student import Student, StudentSubject, ParentAccess, AccessLevel
 from ..services.user_service import UserService
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from bson import ObjectId
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 import re
+from ..models.schemas.user import UserInDB
+from ..utils.auth_utils import get_current_user
 
 class StudentService:
     @staticmethod
@@ -74,10 +76,10 @@ class StudentService:
         return Student(**created_student)
     
     @staticmethod
-    async def get_all_students() -> List[Student]:
+    async def get_students_for_parent(current_user: UserInDB = Depends(get_current_user)) -> List[Student]:
         db = Database.get_db()
         students = []
-        async for student in db.students.find():
+        async for student in db.students.find({"parent_ids": ObjectId(current_user.id)}):
             students.append(Student(**student))
         return students
 

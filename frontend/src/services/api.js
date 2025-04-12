@@ -119,15 +119,9 @@ export const getStudents = async () => {
   try {
     console.log('Using API:', apiToUse.defaults.baseURL);
     console.log('Token in localStorage:', localStorage.getItem('token'));
-    console.log('Making request to /api/students');
+    console.log('Making request to /api/students/for-parent');
     
-    // Force a token for testing purposes
-    if (!localStorage.getItem('token')) {
-      console.log('No token found, setting a test token');
-      localStorage.setItem('token', 'test-token-for-debugging');
-    }
-    
-    const response = await apiToUse.get('/api/students');
+    const response = await apiToUse.get('/api/students/for-parent');
     console.log('Students API response:', response);
     
     // Ensure IDs are in the correct format
@@ -150,7 +144,7 @@ export const getStudents = async () => {
       responseData: error.response?.data
     });
     
-    // For debugging purposes, return empty array instead of throwing
+    // For debugging purposes, return empty array instead of throwing error
     console.log('Returning empty array instead of throwing error');
     return [];
   }
