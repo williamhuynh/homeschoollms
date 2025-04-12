@@ -1,8 +1,17 @@
 import os
 import boto3
+import io
+from PIL import Image
 from botocore.client import Config
 from fastapi import UploadFile
 from ..config import settings
+
+# CDN configuration
+CDN_URL = os.getenv('CDN_URL', '')  # e.g., 'https://cdn.yourdomain.com'
+
+# Vercel Edge Function configuration
+VERCEL_URL = os.getenv('VERCEL_URL', '')  # e.g., 'https://your-app.vercel.app'
+EDGE_FUNCTION_PATH = os.getenv('EDGE_FUNCTION_PATH', '/api/images')  # Path to the Edge Function
 
 class FileStorageService:
     def __init__(self):
@@ -28,7 +37,7 @@ class FileStorageService:
         # Log the s3 client
         logger.error(f"S3 client: {self.s3}")
 
-    async def upload_file(self, file: UploadFile, file_path: str):
+    async def upload_file(self, file: UploadFile, file_path: str, generate_thumbnail=False, thumbnail_size=(200, 200)):
         import logging
         logging.basicConfig(level=logging.ERROR)
         logger = logging.getLogger(__name__)
@@ -120,7 +129,44 @@ class FileStorageService:
             # Log the current position of the file.file object after upload
             logger.error(f"Current position of file.file after upload: {file.file.tell()}")
 
-            return f"{self.bucket_name}/{file_path}"
+            # If thumbnail generation is requested, generate and upload it
+            thumbnail_url = None
+            if generate_thumbnail:
+                try:
+                    # Reset file pointer for thumbnail generation
+                    file.file.seek(0)
+                    thumbnail_url = await self.generate_and_upload_thumbnail(file, file_path, thumbnail_size)
+                except Exception as e:
+                    logger.error(f"Error generating thumbnail: {str(e)}")
+                    # Continue even if thumbnail generation fails
+            
+            # Construct the file URL
+            file_url = f"{self.bucket_name}/{file_path}"
+            
+            # If Vercel Edge Function is configured, use it
+            if VERCEL_URL:
+                edge_function_file_url = f"{VERCEL_URL}{EDGE_FUNCTION_PATH}/{file_path}"
+                # For original images, we can add parameters for optimization if needed
+                # edge_function_file_url = f"{edge_function_file_url}?format=webp"
+            else:
+                # Fall back to CDN if available, or direct Backblaze URL
+                edge_function_file_url = f"{CDN_URL}/{file_path}" if CDN_URL else file_url
+            
+            # Construct the thumbnail URL
+            edge_function_thumbnail_url = None
+            if thumbnail_url:
+                thumbnail_path = thumbnail_url.split('/')[-1]
+                if VERCEL_URL:
+                    # Use Edge Function for thumbnail with size parameters
+                    edge_function_thumbnail_url = f"{VERCEL_URL}{EDGE_FUNCTION_PATH}/{thumbnail_path}"
+                else:
+                    # Fall back to CDN if available, or direct Backblaze URL
+                    edge_function_thumbnail_url = f"{CDN_URL}/{thumbnail_path}" if CDN_URL else thumbnail_url
+            
+            return {
+                "file_url": edge_function_file_url,
+                "thumbnail_url": edge_function_thumbnail_url
+            }
         except Exception as e:
             logger.error(f"Error uploading file: {str(e)}")
             raise Exception(f"Failed to upload file: {str(e)}")
@@ -142,5 +188,62 @@ class FileStorageService:
             return url
         except Exception as e:
             raise Exception(f"Failed to generate presigned URL: {str(e)}")
+            
+    async def generate_and_upload_thumbnail(self, file: UploadFile, original_path: str, size=(200, 200)):
+        """Generate a thumbnail and upload it to storage."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Read the file
+            contents = await file.read()
+            image = Image.open(io.BytesIO(contents))
+            
+            # Generate thumbnail
+            image.thumbnail(size)
+            
+            # Save to buffer
+            buffer = io.BytesIO()
+            image.save(buffer, format=image.format or 'JPEG')
+            buffer.seek(0)
+            
+            # Generate thumbnail path
+            path_parts = original_path.split('.')
+            thumbnail_path = f"{path_parts[0]}_thumb.{path_parts[1]}"
+            
+            # Upload thumbnail using boto3.resource
+            s3_resource = boto3.resource(
+                's3',
+                endpoint_url=os.getenv('BACKBLAZE_ENDPOINT'),
+                aws_access_key_id=os.getenv('BACKBLAZE_KEY_ID'),
+                aws_secret_access_key=os.getenv('BACKBLAZE_APPLICATION_KEY'),
+                config=Config(signature_version='s3v4')
+            )
+            
+            # Get the bucket
+            bucket = s3_resource.Bucket(self.bucket_name)
+            
+            # Upload the thumbnail
+            bucket.upload_fileobj(
+                buffer,
+                thumbnail_path,
+                ExtraArgs={'ContentType': file.content_type}
+            )
+            
+            # Reset file pointer for future operations
+            await file.seek(0)
+            
+            # Return the thumbnail path
+            thumbnail_url = f"{self.bucket_name}/{thumbnail_path}"
+            
+            # If Vercel Edge Function is configured, use it
+            if VERCEL_URL:
+                return f"{VERCEL_URL}{EDGE_FUNCTION_PATH}/{thumbnail_path}"
+            else:
+                # Fall back to CDN if available, or direct Backblaze URL
+                return f"{CDN_URL}/{thumbnail_path}" if CDN_URL else thumbnail_url
+        except Exception as e:
+            logger.error(f"Error generating thumbnail: {str(e)}")
+            raise Exception(f"Failed to generate thumbnail: {str(e)}")
 
 file_storage_service = FileStorageService()

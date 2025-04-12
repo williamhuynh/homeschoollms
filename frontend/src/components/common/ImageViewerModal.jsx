@@ -6,7 +6,6 @@ import {
   ModalCloseButton,
   Button,
   Flex,
-  Image,
   useToast,
   AlertDialog,
   AlertDialogBody,
@@ -18,6 +17,7 @@ import {
   Box,
   Text,
 } from '@chakra-ui/react';
+import ResponsiveImage from './ResponsiveImage';
 import { Download, Trash2, Share2, X } from 'react-feather';
 
 const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId, onImageDeleted }) => {
@@ -194,8 +194,13 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
             w="100vw"
             position="relative"
           >
-            <Image
-              src={image.fileUrl}
+            <ResponsiveImage
+              image={{
+                original_url: image.fileUrl,
+                thumbnail_small_url: image.thumbnail_small_url || image.fileUrl,
+                thumbnail_medium_url: image.thumbnail_medium_url || image.fileUrl,
+                thumbnail_large_url: image.thumbnail_large_url || image.fileUrl
+              }}
               alt={image.title || 'Evidence'}
               maxH="85vh"
               maxW="90vw"

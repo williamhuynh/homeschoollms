@@ -13,7 +13,6 @@ import {
   VStack,
   Input,
   Textarea,
-  Image,
   Box,
   Text,
   HStack,
@@ -26,6 +25,7 @@ import {
   InputLeftElement,
 } from '@chakra-ui/react'
 import { Upload, X as XIcon, MapPin } from 'react-feather'
+import ResponsiveImage from './ResponsiveImage'
 import Select from 'react-select'
 
 const MAX_FILES = 10; // Define max files constant
@@ -321,11 +321,18 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                 <HStack spacing={3}>
                   {selectedFiles.map(({ file, id }) => (
                     <Box key={id} position="relative" w="100px" h="100px" flexShrink={0}>
-                      <Image 
-                        src={URL.createObjectURL(file)}
+                      <ResponsiveImage
+                        image={{
+                          original_url: URL.createObjectURL(file),
+                          // For local file previews, we don't have thumbnails yet
+                          // so we use the same URL for all sizes
+                          thumbnail_small_url: URL.createObjectURL(file),
+                          thumbnail_medium_url: URL.createObjectURL(file),
+                          thumbnail_large_url: URL.createObjectURL(file)
+                        }}
                         alt={`Preview ${file.name}`}
-                        w="100%"
-                        h="100%"
+                        width="100%"
+                        height="100%"
                         objectFit="cover"
                         borderRadius="md"
                       />

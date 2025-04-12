@@ -1,0 +1,8 @@
+{
+  "name": "vercel-edge-functions",
+  "version": "1.0.0",
+  "description": "Vercel Edge Functions for image optimization",
+  "dependencies": {
+    "@vercel/edge": "^1.1.0"
+  }
+}

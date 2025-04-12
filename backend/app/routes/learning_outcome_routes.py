@@ -157,9 +157,21 @@ async def upload_evidence(
             
             logger.info(f"Generated file path: {file_path}")
 
-            # Upload to Backblaze B2
-            file_url = await file_storage_service.upload_file(file, file_path)
+            # Upload to Backblaze B2 with thumbnail generation
+            upload_result = await file_storage_service.upload_file(
+                file,
+                file_path,
+                generate_thumbnail=True,
+                thumbnail_size=(200, 200)  # Default thumbnail size
+            )
+            file_url = upload_result["file_url"]
+            thumbnail_url = upload_result.get("thumbnail_url")
+            
             logger.info(f"File uploaded successfully to: {file_url}")
+            if thumbnail_url:
+                logger.info(f"Thumbnail generated at: {thumbnail_url}")
+            else:
+                logger.warning(f"No thumbnail was generated for {file.filename}")
 
             # Store file reference in database
             evidence_doc = {
@@ -169,6 +181,7 @@ async def upload_evidence(
                 "learning_outcome_code": outcome_code_to_use, # Store the code used
                 "location": location, # New field
                 "file_url": file_url,
+                "thumbnail_url": thumbnail_url,  # New field for thumbnail URL
                 "file_name": file.filename,
                 "title": title, # Title is now mandatory
                 "description": description,
@@ -181,6 +194,7 @@ async def upload_evidence(
             uploaded_files_info.append({
                 "filename": file.filename,
                 "file_url": file_url,
+                "thumbnail_url": thumbnail_url,
                 "evidence_id": str(insert_result.inserted_id)
             })
 

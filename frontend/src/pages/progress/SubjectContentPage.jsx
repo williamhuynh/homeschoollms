@@ -5,6 +5,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getStudentBySlug, getLatestEvidenceForOutcomes } from '../../services/api'
 import { NSWCurriculum } from '../../services/curriculum'
+import LazyImage from '../../components/common/LazyImage'
 
 const SubjectContentPage = () => {
   const navigate = useNavigate()
@@ -153,22 +154,34 @@ const SubjectContentPage = () => {
                       <Spinner size="md" color="blue.500" />
                     </Center>
                   ) : evidenceMap[outcome.code] ? (
-                    <img
-                      className={styles.image}
-                      src={evidenceMap[outcome.code].fileUrl}
-                      alt={`Evidence for ${outcome.name}`}
-                      loading="lazy"
-                      crossOrigin="anonymous"
-                      onError={(e) => {
-                        console.error('Error loading evidence image:', e);
-                        e.target.src = outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome';
+                    <LazyImage
+                      image={{
+                        original_url: evidenceMap[outcome.code].fileUrl,
+                        thumbnail_small_url: evidenceMap[outcome.code].thumbnail_small_url || evidenceMap[outcome.code].fileUrl,
+                        thumbnail_medium_url: evidenceMap[outcome.code].thumbnail_medium_url || evidenceMap[outcome.code].fileUrl,
+                        thumbnail_large_url: evidenceMap[outcome.code].thumbnail_large_url || evidenceMap[outcome.code].fileUrl
                       }}
+                      alt={`Evidence for ${outcome.name}`}
+                      width="100%"
+                      height="100%"
+                      objectFit="cover"
+                      borderRadius="md"
+                      rootMargin="200px"
                     />
                   ) : (
-                    <img 
-                      className={styles.image}
-                      src={outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome'} 
-                      alt={outcome.name} 
+                    <LazyImage
+                      image={{
+                        original_url: outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome',
+                        thumbnail_small_url: outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome',
+                        thumbnail_medium_url: outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome',
+                        thumbnail_large_url: outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome'
+                      }}
+                      alt={outcome.name || 'Learning Outcome'}
+                      width="100%"
+                      height="100%"
+                      objectFit="cover"
+                      borderRadius="md"
+                      rootMargin="200px"
                     />
                   )}
                 </div>

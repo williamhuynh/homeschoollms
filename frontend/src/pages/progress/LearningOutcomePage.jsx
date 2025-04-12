@@ -1,22 +1,16 @@
-import { Box, IconButton, Text, Container, Spinner, Center, VStack, useDisclosure } from '@chakra-ui/react'
+import { Box, IconButton, Text, Container, Spinner, Center, VStack, useDisclosure, Button } from '@chakra-ui/react'
 import styles from '../../styles/LearningOutcomes.module.css'
-import { ArrowLeft } from 'react-feather'
+import { ArrowLeft, Plus } from 'react-feather'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useState, useEffect, useContext } from 'react'
 import { NSWCurriculum } from '../../services/curriculum'
 import { useStudents } from '../../contexts/StudentsContext'
 import { useFileUploadModal } from '../../contexts/FileUploadModalContext'
-import ImageViewerModal from '../../components/common/ImageViewerModal'
+import ImageGallery from '../../components/common/ImageGallery'
 import { getEvidenceForLearningOutcome } from '../../services/api'
 
 const LearningOutcomePage = () => {
   const { openModal } = useFileUploadModal()
-  const { 
-    isOpen: isImageViewerOpen, 
-    onOpen: onImageViewerOpen, 
-    onClose: onImageViewerClose 
-  } = useDisclosure()
-  const [selectedImage, setSelectedImage] = useState(null)
   const navigate = useNavigate()
   const { studentId, learningOutcomeId } = useParams()
   const [learningOutcome, setLearningOutcome] = useState(null)
@@ -27,11 +21,6 @@ const LearningOutcomePage = () => {
   const { students } = useStudents()
   const location = useLocation()
   const student = students.find(s => s._id === studentId)
-
-  const handleImageClick = (image) => {
-    setSelectedImage(image)
-    onImageViewerOpen()
-  }
 
   const handleImageDeleted = async (imageId) => {
     // Refresh the evidence list after deletion
@@ -185,124 +174,90 @@ const LearningOutcomePage = () => {
           {learningOutcome.description}
         </Text>
 
-        <div className={styles.outcomeGrid}>
+        {/* Evidence Gallery */}
+        <Box mb={4}>
+          <Text fontSize="lg" fontWeight="bold" mb={4}>
+            Evidence
+          </Text>
+          
           {evidenceLoading ? (
-            <Center>
+            <Center p={8}>
               <Spinner size="xl" color="blue.500" />
             </Center>
           ) : evidence.length === 0 ? (
-              <div className={styles.outcomeCard} onClick={() => openModal({
-                studentId,
-                learningOutcomeId,
-                learningOutcomeDescription: learningOutcome.description,
-                initialLearningAreaCode: location.state?.subject?.code,
-                initialLearningOutcomeCode: learningOutcome.code,
-                onSubmit: async (data) => {
-                  console.log('Evidence uploaded successfully:', data)
-                  // Refresh the evidence list
-                  try {
-                    setEvidenceLoading(true)
-                    const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
-                    setEvidence(updatedEvidence)
-                  } catch (err) {
-                    console.error('Error refreshing evidence:', err)
-                  } finally {
-                    setEvidenceLoading(false)
-                  }
-                }
-              })}>
-              <div className={styles.imageContainer}>
-                <img 
-                  className={styles.image}
-                  src="https://placehold.co/300x400?text=No+Evidence+Yet" 
-                  alt="Placeholder" 
-                />
-              </div>
-              <div className={styles.contentContainer}>
-                <h3 className={styles.title}>No Evidence Recorded</h3>
-                <p className={styles.description}>Add evidence to track progress</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {evidence.map((item) => (
-                <div 
-                  className={styles.outcomeCard} 
-                  key={item._id}
-                  onClick={() => handleImageClick(item)}
+            <Center p={8} borderWidth="1px" borderRadius="lg" borderStyle="dashed">
+              <VStack spacing={4}>
+                <Text>No evidence has been recorded yet</Text>
+                <Button
+                  leftIcon={<Plus size={16} />}
+                  colorScheme="blue"
+                  onClick={() => openModal({
+                    studentId,
+                    learningOutcomeId,
+                    learningOutcomeDescription: learningOutcome.description,
+                    initialLearningAreaCode: location.state?.subject?.code,
+                    initialLearningOutcomeCode: learningOutcome.code,
+                    onSubmit: async (data) => {
+                      console.log('Evidence uploaded successfully:', data)
+                      try {
+                        setEvidenceLoading(true)
+                        const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+                        setEvidence(updatedEvidence)
+                      } catch (err) {
+                        console.error('Error refreshing evidence:', err)
+                      } finally {
+                        setEvidenceLoading(false)
+                      }
+                    }
+                  })}
                 >
-                  <div className={styles.imageContainer}>
-                    <img
-                      className={styles.image}
-                      src={item.fileUrl}
-                      alt="Evidence"
-                      loading="lazy"
-                      crossOrigin="anonymous"
-                      aria-label={`Evidence for ${item.title}`}
-                      onLoad={(e) => {
-                        console.log('Image loaded successfully:', item.fileUrl);
-                      }}
-                      onError={(e) => {
-                        console.error('Error loading image:', item.fileUrl, e);
-                        e.target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-                      }}
-                      style={{ border: '1px solid #ddd' }}
-                    />
-                  </div>
-                  <div className={styles.contentContainer}>
-                    <h3 className={styles.title}>{item.title || item.file_name || 'Evidence'}</h3>
-                    {item.description && (
-                      <p className={styles.description}>{item.description}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-              <div className={styles.outcomeCard} onClick={() => openModal({
-                studentId,
-                learningOutcomeId,
-                learningOutcomeDescription: learningOutcome.description,
-                initialLearningAreaCode: location.state?.subject?.code,
-                initialLearningOutcomeCode: learningOutcome.code,
-                onSubmit: async (data) => {
-                  console.log('Evidence uploaded successfully:', data)
-                  // Refresh the evidence list
-                  try {
-                    setEvidenceLoading(true)
-                    const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
-                    setEvidence(updatedEvidence)
-                  } catch (err) {
-                    console.error('Error refreshing evidence:', err)
-                  } finally {
-                    setEvidenceLoading(false)
-                  }
-                }
-              })}>
-                <div className={styles.imageContainer}>
-                  <img 
-                    className={styles.image}
-                    src="https://placehold.co/300x400?text=Add+More+Evidence" 
-                    alt="Add Evidence" 
-                  />
-                </div>
-                <div className={styles.contentContainer}>
-                  <h3 className={styles.title}>Add More Evidence</h3>
-                  <p className={styles.description}>Upload additional evidence</p>
-                </div>
-              </div>
-            </>
+                  Add Evidence
+                </Button>
+              </VStack>
+            </Center>
+          ) : (
+            <Box>
+              <ImageGallery
+                images={evidence}
+                studentId={studentId}
+                learningOutcomeId={learningOutcomeId}
+                onImageDeleted={handleImageDeleted}
+                columns={{ base: 2, sm: 2, md: 3, lg: 3 }}
+                spacing={4}
+                aspectRatio={1}
+              />
+              
+              <Center mt={6}>
+                <Button
+                  leftIcon={<Plus size={16} />}
+                  colorScheme="blue"
+                  onClick={() => openModal({
+                    studentId,
+                    learningOutcomeId,
+                    learningOutcomeDescription: learningOutcome.description,
+                    initialLearningAreaCode: location.state?.subject?.code,
+                    initialLearningOutcomeCode: learningOutcome.code,
+                    onSubmit: async (data) => {
+                      console.log('Evidence uploaded successfully:', data)
+                      try {
+                        setEvidenceLoading(true)
+                        const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+                        setEvidence(updatedEvidence)
+                      } catch (err) {
+                        console.error('Error refreshing evidence:', err)
+                      } finally {
+                        setEvidenceLoading(false)
+                      }
+                    }
+                  })}
+                >
+                  Add More Evidence
+                </Button>
+              </Center>
+            </Box>
           )}
-        </div>
+        </Box>
       </Box>
-      
-      {/* Image Viewer Modal */}
-      <ImageViewerModal
-        isOpen={isImageViewerOpen}
-        onClose={onImageViewerClose}
-        image={selectedImage}
-        studentId={studentId}
-        learningOutcomeId={learningOutcomeId}
-        onImageDeleted={handleImageDeleted}
-      />
     </Container>
   )
 }

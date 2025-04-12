@@ -157,6 +157,28 @@ class LearningOutcomeService:
                             # Fallback to direct URL if presigned URL generation fails
                             backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
                             serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                
+                # Handle thumbnail_url field similarly
+                if "thumbnail_url" in serialized_item:
+                    thumbnail_url = serialized_item["thumbnail_url"]
+                    # If it doesn't start with http, generate a presigned URL
+                    if thumbnail_url and not thumbnail_url.startswith("http"):
+                        from ..services.file_storage_service import file_storage_service
+                        
+                        # Remove bucket name from the beginning if it's there
+                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+                        if thumbnail_url.startswith(f"{bucket_name}/"):
+                            thumbnail_url = thumbnail_url[len(f"{bucket_name}/"):]
+                            
+                        # Generate a presigned URL with proper headers
+                        try:
+                            presigned_url = file_storage_service.generate_presigned_url(thumbnail_url)
+                            serialized_item["thumbnailUrl"] = presigned_url
+                        except Exception as e:
+                            logger.error(f"Error generating presigned URL for thumbnail: {str(e)}")
+                            # Fallback to direct URL if presigned URL generation fails
+                            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+                            serialized_item["thumbnailUrl"] = f"{backblaze_endpoint}/{bucket_name}/{thumbnail_url}"
             
             serialized_evidence.append(serialized_item)
         
@@ -242,6 +264,28 @@ class LearningOutcomeService:
                             # Fallback to direct URL if presigned URL generation fails
                             backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
                             serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                
+                # Handle thumbnail_url field similarly
+                if "thumbnail_url" in serialized_item:
+                    thumbnail_url = serialized_item["thumbnail_url"]
+                    # If it doesn't start with http, generate a presigned URL
+                    if thumbnail_url and not thumbnail_url.startswith("http"):
+                        from ..services.file_storage_service import file_storage_service
+                        
+                        # Remove bucket name from the beginning if it's there
+                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+                        if thumbnail_url.startswith(f"{bucket_name}/"):
+                            thumbnail_url = thumbnail_url[len(f"{bucket_name}/"):]
+                            
+                        # Generate a presigned URL with proper headers
+                        try:
+                            presigned_url = file_storage_service.generate_presigned_url(thumbnail_url)
+                            serialized_item["thumbnailUrl"] = presigned_url
+                        except Exception as e:
+                            logger.error(f"Error generating presigned URL for thumbnail: {str(e)}")
+                            # Fallback to direct URL if presigned URL generation fails
+                            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+                            serialized_item["thumbnailUrl"] = f"{backblaze_endpoint}/{bucket_name}/{thumbnail_url}"
                 
                 serializable_evidence.append(serialized_item)
             
