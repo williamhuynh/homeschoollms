@@ -95,17 +95,22 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
     return baseUrl;
   }
   
+  // Normalize the URL by removing any double slashes (except after protocol)
+  const normalizedUrl = baseUrl.replace(/([^:]\/)\/+/g, '$1');
+  
   // Check if the URL is already using our Edge Function
-  const isEdgeFunction = baseUrl.includes('/api/images/');
+  const isEdgeFunction = normalizedUrl.includes('/api/images/');
   
   // If it's not an Edge Function URL, we can't apply transformations
   if (!isEdgeFunction) {
-    return baseUrl;
+    return normalizedUrl;
   }
   
   // Apply transformations by adding query parameters
   // Handle both relative and absolute URLs correctly
-  const url = baseUrl.startsWith('http') ? new URL(baseUrl) : new URL(baseUrl, window.location.origin);
+  const url = normalizedUrl.startsWith('http') ?
+    new URL(normalizedUrl) :
+    new URL(normalizedUrl.replace(/^\/+/, ''), window.location.origin);
   
   if (options.width) {
     url.searchParams.set('width', options.width);

@@ -145,7 +145,10 @@ class FileStorageService:
             
             # If Vercel Edge Function is configured, use it
             if VERCEL_URL:
-                edge_function_file_url = f"{VERCEL_URL}{EDGE_FUNCTION_PATH}/{file_path}"
+                # Remove trailing slash from VERCEL_URL and leading slash from EDGE_FUNCTION_PATH
+                base_url = VERCEL_URL.rstrip('/')
+                path = EDGE_FUNCTION_PATH.lstrip('/')
+                edge_function_file_url = f"{base_url}/{path}/{file_path}"
                 # For original images, we can add parameters for optimization if needed
                 # edge_function_file_url = f"{edge_function_file_url}?format=webp"
             else:
@@ -158,7 +161,9 @@ class FileStorageService:
                 thumbnail_path = thumbnail_url.split('/')[-1]
                 if VERCEL_URL:
                     # Use Edge Function for thumbnail with size parameters
-                    edge_function_thumbnail_url = f"{VERCEL_URL}{EDGE_FUNCTION_PATH}/{thumbnail_path}"
+                    base_url = VERCEL_URL.rstrip('/')
+                    path = EDGE_FUNCTION_PATH.lstrip('/')
+                    edge_function_thumbnail_url = f"{base_url}/{path}/{thumbnail_path}"
                 else:
                     # Fall back to CDN if available, or direct Backblaze URL
                     edge_function_thumbnail_url = f"{CDN_URL}/{thumbnail_path}" if CDN_URL else thumbnail_url
@@ -238,7 +243,9 @@ class FileStorageService:
             
             # If Vercel Edge Function is configured, use it
             if VERCEL_URL:
-                return f"{VERCEL_URL}{EDGE_FUNCTION_PATH}/{thumbnail_path}"
+                base_url = VERCEL_URL.rstrip('/')
+                path = EDGE_FUNCTION_PATH.lstrip('/')
+                return f"{base_url}/{path}/{thumbnail_path}"
             else:
                 # Fall back to CDN if available, or direct Backblaze URL
                 return f"{CDN_URL}/{thumbnail_path}" if CDN_URL else thumbnail_url
