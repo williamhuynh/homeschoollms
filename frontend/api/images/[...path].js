@@ -93,7 +93,7 @@ export default async function handler(req) {
     }
     
     // Construct the Backblaze B2 URL
-    const backblazeUrl = `${backblazeEndpoint}/${configuredBucketName}/${modifiedImagePath}`;
+    backblazeUrl = `${backblazeEndpoint}/${configuredBucketName}/${modifiedImagePath}`;
     console.log('Constructed Backblaze URL:', backblazeUrl);
 
     // Redirect to Vercel's image optimization endpoint
