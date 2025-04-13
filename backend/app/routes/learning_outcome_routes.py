@@ -164,8 +164,8 @@ async def upload_evidence(
                 generate_thumbnail=True,
                 thumbnail_size=(200, 200)  # Default thumbnail size
             )
-            file_url = upload_result["file_url"]
-            thumbnail_url = upload_result.get("thumbnail_url")
+            file_url = upload_result["original_url"] # Use the correct key for the main file URL
+            thumbnail_url = upload_result.get("thumbnail_small_url") # Use one of the available thumbnail URLs
             
             logger.info(f"File uploaded successfully to: {file_url}")
             if thumbnail_url:
