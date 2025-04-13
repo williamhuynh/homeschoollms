@@ -85,16 +85,22 @@ const ResponsiveImage = ({
       }
     });
     
-    // Get authenticated URL if needed
-    getAuthenticatedImageUrl(smallSrc)
-      .then(authenticatedUrl => {
-        console.log('Using authenticated URL:', authenticatedUrl);
-        setCurrentSrc(authenticatedUrl);
-      })
-      .catch(error => {
-        console.error('Error getting authenticated URL:', error);
-        setCurrentSrc(smallSrc);
-      });
+    // Check if this is a direct Backblaze URL
+    if (smallSrc && smallSrc.includes('backblazeb2.com')) {
+      console.log('Using direct Backblaze URL:', smallSrc);
+      setCurrentSrc(smallSrc);
+    } else {
+      // Get authenticated URL if needed
+      getAuthenticatedImageUrl(smallSrc)
+        .then(authenticatedUrl => {
+          console.log('Using authenticated URL:', authenticatedUrl);
+          setCurrentSrc(authenticatedUrl);
+        })
+        .catch(error => {
+          console.error('Error getting authenticated URL:', error);
+          setCurrentSrc(smallSrc);
+        });
+    }
     
     // Determine appropriate size based on container
     const containerWidth = imgRef.current?.parentElement?.clientWidth || 0;
@@ -114,6 +120,7 @@ const ResponsiveImage = ({
       format: supportsWebP ? 'webp' : undefined,
       quality: 80
     };
+    
     // Prepare the next image to load based on size and transformations
     const nextSrc = getThumbnailUrl(image, size, transformOptions);
     console.log('Next image URL:', {
@@ -122,52 +129,75 @@ const ResponsiveImage = ({
       nextSrc
     });
     
-    
     // If we're already using the best size, no need to load another image
     if (nextSrc === smallSrc) {
       setLoading(false);
       return;
     }
     
-    // Get authenticated URL for the next size
-    getAuthenticatedImageUrl(nextSrc)
-      .then(authenticatedNextSrc => {
-        // Preload the authenticated next size with transformations
-        return preloadImage(authenticatedNextSrc)
-          .then(() => authenticatedNextSrc);
-      })
-      .then((authenticatedNextSrc) => {
-        setCurrentSrc(authenticatedNextSrc);
-        
-        // If this isn't the original, preload the original for highest quality
-        if (nextSrc !== image.original_url && image.original_url) {
-          // For original, we might still want some transformations like format conversion
-          const originalWithTransforms = getThumbnailUrl(
-            { original_url: image.original_url },
-            'original',
-            { format: supportsWebP ? 'webp' : undefined }
-          );
-          
-          return getAuthenticatedImageUrl(originalWithTransforms)
-            .then(authenticatedOriginalUrl => {
-              return preloadImage(authenticatedOriginalUrl)
-                .then(() => {
-                  setCurrentSrc(authenticatedOriginalUrl);
+    // Handle loading the next image
+    const loadNextImage = () => {
+      // Check if this is a direct Backblaze URL
+      if (nextSrc && nextSrc.includes('backblazeb2.com')) {
+        console.log('Using direct Backblaze URL for next size:', nextSrc);
+        // Preload the direct URL
+        preloadImage(nextSrc)
+          .then(() => {
+            setCurrentSrc(nextSrc);
+            setLoading(false);
+          })
+          .catch(error => {
+            console.error('Error preloading direct URL:', error);
+            setLoading(false);
+          });
+      } else {
+        // Get authenticated URL for the next size
+        getAuthenticatedImageUrl(nextSrc)
+          .then(authenticatedNextSrc => {
+            // Preload the authenticated next size with transformations
+            return preloadImage(authenticatedNextSrc)
+              .then(() => {
+                setCurrentSrc(authenticatedNextSrc);
+                
+                // If this isn't the original, preload the original for highest quality
+                if (nextSrc !== image.original_url && image.original_url) {
+                  // For original, we might still want some transformations like format conversion
+                  const originalWithTransforms = getThumbnailUrl(
+                    { original_url: image.original_url },
+                    'original',
+                    { format: supportsWebP ? 'webp' : undefined }
+                  );
+                  
+                  getAuthenticatedImageUrl(originalWithTransforms)
+                    .then(authenticatedOriginalUrl => {
+                      preloadImage(authenticatedOriginalUrl)
+                        .then(() => {
+                          setCurrentSrc(authenticatedOriginalUrl);
+                          setLoading(false);
+                        })
+                        .catch(() => {
+                          // If original preload fails, we still have a good thumbnail
+                          setLoading(false);
+                        });
+                    })
+                    .catch(() => {
+                      // If original auth fails, we still have a good thumbnail
+                      setLoading(false);
+                    });
+                } else {
                   setLoading(false);
-                });
-            })
-            .catch(() => {
-              // If original fails, we still have a good thumbnail
-              setLoading(false);
-            });
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        // If next size fails, stay with small thumbnail
-        setLoading(false);
-      });
+                }
+              });
+          })
+          .catch(() => {
+            // If next size fails, stay with small thumbnail
+            setLoading(false);
+          });
+      }
+    };
+    
+    // Start loading the next image
+    loadNextImage();
   };
 
   // Check WebP support on mount

@@ -4,6 +4,48 @@ import LazyImage from './LazyImage';
 import ImageViewerModal from './ImageViewerModal';
 
 /**
+ * Convert Vercel Edge Function URL to direct Backblaze URL
+ *
+ * @param {string} url - The URL to convert
+ * @returns {string} - The direct Backblaze URL
+ */
+const convertToDirectBackblazeUrl = (url) => {
+  if (!url) return null;
+  
+  // Check if this is already a direct Backblaze URL
+  if (url.includes('backblazeb2.com')) {
+    console.log('URL is already a direct Backblaze URL:', url);
+    return url;
+  }
+  
+  // Check if this is a Vercel Edge Function URL
+  if (url.includes('/api/images/homeschoollms/')) {
+    // Extract the path after 'homeschoollms/'
+    const pathMatch = url.match(/\/api\/images\/homeschoollms\/(.+?)(\?|$)/);
+    if (pathMatch && pathMatch[1]) {
+      const path = pathMatch[1];
+      
+      // Construct the direct Backblaze URL
+      const directUrl = `https://homeschoollms.s3.us-east-005.backblazeb2.com/${path}`;
+      
+      // Copy any query parameters
+      if (url.includes('?')) {
+        const queryString = url.substring(url.indexOf('?'));
+        console.log('Converting URL:', { from: url, to: directUrl + queryString });
+        return directUrl + queryString;
+      }
+      
+      console.log('Converting URL:', { from: url, to: directUrl });
+      return directUrl;
+    }
+  }
+  
+  // If we can't convert it, return the original URL
+  console.log('Unable to convert URL, using original:', url);
+  return url;
+};
+
+/**
  * A responsive image gallery component that displays a grid of images with lazy loading
  * 
  * @component
@@ -108,10 +150,10 @@ const ImageGallery = ({
                   <Box position="absolute" top="0" left="0" width="100%" height="100%">
                     <LazyImage
                       image={{
-                        original_url: image.file_url || image.fileUrl,
-                        thumbnail_small_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl,
-                        thumbnail_medium_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl,
-                        thumbnail_large_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl
+                        original_url: convertToDirectBackblazeUrl(image.file_url || image.fileUrl),
+                        thumbnail_small_url: convertToDirectBackblazeUrl(image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl),
+                        thumbnail_medium_url: convertToDirectBackblazeUrl(image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl),
+                        thumbnail_large_url: convertToDirectBackblazeUrl(image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl)
                       }}
                       alt={image.title || image.file_name || 'Gallery image'}
                       width="100%"
