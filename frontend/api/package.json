@@ -3,8 +3,6 @@
   "version": "1.0.0",
   "description": "Vercel Edge Functions for image optimization",
   "dependencies": {
-    "@vercel/edge": "^1.1.0",
-    "@vercel/edge-config": "^0.4.1",
-    "@vercel/edge-runtime": "^2.2.0"
+    "@vercel/edge": "^1.1.0"
   }
 }
