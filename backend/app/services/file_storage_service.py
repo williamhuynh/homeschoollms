@@ -161,7 +161,7 @@ class FileStorageService:
             # Construct the thumbnail URL using Edge Function
             edge_function_thumbnail_url = None
             if thumbnail_url:
-                thumbnail_path = f"{self.bucket_name}/{thumbnail_url.split('/')[-1]}"
+                thumbnail_path = f"{self.bucket_name}/{thumbnail_url['original_url'].split('/')[-1]}"
                 edge_function_thumbnail_url = f"{base_url}/{path}/{thumbnail_path}"
             
             logger.error(f"Returning URLs - File: {edge_function_file_url}, Thumbnail: {edge_function_thumbnail_url}")
