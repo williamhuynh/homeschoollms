@@ -72,15 +72,27 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
     return null;
   }
   
+  // Add _thumb suffix to thumbnail URLs if they don't already have it
+  let modifiedImage = { ...image };
+  
+  // Process thumbnail URLs to add _thumb suffix if needed
+  ['thumbnail_small_url', 'thumbnail_medium_url', 'thumbnail_large_url'].forEach(urlKey => {
+    if (modifiedImage[urlKey] && !modifiedImage[urlKey].includes('_thumb') && modifiedImage[urlKey].includes('.')) {
+      const lastDotIndex = modifiedImage[urlKey].lastIndexOf('.');
+      modifiedImage[urlKey] = modifiedImage[urlKey].substring(0, lastDotIndex) + '_thumb' + modifiedImage[urlKey].substring(lastDotIndex);
+      console.log(`Modified ${urlKey}:`, modifiedImage[urlKey]);
+    }
+  });
+  
   console.log('getThumbnailUrl input:', {
-    image,
+    image: modifiedImage,
     size,
     options,
     availableUrls: {
-      original: image.original_url,
-      small: image.thumbnail_small_url,
-      medium: image.thumbnail_medium_url,
-      large: image.thumbnail_large_url
+      original: modifiedImage.original_url,
+      small: modifiedImage.thumbnail_small_url,
+      medium: modifiedImage.thumbnail_medium_url,
+      large: modifiedImage.thumbnail_large_url
     }
   });
   
@@ -97,20 +109,20 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
   });
   switch (size) {
     case 'small':
-      baseUrl = image.thumbnail_small_url || image.thumbnail_medium_url || image.thumbnail_large_url || image.original_url;
+      baseUrl = modifiedImage.thumbnail_small_url || modifiedImage.thumbnail_medium_url || modifiedImage.thumbnail_large_url || modifiedImage.original_url;
       break;
       
     case 'medium':
-      baseUrl = image.thumbnail_medium_url || image.thumbnail_large_url || image.original_url;
+      baseUrl = modifiedImage.thumbnail_medium_url || modifiedImage.thumbnail_large_url || modifiedImage.original_url;
       break;
       
     case 'large':
-      baseUrl = image.thumbnail_large_url || image.original_url;
+      baseUrl = modifiedImage.thumbnail_large_url || modifiedImage.original_url;
       break;
       
     case 'original':
     default:
-      baseUrl = image.original_url;
+      baseUrl = modifiedImage.original_url;
       break;
   }
   
@@ -118,10 +130,10 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
     size,
     baseUrl,
     fallbackChain: {
-      thumbnail_small_url: image.thumbnail_small_url,
-      thumbnail_medium_url: image.thumbnail_medium_url,
-      thumbnail_large_url: image.thumbnail_large_url,
-      original_url: image.original_url
+      thumbnail_small_url: modifiedImage.thumbnail_small_url,
+      thumbnail_medium_url: modifiedImage.thumbnail_medium_url,
+      thumbnail_large_url: modifiedImage.thumbnail_large_url,
+      original_url: modifiedImage.original_url
     }
   });
   

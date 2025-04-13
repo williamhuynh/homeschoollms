@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "functions": {
+    "api/images/[...path].js": {
+      "runtime": "edge"
+    }
+  },
+  "env": {
+    "EDGE_DEBUG": "1"
+  }
+}
