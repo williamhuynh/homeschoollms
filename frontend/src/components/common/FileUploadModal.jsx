@@ -182,6 +182,8 @@ const FileUploadModal = ({
     return combined;
   });
 
+  console.log('selectedFiles after handleFileSelect:', combined);
+
   // Clear the input value to allow selecting the same file again after removing it
   event.target.value = null; 
 }, [selectedFiles]);
