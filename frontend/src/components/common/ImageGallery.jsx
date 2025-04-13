@@ -73,54 +73,64 @@ const ImageGallery = ({
         templateColumns={`repeat(${columnCount}, 1fr)`} 
         gap={spacing}
       >
-        {images.map((image) => (
-          <Box // Outer Box (Card)
-            key={image.id || image._id}
-            onClick={() => handleImageClick(image)}
-            cursor="pointer"
-            borderRadius={borderRadius}
-            overflow="hidden"
-            borderWidth="1px" // Add border for card look
-            borderColor="gray.200" // Add border color
-            _hover={{
-              transform: 'scale(1.02)',
-              boxShadow: 'md', // Add shadow on hover
-              transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out'
-            }}
-          >
-            <VStack spacing={2} align="start" p={2}> {/* Add padding inside card */}
-              <Box // Image container with aspect ratio
-                position="relative"
-                width="100%"
-                paddingBottom={`${100 * aspectRatio}%`} // Maintain aspect ratio here
-                borderRadius={borderRadius} // Apply border radius to image container too
-                overflow="hidden" // Ensure image corners are rounded
-              >
-                <Box position="absolute" top="0" left="0" width="100%" height="100%">
-                  <LazyImage
-                    image={{
-                      original_url: image.fileUrl,
-                      thumbnail_small_url: image.thumbnailUrl || image.fileUrl, // Use thumbnailUrl from API
-                      thumbnail_medium_url: image.thumbnailUrl || image.fileUrl, // Use thumbnailUrl from API
-                      thumbnail_large_url: image.thumbnailUrl || image.fileUrl // Use thumbnailUrl from API
-                    }}
-                    alt={image.title || image.file_name || 'Gallery image'}
-                    width="100%"
-                    height="100%"
-                    objectFit="cover"
-                    // borderRadius={borderRadius} // Remove from LazyImage, apply to container
-                  />
+        {images.map((image) => {
+          console.log('ImageGallery processing image:', {
+            id: image.id || image._id,
+            fileUrl: image.fileUrl,
+            file_url: image.file_url,
+            thumbnailUrl: image.thumbnailUrl,
+            thumbnail_url: image.thumbnail_url,
+            availableProps: Object.keys(image)
+          });
+          return (
+            <Box // Outer Box (Card)
+              key={image.id || image._id}
+              onClick={() => handleImageClick(image)}
+              cursor="pointer"
+              borderRadius={borderRadius}
+              overflow="hidden"
+              borderWidth="1px" // Add border for card look
+              borderColor="gray.200" // Add border color
+              _hover={{
+                transform: 'scale(1.02)',
+                boxShadow: 'md', // Add shadow on hover
+                transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out'
+              }}
+            >
+              <VStack spacing={2} align="start" p={2}> {/* Add padding inside card */}
+                <Box // Image container with aspect ratio
+                  position="relative"
+                  width="100%"
+                  paddingBottom={`${100 * aspectRatio}%`} // Maintain aspect ratio here
+                  borderRadius={borderRadius} // Apply border radius to image container too
+                  overflow="hidden" // Ensure image corners are rounded
+                >
+                  <Box position="absolute" top="0" left="0" width="100%" height="100%">
+                    <LazyImage
+                      image={{
+                        original_url: image.file_url || image.fileUrl,
+                        thumbnail_small_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl,
+                        thumbnail_medium_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl,
+                        thumbnail_large_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl
+                      }}
+                      alt={image.title || image.file_name || 'Gallery image'}
+                      width="100%"
+                      height="100%"
+                      objectFit="cover"
+                      // borderRadius={borderRadius} // Remove from LazyImage, apply to container
+                    />
+                  </Box>
                 </Box>
-              </Box>
-              <Text fontWeight="bold" fontSize="sm" noOfLines={1}>
-                {image.title || 'No Title'}
-              </Text>
-              <Text fontSize="xs" color="gray.600" noOfLines={2}>
-                {image.description || 'No Description'}
-              </Text>
-            </VStack>
-          </Box>
-        ))}
+                <Text fontWeight="bold" fontSize="sm" noOfLines={1}>
+                  {image.title || 'No Title'}
+                </Text>
+                <Text fontSize="xs" color="gray.600" noOfLines={2}>
+                  {image.description || 'No Description'}
+                </Text>
+              </VStack>
+            </Box>
+          );
+        })}
       </Grid>
       
       {/* Image viewer modal */}
