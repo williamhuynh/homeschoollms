@@ -48,6 +48,15 @@ const ResponsiveImage = ({
       return;
     }
 
+    // Handle blob URLs directly for local previews
+    if (image.original_url && image.original_url.startsWith('blob:')) {
+      console.log('ResponsiveImage: Handling blob URL directly:', image.original_url);
+      setCurrentSrc(image.original_url);
+      setLoading(false);
+      setError(false); // Ensure error state is reset
+      return; // Skip progressive loading for blobs
+    }
+
     // Log the image object structure
     console.log('ResponsiveImage received image:', {
       image,

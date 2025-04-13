@@ -335,6 +335,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                         height="100%"
                         objectFit="cover"
                         borderRadius="md"
+                        isVisible={true} // Ensure image loading is triggered
                       />
                       <IconButton
                         icon={<XIcon size="12px" />}
