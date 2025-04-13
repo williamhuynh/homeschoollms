@@ -103,3 +103,51 @@ export const isWebPSupported = () => {
     webP.src = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=';
   });
 };
+
+/**
+ * Get an authenticated image URL with a fresh token
+ *
+ * @param {string} url - Original image URL
+ * @returns {Promise<string>} - Promise that resolves with the authenticated URL
+ */
+export const getAuthenticatedImageUrl = async (url) => {
+  if (!url) return null;
+  
+  // If the URL doesn't require authentication, return it as is
+  if (!url.includes('/api/')) {
+    return url;
+  }
+  
+  try {
+    // Import supabase directly to refresh the session
+    const { supabase } = await import('./supabase');
+    
+    // Refresh the session to get a new token
+    const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession();
+    
+    if (refreshError) {
+      console.error('Token refresh error for image:', refreshError);
+      // Return the original URL if refresh fails
+      return url;
+    }
+    
+    // Get the fresh token
+    const freshToken = sessionData?.session?.access_token;
+    
+    if (!freshToken) {
+      console.warn('No fresh token available for authenticated image');
+      return url;
+    }
+    
+    // Parse the URL
+    const parsedUrl = new URL(url.startsWith('http') ? url : `${window.location.origin}${url}`);
+    
+    // Add or update the auth token parameter
+    parsedUrl.searchParams.set('auth_token', freshToken);
+    
+    return parsedUrl.toString();
+  } catch (error) {
+    console.error('Error getting authenticated image URL:', error);
+    return url;
+  }
+};

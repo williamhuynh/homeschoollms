@@ -26,15 +26,41 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
+  const refreshToken = async () => {
+    console.log('Refreshing token...');
+    // Import supabase directly to refresh the session
+    const { supabase } = await import('../../services/supabase');
+    
+    // Refresh the session to get a new token
+    const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession();
+    
+    if (refreshError) {
+      console.error('Token refresh error:', refreshError);
+      throw new Error('Your session has expired. Please log out and log back in.');
+    }
+    
+    console.log('Token refresh successful:', sessionData ? 'New token obtained' : 'Failed to get new token');
+    
+    // Small delay to ensure token propagation
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Return the fresh token
+    return sessionData?.session?.access_token || localStorage.getItem('token');
+  };
+
   const handleDownload = async () => {
     try {
       setIsLoading(true);
+      
+      // Get fresh token
+      const freshToken = await refreshToken();
+      
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}/download`,
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${freshToken}`
           }
         }
       );
@@ -76,12 +102,16 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
   const handleShare = async () => {
     try {
       setIsLoading(true);
+      
+      // Get fresh token
+      const freshToken = await refreshToken();
+      
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}/share`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${freshToken}`,
             'Content-Type': 'application/json'
           }
         }
@@ -119,12 +149,16 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
+      
+      // Get fresh token
+      const freshToken = await refreshToken();
+      
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}`,
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${freshToken}`
           }
         }
       );

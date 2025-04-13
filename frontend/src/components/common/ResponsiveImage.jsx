@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Box, Skeleton } from '@chakra-ui/react';
 import { getAppropriateImageSize, getThumbnailUrl, preloadImage, isWebPSupported } from '../../utils/imageUtils';
+import { getAuthenticatedImageUrl } from '../../services/imageService';
 
 /**
  * A responsive image component that uses thumbnails, lazy loading, and progressive loading
@@ -83,7 +84,17 @@ const ResponsiveImage = ({
         original: image.original_url
       }
     });
-    setCurrentSrc(smallSrc);
+    
+    // Get authenticated URL if needed
+    getAuthenticatedImageUrl(smallSrc)
+      .then(authenticatedUrl => {
+        console.log('Using authenticated URL:', authenticatedUrl);
+        setCurrentSrc(authenticatedUrl);
+      })
+      .catch(error => {
+        console.error('Error getting authenticated URL:', error);
+        setCurrentSrc(smallSrc);
+      });
     
     // Determine appropriate size based on container
     const containerWidth = imgRef.current?.parentElement?.clientWidth || 0;
@@ -118,10 +129,15 @@ const ResponsiveImage = ({
       return;
     }
     
-    // Preload the next size with transformations
-    preloadImage(nextSrc)
-      .then(() => {
-        setCurrentSrc(nextSrc);
+    // Get authenticated URL for the next size
+    getAuthenticatedImageUrl(nextSrc)
+      .then(authenticatedNextSrc => {
+        // Preload the authenticated next size with transformations
+        return preloadImage(authenticatedNextSrc)
+          .then(() => authenticatedNextSrc);
+      })
+      .then((authenticatedNextSrc) => {
+        setCurrentSrc(authenticatedNextSrc);
         
         // If this isn't the original, preload the original for highest quality
         if (nextSrc !== image.original_url && image.original_url) {
@@ -132,10 +148,13 @@ const ResponsiveImage = ({
             { format: supportsWebP ? 'webp' : undefined }
           );
           
-          return preloadImage(originalWithTransforms)
-            .then(() => {
-              setCurrentSrc(image.original_url);
-              setLoading(false);
+          return getAuthenticatedImageUrl(originalWithTransforms)
+            .then(authenticatedOriginalUrl => {
+              return preloadImage(authenticatedOriginalUrl)
+                .then(() => {
+                  setCurrentSrc(authenticatedOriginalUrl);
+                  setLoading(false);
+                });
             })
             .catch(() => {
               // If original fails, we still have a good thumbnail
