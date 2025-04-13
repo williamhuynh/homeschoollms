@@ -5,6 +5,6 @@
   "dependencies": {
     "@vercel/edge": "^1.1.0",
     "@vercel/edge-config": "^0.4.1",
-    "@vercel/edge-runtime": "^3.0.0"
+    "@vercel/edge-runtime": "^2.2.0"
   }
 }
