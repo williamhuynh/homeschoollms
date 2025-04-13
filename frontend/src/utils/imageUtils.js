@@ -72,15 +72,13 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
     return null;
   }
   
-  // Add _thumb suffix to thumbnail URLs if they don't already have it
+  // Don't modify the image URLs - use them as provided
   let modifiedImage = { ...image };
   
-  // Process thumbnail URLs to add _thumb suffix if needed
+  // Log the image URLs for debugging
   ['thumbnail_small_url', 'thumbnail_medium_url', 'thumbnail_large_url'].forEach(urlKey => {
-    if (modifiedImage[urlKey] && !modifiedImage[urlKey].includes('_thumb') && modifiedImage[urlKey].includes('.')) {
-      const lastDotIndex = modifiedImage[urlKey].lastIndexOf('.');
-      modifiedImage[urlKey] = modifiedImage[urlKey].substring(0, lastDotIndex) + '_thumb' + modifiedImage[urlKey].substring(lastDotIndex);
-      console.log(`Modified ${urlKey}:`, modifiedImage[urlKey]);
+    if (modifiedImage[urlKey]) {
+      console.log(`Using ${urlKey}:`, modifiedImage[urlKey]);
     }
   });
   

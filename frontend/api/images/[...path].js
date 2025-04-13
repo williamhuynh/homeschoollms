@@ -83,14 +83,11 @@ export default async function handler(req) {
     // Check if this is a thumbnail request (has width or height parameters)
     const isThumbnailRequest = url.searchParams.has('width') || url.searchParams.has('height');
     
-    // For thumbnail requests, check if we should append _thumb suffix
+    // Don't modify the image path - use it as provided
     let modifiedImagePath = actualImagePath;
-    if (isThumbnailRequest && !actualImagePath.includes('_thumb') && actualImagePath.includes('.')) {
-      // Insert _thumb before the file extension
-      const lastDotIndex = actualImagePath.lastIndexOf('.');
-      modifiedImagePath = actualImagePath.substring(0, lastDotIndex) + '_thumb' + actualImagePath.substring(lastDotIndex);
-      console.log('Modified path for thumbnail:', modifiedImagePath);
-    }
+    
+    // Log the path for debugging
+    console.log('Using image path:', modifiedImagePath);
     
     // Construct the Backblaze B2 URL
     backblazeUrl = `${backblazeEndpoint}/${configuredBucketName}/${modifiedImagePath}`;
