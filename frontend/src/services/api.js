@@ -508,7 +508,20 @@ export const uploadEvidence = async (studentId, learningOutcomeId, formData) => 
     );
     
     console.log('Evidence Upload Response:', response.data);
-    return response.data; // Should contain { message: "...", uploaded_files: [...] }
+    
+    // Transform the response data to match the expected format
+    const transformedData = {
+      ...response.data,
+      uploaded_files: response.data.uploaded_files.map(file => ({
+        ...file,
+        original_url: file.file_url,
+        thumbnail_small_url: file.thumbnail_url ? `${file.thumbnail_url}?width=150&height=150&quality=80` : null,
+        thumbnail_medium_url: file.thumbnail_url ? `${file.thumbnail_url}?width=400&height=300&quality=80` : null,
+        thumbnail_large_url: file.thumbnail_url ? `${file.thumbnail_url}?width=600&height=450&quality=80` : null
+      }))
+    };
+    
+    return transformedData;
   } catch (error) {
     console.error('Error uploading evidence:', {
       message: error.message,

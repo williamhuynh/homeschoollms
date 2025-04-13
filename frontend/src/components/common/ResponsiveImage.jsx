@@ -43,7 +43,21 @@ const ResponsiveImage = ({
 
   // Function to load the image progressively
   const loadImageProgressively = () => {
-    if (!image) return;
+    if (!image) {
+      console.log('No image provided to ResponsiveImage');
+      return;
+    }
+
+    // Log the image object structure
+    console.log('ResponsiveImage received image:', {
+      image,
+      urls: {
+        original: image.original_url,
+        small: image.thumbnail_small_url,
+        medium: image.thumbnail_medium_url,
+        large: image.thumbnail_large_url
+      }
+    });
 
     // Reset states
     setError(false);

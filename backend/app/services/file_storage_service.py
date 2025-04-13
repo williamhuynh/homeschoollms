@@ -166,9 +166,12 @@ class FileStorageService:
             
             logger.error(f"Returning URLs - File: {edge_function_file_url}, Thumbnail: {edge_function_thumbnail_url}")
             
+            # Return URLs in the format expected by the frontend components
             return {
-                "file_url": edge_function_file_url,
-                "thumbnail_url": edge_function_thumbnail_url
+                "original_url": edge_function_file_url,
+                "thumbnail_small_url": f"{edge_function_file_url}?width=150&height=150&quality=80",
+                "thumbnail_medium_url": f"{edge_function_file_url}?width=400&height=300&quality=80",
+                "thumbnail_large_url": f"{edge_function_file_url}?width=600&height=450&quality=80"
             }
         except Exception as e:
             logger.error(f"Error uploading file: {str(e)}")
@@ -240,13 +243,26 @@ class FileStorageService:
             thumbnail_url = f"{self.bucket_name}/{thumbnail_path}"
             
             # If Vercel Edge Function is configured, use it
+            # Always use Edge Function URLs with appropriate transformations
             if VERCEL_URL:
                 base_url = VERCEL_URL.rstrip('/')
                 path = EDGE_FUNCTION_PATH.lstrip('/')
-                return f"{base_url}/{path}/{thumbnail_path}"
+                edge_function_url = f"{base_url}/{path}/{thumbnail_path}"
+                return {
+                    "original_url": edge_function_url,
+                    "thumbnail_small_url": f"{edge_function_url}?width=150&height=150&quality=80",
+                    "thumbnail_medium_url": f"{edge_function_url}?width=400&height=300&quality=80",
+                    "thumbnail_large_url": f"{edge_function_url}?width=600&height=450&quality=80"
+                }
             else:
                 # Fall back to CDN if available, or direct Backblaze URL
-                return f"{CDN_URL}/{thumbnail_path}" if CDN_URL else thumbnail_url
+                base_url = f"{CDN_URL}/{thumbnail_path}" if CDN_URL else thumbnail_url
+                return {
+                    "original_url": base_url,
+                    "thumbnail_small_url": base_url,
+                    "thumbnail_medium_url": base_url,
+                    "thumbnail_large_url": base_url
+                }
         except Exception as e:
             logger.error(f"Error generating thumbnail: {str(e)}")
             raise Exception(f"Failed to generate thumbnail: {str(e)}")

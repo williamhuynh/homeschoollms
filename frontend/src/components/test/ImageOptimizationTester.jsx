@@ -51,19 +51,30 @@ const ImageOptimizationTester = () => {
   }, []);
 
   // Generate test images
-  const generateTestImages = () => {
+  const generateTestImages = async () => {
     setIsLoading(true);
     
+    // Check WebP support
+    const webpSupported = await isWebPSupported();
+    const format = webpSupported ? 'webp' : 'jpeg';
+    
     // Create an array of test images with different sizes
-    const images = Array.from({ length: imageCount }, (_, i) => ({
-      id: `test-image-${i}`,
-      original_url: `https://picsum.photos/id/${(i % 30) + 10}/800/600`,
-      thumbnail_small_url: `https://picsum.photos/id/${(i % 30) + 10}/150/150`,
-      thumbnail_medium_url: `https://picsum.photos/id/${(i % 30) + 10}/400/300`,
-      thumbnail_large_url: `https://picsum.photos/id/${(i % 30) + 10}/600/450`,
-      title: `Test Image ${i + 1}`,
-      description: `This is a test image for optimization testing (${i + 1})`
-    }));
+    const images = Array.from({ length: imageCount }, (_, i) => {
+      const imageId = (i % 30) + 10;
+      const baseUrl = `/api/images/picsum/${imageId}.jpg`;
+      const getUrl = (width, height) =>
+        `${baseUrl}?width=${width}&height=${height}&quality=80&format=${format}`;
+      
+      return {
+        id: `test-image-${i}`,
+        original_url: baseUrl,
+        thumbnail_small_url: getUrl(150, 150),
+        thumbnail_medium_url: getUrl(400, 300),
+        thumbnail_large_url: getUrl(600, 450),
+        title: `Test Image ${i + 1}`,
+        description: `This is a test image for optimization testing (${i + 1})`
+      };
+    });
     
     setTestImages(images);
     setIsLoading(false);

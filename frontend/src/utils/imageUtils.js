@@ -75,11 +75,26 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
   console.log('getThumbnailUrl input:', {
     image,
     size,
-    options
+    options,
+    availableUrls: {
+      original: image.original_url,
+      small: image.thumbnail_small_url,
+      medium: image.thumbnail_medium_url,
+      large: image.thumbnail_large_url
+    }
   });
   
   // Get the base URL for the requested size
   let baseUrl;
+  
+  // Log the URL selection process
+  console.log('getThumbnailUrl URL selection:', {
+    requestedSize: size,
+    hasSmall: !!image.thumbnail_small_url,
+    hasMedium: !!image.thumbnail_medium_url,
+    hasLarge: !!image.thumbnail_large_url,
+    hasOriginal: !!image.original_url
+  });
   switch (size) {
     case 'small':
       baseUrl = image.thumbnail_small_url || image.thumbnail_medium_url || image.thumbnail_large_url || image.original_url;
