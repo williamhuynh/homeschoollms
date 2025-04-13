@@ -45,10 +45,15 @@ export default async function handler(req) {
     return new Response('Image path is required', { status: 400 });
   }
 
+  // Initialize variables for use in both try and catch blocks
+  let backblazeUrl;
+  let backblazeEndpoint;
+  let configuredBucketName;
+  let authToken = null;
+  let modifiedImagePath;
+  let actualImagePath;
+  
   try {
-    // Initialize backblazeUrl variable for use in catch block
-    let backblazeUrl;
-    
     // Log environment variables
     console.log('Environment Variables:', {
       backblazeEndpoint: process.env.BACKBLAZE_ENDPOINT || 'NOT SET',
@@ -65,14 +70,13 @@ export default async function handler(req) {
     });
 
     // Get environment variables or use hardcoded values for testing
-    const backblazeEndpoint = process.env.BACKBLAZE_ENDPOINT || 'https://homeschoollms.s3.us-east-005.backblazeb2.com';
+    const backblazeEndpoint = process.env.BACKBLAZE_ENDPOINT || 'https://s3.us-east-005.backblazeb2.com';
     const configuredBucketName = process.env.BACKBLAZE_BUCKET_NAME || 'homeschoollms';
 
     console.log('Using Backblaze endpoint:', backblazeEndpoint);
     console.log('Using bucket name:', configuredBucketName);
     
     // Check for authentication token
-    let authToken = null;
     if (url.searchParams.has('auth_token')) {
       authToken = url.searchParams.get('auth_token');
       console.log('Auth token provided in URL');
@@ -107,19 +111,18 @@ export default async function handler(req) {
     // Log the path for debugging
     console.log('Using image path:', modifiedImagePath);
     
-    // For the Backblaze URL, we need to adjust the path structure
+    // For the Backblaze URL, we need to ensure we're using the full path
     // The URL structure should be: https://homeschoollms.s3.us-east-005.backblazeb2.com/evidence/...
-    // But our API path is: homeschoollms/evidence/...
     
-    // Extract the path after the bucket name
-    const pathAfterBucket = modifiedImagePath.includes('/') ?
-      modifiedImagePath.substring(modifiedImagePath.indexOf('/') + 1) :
-      modifiedImagePath;
+    // We'll use the full modifiedImagePath which should already include the "evidence/" prefix
+    console.log('Full image path for Backblaze:', modifiedImagePath);
     
-    console.log('Path after bucket:', pathAfterBucket);
-    
-    // Construct the Backblaze B2 URL
-    backblazeUrl = `${backblazeEndpoint}/${pathAfterBucket}`;
+    // Construct the Backblaze B2 URL with bucket name as subdomain
+    // Format: https://<bucket_name>.s3.us-east-005.backblazeb2.com/<path>
+    const backblazeHost = backblazeEndpoint.replace('https://', '');
+    console.log('Backblaze host:', backblazeHost);
+    console.log('Configured bucket name:', configuredBucketName);
+    backblazeUrl = `https://${configuredBucketName}.${backblazeHost}/${modifiedImagePath}`;
     console.log('Constructed Backblaze URL:', backblazeUrl);
 
     // Redirect to Vercel's image optimization endpoint
@@ -156,7 +159,7 @@ export default async function handler(req) {
       pathSegments: pathSegments,
       bucketName: bucketName,
       actualImagePath: actualImagePath,
-      pathAfterBucket: pathAfterBucket
+      fullImagePath: modifiedImagePath
     });
 
     // For debugging, let's try to fetch the image directly from Backblaze first
@@ -208,11 +211,16 @@ export default async function handler(req) {
     
     // Try to fetch the image directly as a fallback
     try {
-      // Only attempt fallback if backblazeUrl is defined
-      if (!backblazeUrl) {
-        console.log('Cannot attempt fallback: backblazeUrl is not defined');
-        throw new Error('Backblaze URL not available for fallback');
+      // Only attempt fallback if we can construct a valid Backblaze URL
+      if (!configuredBucketName || !backblazeEndpoint || !modifiedImagePath) {
+        console.log('Cannot attempt fallback: missing required parameters for Backblaze URL');
+        throw new Error('Missing parameters for Backblaze URL construction');
       }
+      
+      // Reconstruct the Backblaze URL for the fallback attempt
+      const backblazeHost = backblazeEndpoint.replace('https://', '');
+      backblazeUrl = `https://${configuredBucketName}.${backblazeHost}/${modifiedImagePath}`;
+      console.log('Reconstructed Backblaze URL for fallback:', backblazeUrl);
       
       // Prepare headers for the fetch request
       const headers = new Headers();
@@ -250,8 +258,11 @@ export default async function handler(req) {
       details: {
         url: req.url,
         imagePath,
-        backblazeEndpoint: process.env.BACKBLAZE_ENDPOINT ? 'SET' : 'NOT SET',
-        bucketName: process.env.BACKBLAZE_BUCKET_NAME ? 'SET' : 'NOT SET',
+        backblazeEndpoint: backblazeEndpoint || (process.env.BACKBLAZE_ENDPOINT ? 'SET' : 'NOT SET'),
+        bucketName: configuredBucketName || (process.env.BACKBLAZE_BUCKET_NAME ? 'SET' : 'NOT SET'),
+        actualImagePath: actualImagePath || 'NOT SET',
+        modifiedImagePath: modifiedImagePath || 'NOT SET',
+        constructedUrl: backblazeUrl || 'NOT CONSTRUCTED',
         requestParams: Object.fromEntries(url.searchParams.entries())
       }
     }), {
