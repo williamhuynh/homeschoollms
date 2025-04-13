@@ -34,6 +34,9 @@ export default async function handler(req) {
   }
 
   try {
+    // Initialize backblazeUrl variable for use in catch block
+    let backblazeUrl;
+    
     // Log environment variables
     console.log('Environment Variables:', {
       backblazeEndpoint: process.env.BACKBLAZE_ENDPOINT || 'NOT SET',
@@ -57,8 +60,19 @@ export default async function handler(req) {
       throw new Error('Missing required environment variables: BACKBLAZE_ENDPOINT or BACKBLAZE_BUCKET_NAME');
     }
 
-    // Verify bucket name matches configuration
-    if (bucketName !== configuredBucketName) {
+    // Add detailed logging for bucket name comparison
+    console.log('Detailed Bucket Comparison:', {
+      urlBucketName: bucketName,
+      configuredBucketName: configuredBucketName,
+      areEqual: bucketName === configuredBucketName,
+      urlBucketNameLength: bucketName.length,
+      configuredBucketNameLength: configuredBucketName.length,
+      urlBucketNameTrimmed: bucketName.trim(),
+      configuredBucketNameTrimmed: configuredBucketName.trim()
+    });
+
+    // Verify bucket name matches configuration (case-insensitive)
+    if (bucketName.toLowerCase().trim() !== configuredBucketName.toLowerCase().trim()) {
       console.log('Bucket Name Mismatch:', {
         urlBucketName: bucketName,
         configuredBucketName
@@ -66,8 +80,20 @@ export default async function handler(req) {
       throw new Error('Invalid bucket name in URL');
     }
 
+    // Check if this is a thumbnail request (has width or height parameters)
+    const isThumbnailRequest = url.searchParams.has('width') || url.searchParams.has('height');
+    
+    // For thumbnail requests, check if we should append _thumb suffix
+    let modifiedImagePath = actualImagePath;
+    if (isThumbnailRequest && !actualImagePath.includes('_thumb') && actualImagePath.includes('.')) {
+      // Insert _thumb before the file extension
+      const lastDotIndex = actualImagePath.lastIndexOf('.');
+      modifiedImagePath = actualImagePath.substring(0, lastDotIndex) + '_thumb' + actualImagePath.substring(lastDotIndex);
+      console.log('Modified path for thumbnail:', modifiedImagePath);
+    }
+    
     // Construct the Backblaze B2 URL
-    const backblazeUrl = `${backblazeEndpoint}/${configuredBucketName}/${actualImagePath}`;
+    const backblazeUrl = `${backblazeEndpoint}/${configuredBucketName}/${modifiedImagePath}`;
     console.log('Constructed Backblaze URL:', backblazeUrl);
 
     // Redirect to Vercel's image optimization endpoint
@@ -100,8 +126,39 @@ export default async function handler(req) {
       error: error.message,
       stack: error.stack,
       url: req.url,
-      imagePath
+      imagePath,
+      isThumbnailRequest: url.searchParams.has('width') || url.searchParams.has('height')
     });
+    
+    // Try to fetch the image directly as a fallback
+    try {
+      // Only attempt fallback if backblazeUrl is defined
+      if (!backblazeUrl) {
+        console.log('Cannot attempt fallback: backblazeUrl is not defined');
+        throw new Error('Backblaze URL not available for fallback');
+      }
+      
+      console.log('Attempting direct fetch fallback for:', backblazeUrl);
+      const response = await fetch(backblazeUrl);
+      
+      if (response.ok) {
+        console.log('Direct fetch successful, returning image');
+        const imageData = await response.arrayBuffer();
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        
+        return new Response(imageData, {
+          status: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Cache-Control': 'public, max-age=31536000, immutable'
+          }
+        });
+      } else {
+        console.error('Direct fetch failed:', response.status, response.statusText);
+      }
+    } catch (fallbackError) {
+      console.error('Fallback fetch failed:', fallbackError.message);
+    }
     
     return new Response(JSON.stringify({
       error: error.message,
@@ -109,7 +166,8 @@ export default async function handler(req) {
         url: req.url,
         imagePath,
         backblazeEndpoint: process.env.BACKBLAZE_ENDPOINT ? 'SET' : 'NOT SET',
-        bucketName: process.env.BACKBLAZE_BUCKET_NAME ? 'SET' : 'NOT SET'
+        bucketName: process.env.BACKBLAZE_BUCKET_NAME ? 'SET' : 'NOT SET',
+        requestParams: Object.fromEntries(url.searchParams.entries())
       }
     }), {
       status: 500,
