@@ -50,14 +50,21 @@ export default async function handler(req) {
   let backblazeEndpoint;
   let configuredBucketName;
   let authToken = null;
+  let backblazeKeyId;
+  let backblazeApplicationKey;
   let modifiedImagePath;
   let actualImagePath;
   
   try {
     // Log environment variables
+    backblazeKeyId = process.env.BACKBLAZE_KEY_ID || '';
+    backblazeApplicationKey = process.env.BACKBLAZE_APPLICATION_KEY || '';
+    
     console.log('Environment Variables:', {
       backblazeEndpoint: process.env.BACKBLAZE_ENDPOINT || 'NOT SET',
-      bucketName: process.env.BACKBLAZE_BUCKET_NAME || 'NOT SET'
+      bucketName: process.env.BACKBLAZE_BUCKET_NAME || 'NOT SET',
+      backblazeKeyId: backblazeKeyId ? `${backblazeKeyId.substring(0, 5)}...` : 'NOT SET',
+      backblazeApplicationKey: backblazeApplicationKey ? 'SET (hidden)' : 'NOT SET'
     });
 
     // Parse the image path which includes the bucket name
@@ -167,10 +174,15 @@ export default async function handler(req) {
       // Prepare headers for the fetch request
       const headers = new Headers();
       
-      // Add authentication if available
-      if (authToken) {
-        headers.append('Authorization', `Bearer ${authToken}`);
-        console.log('Adding authentication token to fetch request');
+      // Add Backblaze authentication if credentials are available
+      if (backblazeKeyId && backblazeApplicationKey) {
+        // Create Base64 encoded credentials (keyId:applicationKey)
+        const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
+        const encodedCredentials = btoa(credentials);
+        headers.append('Authorization', `Basic ${encodedCredentials}`);
+        console.log('Adding Backblaze authentication to fetch request');
+      } else {
+        console.log('Backblaze credentials not available, attempting fetch without authentication');
       }
       
       console.log('Attempting direct fetch from Backblaze:', backblazeUrl);
@@ -190,10 +202,19 @@ export default async function handler(req) {
         });
       } else {
         console.error('Direct fetch failed:', response.status, response.statusText);
+        
+        // Try to get more details about the error
+        try {
+          const errorText = await response.text();
+          console.error('Backblaze error details:', errorText);
+        } catch (textError) {
+          console.error('Could not read error details:', textError.message);
+        }
+        
         // Fall back to Vercel optimization
       }
     } catch (directFetchError) {
-      console.error('Direct fetch error:', directFetchError.message);
+      console.error('Direct fetch error:', directFetchError.message, directFetchError.stack);
       // Fall back to Vercel optimization
     }
 
@@ -225,10 +246,15 @@ export default async function handler(req) {
       // Prepare headers for the fetch request
       const headers = new Headers();
       
-      // Add authentication if available
-      if (authToken) {
-        headers.append('Authorization', `Bearer ${authToken}`);
-        console.log('Adding authentication token to fallback fetch request');
+      // Add Backblaze authentication if credentials are available
+      if (backblazeKeyId && backblazeApplicationKey) {
+        // Create Base64 encoded credentials (keyId:applicationKey)
+        const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
+        const encodedCredentials = btoa(credentials);
+        headers.append('Authorization', `Basic ${encodedCredentials}`);
+        console.log('Adding Backblaze authentication to fallback fetch request');
+      } else {
+        console.log('Backblaze credentials not available, attempting fallback fetch without authentication');
       }
       
       console.log('Attempting direct fetch fallback for:', backblazeUrl);
@@ -247,10 +273,18 @@ export default async function handler(req) {
           }
         });
       } else {
-        console.error('Direct fetch failed:', response.status, response.statusText);
+        console.error('Fallback fetch failed:', response.status, response.statusText);
+        
+        // Try to get more details about the error
+        try {
+          const errorText = await response.text();
+          console.error('Backblaze fallback error details:', errorText);
+        } catch (textError) {
+          console.error('Could not read fallback error details:', textError.message);
+        }
       }
     } catch (fallbackError) {
-      console.error('Fallback fetch failed:', fallbackError.message);
+      console.error('Fallback fetch failed:', fallbackError.message, fallbackError.stack);
     }
     
     return new Response(JSON.stringify({
@@ -260,6 +294,7 @@ export default async function handler(req) {
         imagePath,
         backblazeEndpoint: backblazeEndpoint || (process.env.BACKBLAZE_ENDPOINT ? 'SET' : 'NOT SET'),
         bucketName: configuredBucketName || (process.env.BACKBLAZE_BUCKET_NAME ? 'SET' : 'NOT SET'),
+        backblazeAuthAvailable: !!(backblazeKeyId && backblazeApplicationKey),
         actualImagePath: actualImagePath || 'NOT SET',
         modifiedImagePath: modifiedImagePath || 'NOT SET',
         constructedUrl: backblazeUrl || 'NOT CONSTRUCTED',
