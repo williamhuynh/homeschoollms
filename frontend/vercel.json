@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "functions": {
-    "api/images/[...path].js": {
-      "runtime": "edge"
+  "routes": [
+    {
+      "src": "/api/images/(.*)",
+      "dest": "/api/images/[...path].js"
     }
-  },
+  ],
   "env": {
     "EDGE_DEBUG": "1"
   }
