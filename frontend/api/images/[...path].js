@@ -178,7 +178,18 @@ export default async function handler(req) {
       if (backblazeKeyId && backblazeApplicationKey) {
         // Create Base64 encoded credentials (keyId:applicationKey)
         const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
-        const encodedCredentials = btoa(credentials);
+        // Use Buffer for more reliable Base64 encoding in Edge runtime
+        const encodedCredentials = Buffer.from(credentials).toString('base64');
+        
+        // Add detailed debugging for authentication
+        console.log('Auth debugging:', {
+          credentialsLength: credentials.length,
+          encodedCredentialsLength: encodedCredentials.length,
+          // Log first few chars of encoded string (safe to log partial)
+          encodedCredentialsStart: encodedCredentials.substring(0, 10) + '...',
+          authHeaderFormat: `Basic ${encodedCredentials.substring(0, 10)}...`
+        });
+        
         headers.append('Authorization', `Basic ${encodedCredentials}`);
         console.log('Adding Backblaze authentication to fetch request');
       } else {
@@ -207,6 +218,21 @@ export default async function handler(req) {
         try {
           const errorText = await response.text();
           console.error('Backblaze error details:', errorText);
+          
+          // Additional debugging for auth errors
+          if (errorText.includes('Authorization') || errorText.includes('Auth')) {
+            console.error('Auth error detected. Headers sent:', {
+              authHeader: headers.get('Authorization')?.replace(/Basic\s+(.{10}).*/, 'Basic $1...'),
+              contentType: headers.get('Content-Type'),
+              accept: headers.get('Accept'),
+              // Log all headers for debugging
+              allHeaders: [...headers.entries()].map(([key, value]) =>
+                key.toLowerCase() === 'authorization'
+                  ? `${key}: Basic ***`
+                  : `${key}: ${value}`
+              )
+            });
+          }
         } catch (textError) {
           console.error('Could not read error details:', textError.message);
         }
@@ -248,11 +274,33 @@ export default async function handler(req) {
       
       // Add Backblaze authentication if credentials are available
       if (backblazeKeyId && backblazeApplicationKey) {
-        // Create Base64 encoded credentials (keyId:applicationKey)
-        const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
-        const encodedCredentials = btoa(credentials);
-        headers.append('Authorization', `Basic ${encodedCredentials}`);
-        console.log('Adding Backblaze authentication to fallback fetch request');
+        try {
+          // Create Base64 encoded credentials (keyId:applicationKey)
+          const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
+          // Use Buffer for more reliable Base64 encoding in Edge runtime
+          const encodedCredentials = Buffer.from(credentials).toString('base64');
+          
+          // Try alternative encoding method as a test
+          const altEncodedCredentials = Buffer.from(credentials, 'utf8').toString('base64');
+          
+          console.log('Auth fallback debugging:', {
+            credentialsLength: credentials.length,
+            encodedCredentialsLength: encodedCredentials.length,
+            altEncodedCredentialsLength: altEncodedCredentials.length,
+            // Check if they differ
+            encodingsDiffer: encodedCredentials !== altEncodedCredentials,
+            // Log first few chars (safe to log partial)
+            encodedCredentialsStart: encodedCredentials.substring(0, 10) + '...',
+            altEncodedCredentialsStart: altEncodedCredentials.substring(0, 10) + '...'
+          });
+          
+          // Use the alternative encoding method for this fallback attempt
+          headers.append('Authorization', `Basic ${altEncodedCredentials}`);
+          console.log('Adding alternative Backblaze authentication to fallback fetch request');
+        } catch (authError) {
+          console.error('Error creating auth header:', authError.message);
+          console.log('Attempting fallback fetch without authentication');
+        }
       } else {
         console.log('Backblaze credentials not available, attempting fallback fetch without authentication');
       }
