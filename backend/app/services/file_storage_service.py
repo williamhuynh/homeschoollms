@@ -16,14 +16,14 @@ EDGE_FUNCTION_PATH = os.getenv('EDGE_FUNCTION_PATH', '/api/images')  # Path to t
 class FileStorageService:
     def __init__(self):
         import logging
-        logging.basicConfig(level=logging.ERROR)
+        logging.basicConfig(level=logging.INFO) # Changed level to INFO
         logger = logging.getLogger(__name__)
         
         # Log the environment variables
-        logger.error(f"BACKBLAZE_ENDPOINT: {os.getenv('BACKBLAZE_ENDPOINT')}")
-        logger.error(f"BACKBLAZE_KEY_ID: {os.getenv('BACKBLAZE_KEY_ID')}")
-        logger.error(f"BACKBLAZE_APPLICATION_KEY: {'*****' if os.getenv('BACKBLAZE_APPLICATION_KEY') else None}")
-        logger.error(f"BACKBLAZE_BUCKET_NAME: {os.getenv('BACKBLAZE_BUCKET_NAME')}")
+        logger.info(f"BACKBLAZE_ENDPOINT: {os.getenv('BACKBLAZE_ENDPOINT')}") # Changed level to INFO
+        logger.info(f"BACKBLAZE_KEY_ID: {os.getenv('BACKBLAZE_KEY_ID')}") # Changed level to INFO
+        logger.info(f"BACKBLAZE_APPLICATION_KEY: {'*****' if os.getenv('BACKBLAZE_APPLICATION_KEY') else None}") # Changed level to INFO
+        logger.info(f"BACKBLAZE_BUCKET_NAME: {os.getenv('BACKBLAZE_BUCKET_NAME')}") # Changed level to INFO
         
         self.s3 = boto3.client(
             's3',
@@ -35,27 +35,27 @@ class FileStorageService:
         self.bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME')
         
         # Log the s3 client
-        logger.error(f"S3 client: {self.s3}")
+        logger.info(f"S3 client: {self.s3}") # Changed level to INFO
 
     async def upload_file(self, file: UploadFile, file_path: str, generate_thumbnail=False, thumbnail_size=(200, 200)):
         import logging
-        logging.basicConfig(level=logging.ERROR)
+        logging.basicConfig(level=logging.INFO) # Changed level to INFO
         logger = logging.getLogger(__name__)
 
         try:
             # Log the environment variables
-            logger.error(f"BACKBLAZE_ENDPOINT: {os.getenv('BACKBLAZE_ENDPOINT')}")
-            logger.error(f"BACKBLAZE_KEY_ID: {os.getenv('BACKBLAZE_KEY_ID')}")
-            logger.error(f"BACKBLAZE_APPLICATION_KEY: {'*****' if os.getenv('BACKBLAZE_APPLICATION_KEY') else None}")
-            logger.error(f"BACKBLAZE_BUCKET_NAME: {os.getenv('BACKBLAZE_BUCKET_NAME')}")
+            logger.info(f"BACKBLAZE_ENDPOINT: {os.getenv('BACKBLAZE_ENDPOINT')}") # Changed level to INFO
+            logger.info(f"BACKBLAZE_KEY_ID: {os.getenv('BACKBLAZE_KEY_ID')}") # Changed level to INFO
+            logger.info(f"BACKBLAZE_APPLICATION_KEY: {'*****' if os.getenv('BACKBLAZE_APPLICATION_KEY') else None}") # Changed level to INFO
+            logger.info(f"BACKBLAZE_BUCKET_NAME: {os.getenv('BACKBLAZE_BUCKET_NAME')}") # Changed level to INFO
             
             # Log the s3 client
-            logger.error(f"S3 client: {self.s3}")
-            logger.error(f"Bucket name: {self.bucket_name}")
+            logger.info(f"S3 client: {self.s3}") # Changed level to INFO
+            logger.info(f"Bucket name: {self.bucket_name}") # Changed level to INFO
             
             # Log the file object and its file attribute before passing to upload_fileobj
-            logger.error(f"Received file object: {file}")
-            logger.error(f"Received file.file: {file.file}")
+            logger.info(f"Received file object: {file}") # Changed level to INFO
+            logger.info(f"Received file.file: {file.file}") # Changed level to INFO
 
             # Check if file.file is None
             if file.file is None:
@@ -63,32 +63,32 @@ class FileStorageService:
                 raise Exception("file.file is None")
 
             # Log the type of file.file
-            logger.error(f"Type of file.file: {type(file.file)}")
+            logger.info(f"Type of file.file: {type(file.file)}") # Changed level to INFO
 
             # Log the seekable status of file.file
-            logger.error(f"Is file.file seekable? {file.file.seekable()}")
+            logger.info(f"Is file.file seekable? {file.file.seekable()}") # Changed level to INFO
 
             # Log the current position of the file.file object
-            logger.error(f"Current position of file.file before seek: {file.file.tell()}")
+            logger.info(f"Current position of file.file before seek: {file.file.tell()}") # Changed level to INFO
 
             # Check if file.file is seekable and seek to the beginning if it is
             if file.file.seekable():
                 file.file.seek(0)
-                logger.error(f"Seeked file.file to position: {file.file.tell()}")
+                logger.info(f"Seeked file.file to position: {file.file.tell()}") # Changed level to INFO
 
             # Log the file path
-            logger.error(f"Generated file path: {file_path}")
+            logger.info(f"Generated file path: {file_path}") # Changed level to INFO
 
             # Log the file content type
-            logger.error(f"File content type: {file.content_type}")
+            logger.info(f"File content type: {file.content_type}") # Changed level to INFO
 
             # Log the file size
-            logger.error(f"File size: {file.size}")
+            logger.info(f"File size: {file.size}") # Changed level to INFO
 
             # Log the file data before upload
             file_data = file.file.read()
-            logger.error(f"File data length: {len(file_data)}")
-            logger.error(f"File data type: {type(file_data)}")
+            logger.info(f"File data length: {len(file_data)}") # Changed level to INFO
+            logger.info(f"File data type: {type(file_data)}") # Changed level to INFO
             
             # Check if file_data is None
             if file_data is None:
@@ -101,7 +101,7 @@ class FileStorageService:
                 raise Exception("file_data is empty")
 
             # Upload using boto3.resource
-            logger.error("Using boto3.resource")
+            logger.info("Using boto3.resource") # Changed level to INFO
             
             # Create a new boto3 resource
             s3_resource = boto3.resource(
@@ -116,7 +116,7 @@ class FileStorageService:
             bucket = s3_resource.Bucket(self.bucket_name)
             
             # Log the bucket
-            logger.error(f"Bucket: {bucket}")
+            logger.info(f"Bucket: {bucket}") # Changed level to INFO
             
             # Upload the file data directly
             from io import BytesIO
@@ -127,7 +127,7 @@ class FileStorageService:
             )
             
             # Log the current position of the file.file object after upload
-            logger.error(f"Current position of file.file after upload: {file.file.tell()}")
+            logger.info(f"Current position of file.file after upload: {file.file.tell()}") # Changed level to INFO
 
             # If thumbnail generation is requested, generate and upload it
             thumbnail_url = None
@@ -142,7 +142,7 @@ class FileStorageService:
 
             # Generate presigned URLs for immediate access
             presigned_url = self.generate_presigned_url(file_path)
-            logger.error(f"Generated presigned URL: {presigned_url}")
+            logger.info(f"Generated presigned URL: {presigned_url}") # Changed level to INFO
 
             # Store the presigned URL in the database or cache for immediate use
             # But return Edge Function URLs for the frontend
@@ -164,7 +164,7 @@ class FileStorageService:
                 thumbnail_path = f"{self.bucket_name}/{thumbnail_url['original_url'].split('/')[-1]}"
                 edge_function_thumbnail_url = f"{base_url}/{path}/{thumbnail_path}"
             
-            logger.error(f"Returning URLs - File: {edge_function_file_url}, Thumbnail: {edge_function_thumbnail_url}")
+            logger.info(f"Returning URLs - File: {edge_function_file_url}, Thumbnail: {edge_function_thumbnail_url}") # Changed level to INFO
             
             # Return URLs in the format expected by the frontend components
             return {
