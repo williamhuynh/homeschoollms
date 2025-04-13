@@ -52,13 +52,12 @@ export default async function handler(req) {
       actualImagePath
     });
 
-    // Get environment variables
-    const backblazeEndpoint = process.env.BACKBLAZE_ENDPOINT;
-    const configuredBucketName = process.env.BACKBLAZE_BUCKET_NAME;
+    // Get environment variables or use hardcoded values for testing
+    const backblazeEndpoint = process.env.BACKBLAZE_ENDPOINT || 'https://homeschoollms.s3.us-east-005.backblazeb2.com';
+    const configuredBucketName = process.env.BACKBLAZE_BUCKET_NAME || 'homeschoollms';
 
-    if (!backblazeEndpoint || !configuredBucketName) {
-      throw new Error('Missing required environment variables: BACKBLAZE_ENDPOINT or BACKBLAZE_BUCKET_NAME');
-    }
+    console.log('Using Backblaze endpoint:', backblazeEndpoint);
+    console.log('Using bucket name:', configuredBucketName);
 
     // Add detailed logging for bucket name comparison
     console.log('Detailed Bucket Comparison:', {
@@ -89,8 +88,19 @@ export default async function handler(req) {
     // Log the path for debugging
     console.log('Using image path:', modifiedImagePath);
     
+    // For the Backblaze URL, we need to adjust the path structure
+    // The URL structure should be: https://homeschoollms.s3.us-east-005.backblazeb2.com/evidence/...
+    // But our API path is: homeschoollms/evidence/...
+    
+    // Extract the path after the bucket name
+    const pathAfterBucket = modifiedImagePath.includes('/') ?
+      modifiedImagePath.substring(modifiedImagePath.indexOf('/') + 1) :
+      modifiedImagePath;
+    
+    console.log('Path after bucket:', pathAfterBucket);
+    
     // Construct the Backblaze B2 URL
-    backblazeUrl = `${backblazeEndpoint}/${configuredBucketName}/${modifiedImagePath}`;
+    backblazeUrl = `${backblazeEndpoint}/${pathAfterBucket}`;
     console.log('Constructed Backblaze URL:', backblazeUrl);
 
     // Redirect to Vercel's image optimization endpoint
@@ -113,10 +123,45 @@ export default async function handler(req) {
       vercelImageUrl.searchParams.set('q', '80');
     }
 
-    // Log the final Vercel image URL
-    console.log('Final Vercel Image URL:', vercelImageUrl.toString());
+    // Log the final Vercel image URL and all the details
+    console.log('Final Image URLs:', {
+      originalUrl: req.url,
+      backblazeUrl: backblazeUrl,
+      vercelImageUrl: vercelImageUrl.toString(),
+      pathSegments: pathSegments,
+      bucketName: bucketName,
+      actualImagePath: actualImagePath,
+      pathAfterBucket: pathAfterBucket
+    });
 
-    // Redirect to the Vercel-optimized image URL
+    // For debugging, let's try to fetch the image directly from Backblaze first
+    try {
+      console.log('Attempting direct fetch from Backblaze:', backblazeUrl);
+      const response = await fetch(backblazeUrl);
+      
+      if (response.ok) {
+        console.log('Direct fetch successful, returning image');
+        const imageData = await response.arrayBuffer();
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        
+        return new Response(imageData, {
+          status: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Cache-Control': 'public, max-age=31536000, immutable'
+          }
+        });
+      } else {
+        console.error('Direct fetch failed:', response.status, response.statusText);
+        // Fall back to Vercel optimization
+      }
+    } catch (directFetchError) {
+      console.error('Direct fetch error:', directFetchError.message);
+      // Fall back to Vercel optimization
+    }
+
+    // Redirect to the Vercel-optimized image URL as fallback
+    console.log('Falling back to Vercel optimization:', vercelImageUrl.toString());
     return Response.redirect(vercelImageUrl.toString(), 307);
   } catch (error) {
     console.error('Error serving image:', {
