@@ -11,6 +11,8 @@ export const config = {
  * URL format: /api/images/[path]?width=300&height=200&quality=80
  */
 export default async function handler(req) {
+  // Add a clear marker to identify Edge Function logs
+  console.log('🔄 EDGE FUNCTION EXECUTING 🔄');
   console.log('Edge Function Request:', {
     url: req.url,
     method: req.method,
@@ -22,6 +24,16 @@ export default async function handler(req) {
     pathname: url.pathname,
     search: url.search,
     origin: url.origin
+  });
+
+  // Log all environment variables (excluding sensitive ones)
+  console.log('Environment Variables:', {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    VERCEL_REGION: process.env.VERCEL_REGION,
+    EDGE_DEBUG: process.env.EDGE_DEBUG,
+    BACKBLAZE_ENDPOINT: process.env.BACKBLAZE_ENDPOINT ? 'SET' : 'NOT SET',
+    BACKBLAZE_BUCKET_NAME: process.env.BACKBLAZE_BUCKET_NAME ? 'SET' : 'NOT SET'
   });
 
   const pathSegments = url.pathname.split('/').filter(Boolean);
@@ -58,6 +70,13 @@ export default async function handler(req) {
 
     console.log('Using Backblaze endpoint:', backblazeEndpoint);
     console.log('Using bucket name:', configuredBucketName);
+    
+    // Check for authentication token
+    let authToken = null;
+    if (url.searchParams.has('auth_token')) {
+      authToken = url.searchParams.get('auth_token');
+      console.log('Auth token provided in URL');
+    }
 
     // Add detailed logging for bucket name comparison
     console.log('Detailed Bucket Comparison:', {
@@ -122,6 +141,12 @@ export default async function handler(req) {
     if (!url.searchParams.has('quality')) {
       vercelImageUrl.searchParams.set('q', '80');
     }
+    
+    // Pass the auth token to the Vercel image optimization endpoint if available
+    if (authToken) {
+      vercelImageUrl.searchParams.set('auth_token', authToken);
+      console.log('Adding auth_token to Vercel image URL');
+    }
 
     // Log the final Vercel image URL and all the details
     console.log('Final Image URLs:', {
@@ -136,8 +161,17 @@ export default async function handler(req) {
 
     // For debugging, let's try to fetch the image directly from Backblaze first
     try {
+      // Prepare headers for the fetch request
+      const headers = new Headers();
+      
+      // Add authentication if available
+      if (authToken) {
+        headers.append('Authorization', `Bearer ${authToken}`);
+        console.log('Adding authentication token to fetch request');
+      }
+      
       console.log('Attempting direct fetch from Backblaze:', backblazeUrl);
-      const response = await fetch(backblazeUrl);
+      const response = await fetch(backblazeUrl, { headers });
       
       if (response.ok) {
         console.log('Direct fetch successful, returning image');
@@ -180,8 +214,17 @@ export default async function handler(req) {
         throw new Error('Backblaze URL not available for fallback');
       }
       
+      // Prepare headers for the fetch request
+      const headers = new Headers();
+      
+      // Add authentication if available
+      if (authToken) {
+        headers.append('Authorization', `Bearer ${authToken}`);
+        console.log('Adding authentication token to fallback fetch request');
+      }
+      
       console.log('Attempting direct fetch fallback for:', backblazeUrl);
-      const response = await fetch(backblazeUrl);
+      const response = await fetch(backblazeUrl, { headers });
       
       if (response.ok) {
         console.log('Direct fetch successful, returning image');
