@@ -1,5 +1,5 @@
 // This API route acts as a proxy for the backend's signed-url endpoint
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     console.log('Signed URL proxy route called with query:', req.query);
     
