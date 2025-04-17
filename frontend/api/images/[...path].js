@@ -6,6 +6,137 @@ export const config = {
 };
 
 /**
+ * Creates an AWS v4 signature for Backblaze requests
+ * 
+ * @param {string} keyId - Backblaze application key ID
+ * @param {string} applicationKey - Backblaze application key
+ * @param {string} method - HTTP method (e.g., 'GET')
+ * @param {string} host - Host to use for the request (e.g., 'bucket.s3.region.backblazeb2.com')
+ * @param {string} path - Path to the resource (e.g., '/path/to/image.jpg')
+ * @param {string} region - Backblaze region (default: 'us-east-005')
+ * @param {Record<string,string>} [query={}] - Query parameters
+ * @param {Record<string,string>} [headers={}] - Request headers
+ * @returns {Promise<Record<string,string>>} - Headers to use for the request
+ */
+async function generateBackblazeHeaders(keyId, applicationKey, method, host, path, region = 'us-east-005', query = {}, headers = {}) {
+  console.log('Generating AWS v4 signature for Backblaze with:', {
+    method,
+    host,
+    path,
+    region,
+    keyIdPrefix: keyId.substring(0, 5) + '...'
+  });
+
+  // Current time in specific format required for AWS v4 signature
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.slice(0, 8);
+
+  // Add required headers
+  const signedHeaders = {
+    'host': host,
+    'x-amz-date': amzDate,
+    'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
+    ...headers
+  };
+
+  // Step 1: Create a canonical request
+  const queryString = Object.keys(query).sort().map(key => 
+    `${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`
+  ).join('&');
+
+  const canonicalHeaders = Object.keys(signedHeaders).sort().map(key => 
+    `${key.toLowerCase()}:${signedHeaders[key]}\n`
+  ).join('');
+
+  const signedHeadersString = Object.keys(signedHeaders).sort().join(';');
+
+  const canonicalRequest = [
+    method,
+    path,
+    queryString,
+    canonicalHeaders,
+    signedHeadersString,
+    'UNSIGNED-PAYLOAD'
+  ].join('\n');
+
+  // Step 2: Create a string to sign
+  const algorithm = 'AWS4-HMAC-SHA256';
+  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+  const stringToSign = [
+    algorithm,
+    amzDate,
+    credentialScope,
+    await sha256(canonicalRequest)
+  ].join('\n');
+
+  // Step 3: Calculate the signature
+  const signingKey = await getSignatureKey(applicationKey, dateStamp, region, 's3');
+  const signature = await hmacSha256(signingKey, stringToSign);
+
+  // Step 4: Create authorization header
+  const authorizationHeader = [
+    `${algorithm} Credential=${keyId}/${credentialScope}`,
+    `SignedHeaders=${signedHeadersString}`,
+    `Signature=${signature}`
+  ].join(', ');
+
+  // Return complete set of headers
+  return {
+    ...signedHeaders,
+    'Authorization': authorizationHeader
+  };
+}
+
+// Helper function for SHA-256 hash
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Helper function for HMAC-SHA256
+async function hmacSha256(key, message) {
+  const keyBuffer = key instanceof ArrayBuffer ? key : 
+    new TextEncoder().encode(key);
+  const messageBuffer = new TextEncoder().encode(message);
+
+  const importedKey = await crypto.subtle.importKey(
+    'raw', 
+    keyBuffer, 
+    { name: 'HMAC', hash: 'SHA-256' }, 
+    false, 
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', importedKey, messageBuffer);
+
+  return Array.from(new Uint8Array(signature))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Helper function to derive the signing key
+async function getSignatureKey(key, dateStamp, region, service) {
+  const kDate = await hmacSha256(`AWS4${key}`, dateStamp);
+  const kRegion = await hmacSha256(hexToArrayBuffer(kDate), region);
+  const kService = await hmacSha256(hexToArrayBuffer(kRegion), service);
+  const kSigning = await hmacSha256(hexToArrayBuffer(kService), 'aws4_request');
+  return hexToArrayBuffer(kSigning);
+}
+
+// Helper to convert hex string to ArrayBuffer
+function hexToArrayBuffer(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i/2] = parseInt(hex.substring(i, i + 2), 16);
+  }
+  return bytes.buffer;
+}
+
+/**
  * Edge function to proxy and optimize images from Backblaze B2 using Vercel's image optimization
  *
  * URL format: /api/images/[path]?width=300&height=200&quality=80
@@ -124,12 +255,17 @@ export default async function handler(req) {
     // We'll use the full modifiedImagePath which should already include the "evidence/" prefix
     console.log('Full image path for Backblaze:', modifiedImagePath);
     
+    // Extract region from the backblaze endpoint
+    const regionMatch = backblazeEndpoint.match(/s3\.([^.]+)\.backblazeb2\.com/);
+    const region = regionMatch ? regionMatch[1] : 'us-east-005';
+    
     // Construct the Backblaze B2 URL with bucket name as subdomain
     // Format: https://<bucket_name>.s3.us-east-005.backblazeb2.com/<path>
     const backblazeHost = backblazeEndpoint.replace('https://', '');
+    const bucketHost = `${configuredBucketName}.${backblazeHost}`;
     console.log('Backblaze host:', backblazeHost);
     console.log('Configured bucket name:', configuredBucketName);
-    backblazeUrl = `https://${configuredBucketName}.${backblazeHost}/${modifiedImagePath}`;
+    backblazeUrl = `https://${bucketHost}/${modifiedImagePath}`;
     console.log('Constructed Backblaze URL:', backblazeUrl);
 
     // Redirect to Vercel's image optimization endpoint
@@ -169,137 +305,96 @@ export default async function handler(req) {
       fullImagePath: modifiedImagePath
     });
 
-    // For debugging, let's try to fetch the image directly from Backblaze first
-    try {
-      // Prepare headers for the fetch request
-      const headers = new Headers();
-      
-      // Add Backblaze authentication if credentials are available
-      if (backblazeKeyId && backblazeApplicationKey) {
-        // Create Base64 encoded credentials (keyId:applicationKey)
-        const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
+    // Helper function to fetch an image directly from Backblaze
+    async function fetchImageFromBackblaze(imageUrl, path) {
+      try {
+        console.log('Attempting to fetch from Backblaze:', imageUrl);
         
-        // Log the credential format (without revealing full credentials)
-        console.log('Credential format check:', {
-          format: 'keyId:applicationKey',
-          keyIdLength: backblazeKeyId.length,
-          applicationKeyLength: backblazeApplicationKey.length,
-          keyIdFirstFive: backblazeKeyId.substring(0, 5) + '...',
-          totalLength: credentials.length,
-          containsColon: credentials.includes(':'),
-          colonPosition: credentials.indexOf(':')
-        });
+        // Only try authentication if we have credentials
+        let headers = new Headers();
         
-        // Fix: Use btoa instead of Buffer.from for more reliable Base64 encoding in Edge runtime
-        // btoa is more widely supported in browser-like environments like Edge
-        let encodedCredentials;
-        try {
-          // First try using btoa which is more reliable in edge environments
-          encodedCredentials = btoa(credentials);
-          console.log('Using btoa for encoding credentials');
-        } catch (e) {
-          // Fall back to Buffer if btoa is not available
+        if (backblazeKeyId && backblazeApplicationKey) {
           try {
-            encodedCredentials = Buffer.from(credentials).toString('base64');
-            console.log('Falling back to Buffer.from for encoding credentials');
-          } catch (bufferError) {
-            console.error('Both encoding methods failed:', bufferError.message);
-            console.log('Attempting fetch without authentication');
-            encodedCredentials = null;
-          }
-        }
-        
-        // Only add authentication header if encoding succeeded
-        if (encodedCredentials) {
-          // Add detailed debugging for authentication
-          console.log('Auth debugging:', {
-            credentialsLength: credentials.length,
-            encodedCredentialsLength: encodedCredentials.length,
-            // Log first few chars of encoded string (safe to log partial)
-            encodedCredentialsStart: encodedCredentials.substring(0, 10) + '...',
-            authHeaderFormat: `Basic ${encodedCredentials.substring(0, 10)}...`
-          });
-          
-          // Set the authorization header
-          headers.append('Authorization', `Basic ${encodedCredentials}`);
-          console.log('Adding Backblaze authentication to fetch request');
-        }
-      } else {
-        console.log('Backblaze credentials not available, attempting fetch without authentication');
-      }
-      
-      console.log('Attempting direct fetch from Backblaze:', backblazeUrl);
-      const response = await fetch(backblazeUrl, { headers });
-      
-      if (response.ok) {
-        console.log('Direct fetch successful, returning image');
-        const imageData = await response.arrayBuffer();
-        const contentType = response.headers.get('content-type') || 'image/jpeg';
-        
-        return new Response(imageData, {
-          status: 200,
-          headers: {
-            'Content-Type': contentType,
-            'Cache-Control': 'public, max-age=31536000, immutable'
-          }
-        });
-      } else {
-        console.error('Direct fetch failed:', response.status, response.statusText);
-        
-        // Try to get more details about the error
-        try {
-          const errorText = await response.text();
-          console.error('Backblaze error details:', errorText);
-          
-          // Additional debugging for auth errors
-          if (errorText.includes('Authorization') || errorText.includes('Auth')) {
-            console.error('Auth error detected. Headers sent:', {
-              authHeader: headers.get('Authorization')?.replace(/Basic\s+(.{10}).*/, 'Basic $1...'),
-              contentType: headers.get('Content-Type'),
-              accept: headers.get('Accept'),
-              // Log all headers for debugging
-              allHeaders: [...headers.entries()].map(([key, value]) =>
-                key.toLowerCase() === 'authorization'
-                  ? `${key}: Basic ***`
-                  : `${key}: ${value}`
-              )
-            });
+            // Parse URL to get host and path
+            const parsedUrl = new URL(imageUrl);
             
-            // Try without authentication in case the bucket is public
-            console.log('Attempting fetch without authentication as fallback');
-            const publicHeaders = new Headers();
-            const publicResponse = await fetch(backblazeUrl, { headers: publicHeaders });
+            // Generate signed headers using AWS v4 signature
+            const signedHeaders = await generateBackblazeHeaders(
+              backblazeKeyId,
+              backblazeApplicationKey,
+              'GET',
+              parsedUrl.host,
+              parsedUrl.pathname,
+              region
+            );
             
-            if (publicResponse.ok) {
-              console.log('Public fetch successful, bucket might be public');
-              const imageData = await publicResponse.arrayBuffer();
-              const contentType = publicResponse.headers.get('content-type') || 'image/jpeg';
-              
-              return new Response(imageData, {
-                status: 200,
-                headers: {
-                  'Content-Type': contentType,
-                  'Cache-Control': 'public, max-age=31536000, immutable'
-                }
-              });
-            } else {
-              console.error('Public fetch also failed:', publicResponse.status, publicResponse.statusText);
-            }
+            // Set headers for the request
+            headers = new Headers(signedHeaders);
+            console.log('Generated authenticated headers for Backblaze request');
+          } catch (authError) {
+            console.error('Error generating authenticated headers:', authError.message);
+            // Continue with unauthenticated request as fallback
           }
-        } catch (textError) {
-          console.error('Could not read error details:', textError.message);
+        } else {
+          console.log('Backblaze credentials not available, will try unauthenticated request');
         }
         
-        // Fall back to Vercel optimization
+        // Make the request
+        const response = await fetch(imageUrl, { headers });
+        
+        if (response.ok) {
+          console.log('Fetch successful, returning image data');
+          const imageData = await response.arrayBuffer();
+          const contentType = response.headers.get('content-type') || 'image/jpeg';
+          
+          return {
+            data: imageData,
+            contentType,
+            success: true
+          };
+        } else {
+          console.error('Fetch failed:', response.status, response.statusText);
+          let errorDetails = '';
+          try {
+            errorDetails = await response.text();
+            console.error('Error details:', errorDetails);
+          } catch (e) {
+            console.error('Could not read error details');
+          }
+          
+          return {
+            success: false,
+            status: response.status,
+            statusText: response.statusText,
+            errorDetails
+          };
+        }
+      } catch (error) {
+        console.error('Fetch error:', error.message);
+        return {
+          success: false,
+          error: error.message
+        };
       }
-    } catch (directFetchError) {
-      console.error('Direct fetch error:', directFetchError.message, directFetchError.stack);
-      // Fall back to Vercel optimization
     }
-
-    // Redirect to the Vercel-optimized image URL as fallback
-    console.log('Falling back to Vercel optimization:', vercelImageUrl.toString());
+    
+    // Try to fetch the image directly from Backblaze with authentication
+    const fetchResult = await fetchImageFromBackblaze(backblazeUrl, `/${modifiedImagePath}`);
+    
+    if (fetchResult.success) {
+      return new Response(fetchResult.data, {
+        status: 200,
+        headers: {
+          'Content-Type': fetchResult.contentType,
+          'Cache-Control': 'public, max-age=31536000, immutable'
+        }
+      });
+    }
+    
+    // If direct fetch failed, fall back to Vercel optimization
+    console.log('Direct fetch failed, falling back to Vercel optimization:', vercelImageUrl.toString());
     return Response.redirect(vercelImageUrl.toString(), 307);
+    
   } catch (error) {
     console.error('Error serving image:', {
       error: error.message,
@@ -322,87 +417,44 @@ export default async function handler(req) {
       backblazeUrl = `https://${configuredBucketName}.${backblazeHost}/${modifiedImagePath}`;
       console.log('Reconstructed Backblaze URL for fallback:', backblazeUrl);
       
-      // Prepare headers for the fetch request
-      const headers = new Headers();
+      // Extract region from the backblaze endpoint
+      const regionMatch = backblazeEndpoint.match(/s3\.([^.]+)\.backblazeb2\.com/);
+      const region = regionMatch ? regionMatch[1] : 'us-east-005';
       
-      // Add Backblaze authentication if credentials are available
-      if (backblazeKeyId && backblazeApplicationKey) {
-        try {
-          // Create Base64 encoded credentials (keyId:applicationKey)
-          const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
-          
-          // Log the credential format (without revealing full credentials)
-          console.log('Credential format check:', {
-            format: 'keyId:applicationKey',
-            keyIdLength: backblazeKeyId.length,
-            applicationKeyLength: backblazeApplicationKey.length,
-            keyIdFirstFive: backblazeKeyId.substring(0, 5) + '...',
-            totalLength: credentials.length,
-            containsColon: credentials.includes(':'),
-            colonPosition: credentials.indexOf(':')
-          });
-          
-          // Fix: Use btoa instead of Buffer.from for more reliable Base64 encoding in Edge runtime
-          let encodedCredentials;
-          try {
-            // First try using btoa which is more reliable in edge environments
-            encodedCredentials = btoa(credentials);
-            console.log('Using btoa for encoding credentials');
-          } catch (e) {
-            // Fall back to Buffer if btoa is not available
-            try {
-              encodedCredentials = Buffer.from(credentials).toString('base64');
-              console.log('Falling back to Buffer.from for encoding credentials');
-            } catch (bufferError) {
-              console.error('Both encoding methods failed:', bufferError.message);
-              console.log('Attempting fetch without authentication');
-              encodedCredentials = null;
-            }
-          }
-          
-          console.log('Auth fallback debugging:', {
-            credentialsLength: credentials.length,
-            encodedCredentialsLength: encodedCredentials.length,
-            // Log first few chars (safe to log partial)
-            encodedCredentialsStart: encodedCredentials.substring(0, 10) + '...'
-          });
-          
-          headers.append('Authorization', `Basic ${encodedCredentials}`);
-          console.log('Adding Backblaze authentication to fallback fetch request');
-        } catch (authError) {
-          console.error('Error creating auth header:', authError.message);
-          console.log('Attempting fallback fetch without authentication');
-        }
-      } else {
-        console.log('Backblaze credentials not available, attempting fallback fetch without authentication');
-      }
+      // Try fetching directly from Backblaze with authentication as fallback
+      const fallbackResult = await fetchImageFromBackblaze(backblazeUrl, `/${modifiedImagePath}`);
       
-      console.log('Attempting direct fetch fallback for:', backblazeUrl);
-      const response = await fetch(backblazeUrl, { headers });
-      
-      if (response.ok) {
-        console.log('Direct fetch successful, returning image');
-        const imageData = await response.arrayBuffer();
-        const contentType = response.headers.get('content-type') || 'image/jpeg';
-        
-        return new Response(imageData, {
+      if (fallbackResult.success) {
+        return new Response(fallbackResult.data, {
           status: 200,
           headers: {
-            'Content-Type': contentType,
+            'Content-Type': fallbackResult.contentType,
             'Cache-Control': 'public, max-age=31536000, immutable'
           }
         });
-      } else {
-        console.error('Fallback fetch failed:', response.status, response.statusText);
-        
-        // Try to get more details about the error
-        try {
-          const errorText = await response.text();
-          console.error('Backblaze fallback error details:', errorText);
-        } catch (textError) {
-          console.error('Could not read fallback error details:', textError.message);
-        }
       }
+      
+      // All attempts failed, return detailed error information
+      return new Response(JSON.stringify({
+        error: error.message,
+        details: {
+          url: req.url,
+          imagePath,
+          backblazeEndpoint: backblazeEndpoint || (process.env.BACKBLAZE_ENDPOINT ? 'SET' : 'NOT SET'),
+          bucketName: configuredBucketName || (process.env.BACKBLAZE_BUCKET_NAME ? 'SET' : 'NOT SET'),
+          backblazeAuthAvailable: !!(backblazeKeyId && backblazeApplicationKey),
+          actualImagePath: actualImagePath || 'NOT SET',
+          modifiedImagePath: modifiedImagePath || 'NOT SET',
+          constructedUrl: backblazeUrl || 'NOT CONSTRUCTED',
+          requestParams: Object.fromEntries(url.searchParams.entries()),
+          fetchResult: fallbackResult
+        }
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
     } catch (fallbackError) {
       console.error('Fallback fetch failed:', fallbackError.message, fallbackError.stack);
     }

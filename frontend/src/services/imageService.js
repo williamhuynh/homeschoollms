@@ -113,11 +113,6 @@ export const isWebPSupported = () => {
 export const getAuthenticatedImageUrl = async (url) => {
   if (!url) return null;
   
-  // If the URL doesn't require authentication, return it as is
-  if (!url.includes('/api/')) {
-    return url;
-  }
-  
   try {
     // Import supabase directly to refresh the session
     const { supabase } = await import('./supabase');
@@ -142,8 +137,37 @@ export const getAuthenticatedImageUrl = async (url) => {
     // Parse the URL
     const parsedUrl = new URL(url.startsWith('http') ? url : `${window.location.origin}${url}`);
     
-    // Add or update the auth token parameter
-    parsedUrl.searchParams.set('auth_token', freshToken);
+    // Add auth_token parameter for all URLs that use our API or Vercel's image optimization
+    const isApiUrl = parsedUrl.pathname.includes('/api/images/') || parsedUrl.pathname.includes('/_vercel/image');
+    
+    if (isApiUrl) {
+      // Add or update the auth token parameter
+      parsedUrl.searchParams.set('auth_token', freshToken);
+      console.log('Added auth_token to API URL');
+    } else if (parsedUrl.hostname.includes('backblazeb2.com')) {
+      // For direct Backblaze URLs, transform them to use our API
+      const bucketName = 'homeschoollms'; // Your Backblaze bucket name
+      
+      // Extract the path from the Backblaze URL (after the domain)
+      const pathMatch = parsedUrl.pathname.match(/^\/(.*)/);
+      if (pathMatch && pathMatch[1]) {
+        const imagePath = pathMatch[1];
+        const apiUrl = new URL(`/api/images/${bucketName}/${imagePath}`, window.location.origin);
+        
+        // Copy all existing query parameters
+        for (const [key, value] of parsedUrl.searchParams.entries()) {
+          if (key !== 'auth_token') { // Skip old auth token if present
+            apiUrl.searchParams.set(key, value);
+          }
+        }
+        
+        // Add the fresh auth token
+        apiUrl.searchParams.set('auth_token', freshToken);
+        
+        console.log('Converted Backblaze URL to authenticated API URL');
+        return apiUrl.toString();
+      }
+    }
     
     return parsedUrl.toString();
   } catch (error) {
