@@ -178,20 +178,52 @@ export default async function handler(req) {
       if (backblazeKeyId && backblazeApplicationKey) {
         // Create Base64 encoded credentials (keyId:applicationKey)
         const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
-        // Use Buffer for more reliable Base64 encoding in Edge runtime
-        const encodedCredentials = Buffer.from(credentials).toString('base64');
         
-        // Add detailed debugging for authentication
-        console.log('Auth debugging:', {
-          credentialsLength: credentials.length,
-          encodedCredentialsLength: encodedCredentials.length,
-          // Log first few chars of encoded string (safe to log partial)
-          encodedCredentialsStart: encodedCredentials.substring(0, 10) + '...',
-          authHeaderFormat: `Basic ${encodedCredentials.substring(0, 10)}...`
+        // Log the credential format (without revealing full credentials)
+        console.log('Credential format check:', {
+          format: 'keyId:applicationKey',
+          keyIdLength: backblazeKeyId.length,
+          applicationKeyLength: backblazeApplicationKey.length,
+          keyIdFirstFive: backblazeKeyId.substring(0, 5) + '...',
+          totalLength: credentials.length,
+          containsColon: credentials.includes(':'),
+          colonPosition: credentials.indexOf(':')
         });
         
-        headers.append('Authorization', `Basic ${encodedCredentials}`);
-        console.log('Adding Backblaze authentication to fetch request');
+        // Fix: Use btoa instead of Buffer.from for more reliable Base64 encoding in Edge runtime
+        // btoa is more widely supported in browser-like environments like Edge
+        let encodedCredentials;
+        try {
+          // First try using btoa which is more reliable in edge environments
+          encodedCredentials = btoa(credentials);
+          console.log('Using btoa for encoding credentials');
+        } catch (e) {
+          // Fall back to Buffer if btoa is not available
+          try {
+            encodedCredentials = Buffer.from(credentials).toString('base64');
+            console.log('Falling back to Buffer.from for encoding credentials');
+          } catch (bufferError) {
+            console.error('Both encoding methods failed:', bufferError.message);
+            console.log('Attempting fetch without authentication');
+            encodedCredentials = null;
+          }
+        }
+        
+        // Only add authentication header if encoding succeeded
+        if (encodedCredentials) {
+          // Add detailed debugging for authentication
+          console.log('Auth debugging:', {
+            credentialsLength: credentials.length,
+            encodedCredentialsLength: encodedCredentials.length,
+            // Log first few chars of encoded string (safe to log partial)
+            encodedCredentialsStart: encodedCredentials.substring(0, 10) + '...',
+            authHeaderFormat: `Basic ${encodedCredentials.substring(0, 10)}...`
+          });
+          
+          // Set the authorization header
+          headers.append('Authorization', `Basic ${encodedCredentials}`);
+          console.log('Adding Backblaze authentication to fetch request');
+        }
       } else {
         console.log('Backblaze credentials not available, attempting fetch without authentication');
       }
@@ -232,6 +264,27 @@ export default async function handler(req) {
                   : `${key}: ${value}`
               )
             });
+            
+            // Try without authentication in case the bucket is public
+            console.log('Attempting fetch without authentication as fallback');
+            const publicHeaders = new Headers();
+            const publicResponse = await fetch(backblazeUrl, { headers: publicHeaders });
+            
+            if (publicResponse.ok) {
+              console.log('Public fetch successful, bucket might be public');
+              const imageData = await publicResponse.arrayBuffer();
+              const contentType = publicResponse.headers.get('content-type') || 'image/jpeg';
+              
+              return new Response(imageData, {
+                status: 200,
+                headers: {
+                  'Content-Type': contentType,
+                  'Cache-Control': 'public, max-age=31536000, immutable'
+                }
+              });
+            } else {
+              console.error('Public fetch also failed:', publicResponse.status, publicResponse.statusText);
+            }
           }
         } catch (textError) {
           console.error('Could not read error details:', textError.message);
@@ -277,26 +330,45 @@ export default async function handler(req) {
         try {
           // Create Base64 encoded credentials (keyId:applicationKey)
           const credentials = `${backblazeKeyId}:${backblazeApplicationKey}`;
-          // Use Buffer for more reliable Base64 encoding in Edge runtime
-          const encodedCredentials = Buffer.from(credentials).toString('base64');
           
-          // Try alternative encoding method as a test
-          const altEncodedCredentials = Buffer.from(credentials, 'utf8').toString('base64');
+          // Log the credential format (without revealing full credentials)
+          console.log('Credential format check:', {
+            format: 'keyId:applicationKey',
+            keyIdLength: backblazeKeyId.length,
+            applicationKeyLength: backblazeApplicationKey.length,
+            keyIdFirstFive: backblazeKeyId.substring(0, 5) + '...',
+            totalLength: credentials.length,
+            containsColon: credentials.includes(':'),
+            colonPosition: credentials.indexOf(':')
+          });
+          
+          // Fix: Use btoa instead of Buffer.from for more reliable Base64 encoding in Edge runtime
+          let encodedCredentials;
+          try {
+            // First try using btoa which is more reliable in edge environments
+            encodedCredentials = btoa(credentials);
+            console.log('Using btoa for encoding credentials');
+          } catch (e) {
+            // Fall back to Buffer if btoa is not available
+            try {
+              encodedCredentials = Buffer.from(credentials).toString('base64');
+              console.log('Falling back to Buffer.from for encoding credentials');
+            } catch (bufferError) {
+              console.error('Both encoding methods failed:', bufferError.message);
+              console.log('Attempting fetch without authentication');
+              encodedCredentials = null;
+            }
+          }
           
           console.log('Auth fallback debugging:', {
             credentialsLength: credentials.length,
             encodedCredentialsLength: encodedCredentials.length,
-            altEncodedCredentialsLength: altEncodedCredentials.length,
-            // Check if they differ
-            encodingsDiffer: encodedCredentials !== altEncodedCredentials,
             // Log first few chars (safe to log partial)
-            encodedCredentialsStart: encodedCredentials.substring(0, 10) + '...',
-            altEncodedCredentialsStart: altEncodedCredentials.substring(0, 10) + '...'
+            encodedCredentialsStart: encodedCredentials.substring(0, 10) + '...'
           });
           
-          // Use the alternative encoding method for this fallback attempt
-          headers.append('Authorization', `Basic ${altEncodedCredentials}`);
-          console.log('Adding alternative Backblaze authentication to fallback fetch request');
+          headers.append('Authorization', `Basic ${encodedCredentials}`);
+          console.log('Adding Backblaze authentication to fallback fetch request');
         } catch (authError) {
           console.error('Error creating auth header:', authError.message);
           console.log('Attempting fallback fetch without authentication');
