@@ -5,6 +5,7 @@ from ..models.schemas.user import UserInDB
 from ..services.file_storage_service import file_storage_service
 import logging
 import os
+import urllib.parse
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -74,8 +75,9 @@ async def get_signed_url(
         }
         
         # If width or height parameters are provided and VERCEL_URL is set, generate an image optimization URL
-        vercel_url = os.getenv('VERCEL_URL', '')
-        if (width or height) and vercel_url and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
+        # Use a hardcoded production URL instead of relying on environment variable
+        vercel_url = "https://homeschool-lms.vercel.app"
+        if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
             edge_function_path = os.getenv('EDGE_FUNCTION_PATH', '/api/images')
             bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', '')
             
@@ -83,8 +85,11 @@ async def get_signed_url(
             base_url = vercel_url.rstrip('/')
             path = edge_function_path.lstrip('/')
             
+            # Ensure the signed URL is properly URL encoded for Vercel's image optimizer
+            encoded_url = urllib.parse.quote(signed_url, safe='')
+            
             # Format: https://your-site.vercel.app/_vercel/image?url=<encoded-url>&w=<width>&h=<height>&q=<quality>
-            vercel_image_url = f"{base_url}/_vercel/image?url={signed_url}"
+            vercel_image_url = f"{base_url}/_vercel/image?url={encoded_url}"
             
             if width:
                 vercel_image_url += f"&w={width}"
