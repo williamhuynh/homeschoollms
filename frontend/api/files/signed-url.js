@@ -11,6 +11,20 @@ module.exports = async function handler(req, res) {
       return res.status(401).json({ detail: 'Authorization header is required' });
     }
     
+    // Log header details for debugging (mask most of the token for security)
+    let debugToken = 'Bearer ';
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      if (token.length > 20) {
+        debugToken += token.substring(0, 10) + '...' + token.substring(token.length - 5);
+      } else {
+        debugToken += '[token too short]';
+      }
+    } else {
+      debugToken = '[invalid format]';
+    }
+    console.log(`Auth header provided: ${debugToken}`);
+    
     // Get the backend API URL from environment variables or use a default
     const backendUrl = process.env.BACKEND_API_URL || 'https://api.homeschoollms.com';
     
@@ -35,6 +49,15 @@ module.exports = async function handler(req, res) {
     // If the response was not successful, throw an error
     if (!response.ok) {
       console.error('Backend API error:', data);
+      
+      // If it's an authentication error, provide a more helpful message
+      if (response.status === 401) {
+        return res.status(401).json({
+          detail: 'Authentication failed - please log out and log in again',
+          originalError: data.detail
+        });
+      }
+      
       return res.status(response.status).json(data);
     }
     

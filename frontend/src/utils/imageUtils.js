@@ -270,15 +270,14 @@ export const preloadImage = (src) => {
  * @param {string} options.contentDisposition How file should be presented - 'inline' or 'attachment'
  * @returns {Promise<Object>} Object containing signed URLs
  */
+import { authorizedFetch } from './authUtils';
+
 export async function getSignedImageUrl(imagePath, options = {}) {
   try {
-    console.log(`Getting signed URL for image: ${imagePath}`);
-    
-    // Build query parameters
+    // Create URL parameters
     const params = new URLSearchParams();
     params.append('file_path', imagePath);
     
-    // Handle width and height, converting percentages to numeric values
     if (options.width) {
       // If width is a percentage string, convert to a number or use 'auto'
       const width = typeof options.width === 'string' && options.width.includes('%') 
@@ -304,12 +303,11 @@ export async function getSignedImageUrl(imagePath, options = {}) {
     
     console.log(`Calling API: ${apiUrl}`);
     
-    // Make the request
-    const response = await fetch(apiUrl, {
+    // Make the request using authorizedFetch
+    const response = await authorizedFetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}` // Add auth token if available
+        'Content-Type': 'application/json'
       }
     });
     

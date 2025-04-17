@@ -1,16 +1,26 @@
-import { useState } from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { Box, Button, Text, FormControl, FormLabel, Input, VStack, Alert, AlertIcon, Link as ChakraLink } from '@chakra-ui/react';
 import { signIn } from '../../services/supabase';
 
 const LoginPage = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [credentials, setCredentials] = useState({
     email: '',
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notification, setNotification] = useState('');
+
+  useEffect(() => {
+    // Check for session_expired reason in URL
+    const reason = searchParams.get('reason');
+    if (reason === 'session_expired') {
+      setNotification('Your session has expired. Please log in again.');
+    }
+  }, [searchParams]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,6 +33,7 @@ const LoginPage = ({ setIsAuthenticated }) => {
 const handleLogin = async () => {
   setIsLoading(true);
   setError('');
+  setNotification('');
   
   try {
     // Call Supabase signIn function
@@ -52,6 +63,13 @@ const handleLogin = async () => {
     <Box p={8} maxWidth="400px" mx="auto" mt={16}>
       <VStack spacing={6} align="stretch">
         <Text fontSize="2xl" fontWeight="bold">Login to Homeschool LMS</Text>
+        
+        {notification && (
+          <Alert status="info">
+            <AlertIcon />
+            {notification}
+          </Alert>
+        )}
         
         {error && (
           <Alert status="error">
