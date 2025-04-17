@@ -8,8 +8,8 @@ import { Skeleton, Box, Text, Alert, AlertIcon } from '@chakra-ui/react';
  * 
  * @param {Object} props Component props
  * @param {string} props.imagePath The path to the image in storage
- * @param {number} props.width Optional width for the image
- * @param {number} props.height Optional height for the image
+ * @param {number|string} props.width Optional width for the image
+ * @param {number|string} props.height Optional height for the image
  * @param {number} props.quality Optional quality for the image (1-100)
  * @param {string} props.alt Alt text for the image
  * @param {Object} props.imgProps Additional props to pass to the img element
@@ -42,9 +42,18 @@ const SignedImage = ({
         setIsLoading(true);
         setError(null);
 
+        // Convert percentage strings to numbers if possible
+        const processedWidth = typeof width === 'string' && width.endsWith('%') 
+          ? parseInt(width, 10) // Try to extract numeric value without '%'
+          : width;
+        
+        const processedHeight = typeof height === 'string' && height.endsWith('%') 
+          ? parseInt(height, 10) // Try to extract numeric value without '%'
+          : height;
+
         const { optimizedUrl } = await getSignedImageUrl(imagePath, {
-          width,
-          height,
+          width: processedWidth,
+          height: processedHeight,
           quality,
         });
 

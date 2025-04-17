@@ -263,8 +263,8 @@ export const preloadImage = (src) => {
  * Get a signed URL for an image from the backend API
  * @param {string} imagePath The path of the image in storage
  * @param {Object} options Optional parameters
- * @param {number} options.width Optional width for image resize
- * @param {number} options.height Optional height for image resize
+ * @param {number|string} options.width Optional width for image resize
+ * @param {number|string} options.height Optional height for image resize
  * @param {number} options.quality Image quality (1-100), default is 80
  * @param {number} options.expiration URL expiration time in seconds, default is 3600 (1 hour)
  * @param {string} options.contentDisposition How file should be presented - 'inline' or 'attachment'
@@ -278,8 +278,23 @@ export async function getSignedImageUrl(imagePath, options = {}) {
     const params = new URLSearchParams();
     params.append('file_path', imagePath);
     
-    if (options.width) params.append('width', options.width);
-    if (options.height) params.append('height', options.height);
+    // Handle width and height, converting percentages to numeric values
+    if (options.width) {
+      // If width is a percentage string, convert to a number or use 'auto'
+      const width = typeof options.width === 'string' && options.width.includes('%') 
+        ? 'auto' // Use 'auto' for percentage widths
+        : options.width;
+      params.append('width', width);
+    }
+    
+    if (options.height) {
+      // If height is a percentage string, convert to a number or use 'auto'
+      const height = typeof options.height === 'string' && options.height.includes('%') 
+        ? 'auto' // Use 'auto' for percentage heights
+        : options.height;
+      params.append('height', height);
+    }
+    
     if (options.quality) params.append('quality', options.quality);
     if (options.expiration) params.append('expiration', options.expiration);
     if (options.contentDisposition) params.append('content_disposition', options.contentDisposition);
