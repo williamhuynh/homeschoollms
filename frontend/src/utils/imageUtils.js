@@ -258,3 +258,61 @@ export const preloadImage = (src) => {
     img.src = src;
   });
 };
+
+/**
+ * Get a signed URL for an image from the backend API
+ * @param {string} imagePath The path of the image in storage
+ * @param {Object} options Optional parameters
+ * @param {number} options.width Optional width for image resize
+ * @param {number} options.height Optional height for image resize
+ * @param {number} options.quality Image quality (1-100), default is 80
+ * @param {number} options.expiration URL expiration time in seconds, default is 3600 (1 hour)
+ * @param {string} options.contentDisposition How file should be presented - 'inline' or 'attachment'
+ * @returns {Promise<Object>} Object containing signed URLs
+ */
+export async function getSignedImageUrl(imagePath, options = {}) {
+  try {
+    console.log(`Getting signed URL for image: ${imagePath}`);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('file_path', imagePath);
+    
+    if (options.width) params.append('width', options.width);
+    if (options.height) params.append('height', options.height);
+    if (options.quality) params.append('quality', options.quality);
+    if (options.expiration) params.append('expiration', options.expiration);
+    if (options.contentDisposition) params.append('content_disposition', options.contentDisposition);
+    
+    // Get the API URL from environment or use a default
+    const apiUrl = `/api/files/signed-url?${params.toString()}`;
+    
+    console.log(`Calling API: ${apiUrl}`);
+    
+    // Make the request
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` // Add auth token if available
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to get signed URL');
+    }
+    
+    const data = await response.json();
+    console.log('Received signed URL response:', data);
+    
+    return {
+      signedUrl: data.signed_url,
+      optimizedUrl: data.optimized_url || data.signed_url, // Use optimized if available
+      expiration: data.expiration
+    };
+  } catch (error) {
+    console.error('Error getting signed URL:', error);
+    throw error;
+  }
+}

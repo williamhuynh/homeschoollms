@@ -178,21 +178,72 @@ class FileStorageService:
             raise Exception(f"Failed to upload file: {str(e)}")
 
     def generate_presigned_url(self, file_path: str, expiration=3600, content_disposition='inline'):
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
+            logger.info(f"Generating presigned URL for file: {file_path}")
+            logger.info(f"Parameters - Expiration: {expiration}s, Disposition: {content_disposition}")
+            
+            # Determine content type based on file extension
+            content_type = 'application/octet-stream'  # Default fallback
+            if file_path:
+                ext = file_path.lower().split('.')[-1] if '.' in file_path else ''
+                # Map extensions to content types
+                content_type_map = {
+                    'png': 'image/png',
+                    'jpg': 'image/jpeg',
+                    'jpeg': 'image/jpeg',
+                    'gif': 'image/gif',
+                    'webp': 'image/webp',
+                    'svg': 'image/svg+xml',
+                    'pdf': 'application/pdf',
+                    'doc': 'application/msword',
+                    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'xls': 'application/vnd.ms-excel',
+                    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'ppt': 'application/vnd.ms-powerpoint',
+                    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'txt': 'text/plain',
+                    'csv': 'text/csv',
+                    'html': 'text/html',
+                    'mp4': 'video/mp4',
+                    'mp3': 'audio/mpeg',
+                    'wav': 'audio/wav',
+                    'json': 'application/json',
+                    'zip': 'application/zip'
+                }
+                content_type = content_type_map.get(ext, 'application/octet-stream')
+            
+            logger.info(f"Determined content type: {content_type}")
+            
+            # Extract filename for attachment disposition if needed
+            filename = file_path.split('/')[-1] if '/' in file_path else file_path
+            final_disposition = content_disposition
+            if content_disposition == 'attachment':
+                final_disposition = f'attachment; filename="{filename}"'
+            
             params = {
                 'Bucket': self.bucket_name, 
                 'Key': file_path,
-                'ResponseContentType': 'image/png',  # Set appropriate content type
-                'ResponseContentDisposition': content_disposition  # Can be 'inline' or 'attachment; filename="..."'
+                'ResponseContentType': content_type,
+                'ResponseContentDisposition': final_disposition
             }
+            
+            logger.info(f"Generating presigned URL with params: {params}")
             
             url = self.s3.generate_presigned_url(
                 'get_object',
                 Params=params,
                 ExpiresIn=expiration
             )
+            
+            logger.info(f"Successfully generated presigned URL (expires in {expiration}s)")
+            logger.debug(f"Generated URL: {url[:50]}...")  # Log part of the URL for debugging
+            
             return url
         except Exception as e:
+            logger.error(f"Failed to generate presigned URL: {str(e)}")
             raise Exception(f"Failed to generate presigned URL: {str(e)}")
             
     async def generate_and_upload_thumbnail(self, file: UploadFile, original_path: str, size=(200, 200)):
@@ -269,5 +320,30 @@ class FileStorageService:
         except Exception as e:
             logger.error(f"Error generating thumbnail: {str(e)}")
             raise Exception(f"Failed to generate thumbnail: {str(e)}")
+
+    def check_file_exists(self, file_path: str) -> bool:
+        """
+        Check if a file exists in the Backblaze B2 bucket.
+        
+        Args:
+            file_path: The path to the file in the bucket
+            
+        Returns:
+            bool: True if the file exists, False otherwise
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            logger.info(f"Checking if file exists: {file_path}")
+            
+            # Use head_object to check if the file exists without downloading it
+            self.s3.head_object(Bucket=self.bucket_name, Key=file_path)
+            logger.info(f"File exists: {file_path}")
+            return True
+        except Exception as e:
+            # If we get an error (like 404), the file doesn't exist
+            logger.info(f"File does not exist or error: {file_path} - {str(e)}")
+            return False
 
 file_storage_service = FileStorageService()
