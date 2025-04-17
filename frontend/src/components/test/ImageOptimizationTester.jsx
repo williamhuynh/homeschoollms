@@ -32,314 +32,205 @@ import LazyImage from '../common/LazyImage';
 import { runImagePerformanceTest, setupImagePerformanceTesting } from '../../utils/imagePerformanceTest';
 
 /**
- * A component for testing and demonstrating image optimization features
+ * A test component to verify that the image optimization via Vercel Edge Functions works correctly.
+ * This component displays a test image using our ResponsiveImage component and shows debug information.
  */
 const ImageOptimizationTester = () => {
-  const [testImages, setTestImages] = useState([]);
-  const [testResults, setTestResults] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [networkCondition, setNetworkCondition] = useState('online');
-  const [imageCount, setImageCount] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(true);
-  const [containerWidth, setContainerWidth] = useState(300);
   const toast = useToast();
+  const [testImage, setTestImage] = useState(null);
+  const [debugInfo, setDebugInfo] = useState("");
 
-  // Setup image performance testing
-  useEffect(() => {
-    const observer = setupImagePerformanceTesting();
-    return () => observer.disconnect();
-  }, []);
+  // Helper function to build URLs with different patterns for testing
+  const getTestImageUrls = () => {
+    // The bucket name used in your backend
+    const bucketName = 'homeschoollms';
+    // Base URL of your deployment
+    const baseUrl = window.location.origin;
+    // A sample image path in your bucket
+    const samplePath = 'test-image.jpg';
 
-  // Generate test images
-  const generateTestImages = async () => {
-    setIsLoading(true);
+    // Create proper URL that should work
+    const properUrl = `${baseUrl}/api/images/${bucketName}/${samplePath}`;
     
-    // Check WebP support
-    const webpSupported = await isWebPSupported();
-    const format = webpSupported ? 'webp' : 'jpeg';
+    // Create incorrect URL to test our fix (with [...path].js directly)
+    const incorrectUrl = `${baseUrl}/api/images/[...path].js/${samplePath}`;
     
-    // Create an array of test images with different sizes
-    const images = Array.from({ length: imageCount }, (_, i) => {
-      const imageId = (i % 30) + 10;
-      const baseUrl = `/api/images/picsum/${imageId}.jpg`;
-      const getUrl = (width, height) =>
-        `${baseUrl}?width=${width}&height=${height}&quality=80&format=${format}`;
-      
-      return {
-        id: `test-image-${i}`,
-        original_url: baseUrl,
-        thumbnail_small_url: getUrl(150, 150),
-        thumbnail_medium_url: getUrl(400, 300),
-        thumbnail_large_url: getUrl(600, 450),
-        title: `Test Image ${i + 1}`,
-        description: `This is a test image for optimization testing (${i + 1})`
-      };
-    });
-    
-    setTestImages(images);
-    setIsLoading(false);
-    
-    toast({
-      title: 'Test images generated',
-      description: `Created ${imageCount} test images`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    // Direct Backblaze URL to test conversion
+    const directBackblazeUrl = `https://${bucketName}.s3.us-east-005.backblazeb2.com/${samplePath}`;
+
+    return {
+      properUrl,
+      incorrectUrl,
+      directBackblazeUrl
+    };
   };
 
-  // Run performance test
-  const runTest = async () => {
-    setIsLoading(true);
+  // Helper function to get URL for different sizes with appropriate dimensions
+  const getUrl = (width, height) => {
+    const urls = getTestImageUrls();
+    return `${urls.properUrl}?width=${width}&height=${height}&quality=80`;
+  };
+
+  // Initialize test image
+  useEffect(() => {
+    const urls = getTestImageUrls();
+    
+    // The actual test image
+    setTestImage({
+      original_url: urls.properUrl,
+      thumbnail_small_url: getUrl(150, 150),
+      thumbnail_medium_url: getUrl(400, 300),
+      thumbnail_large_url: getUrl(600, 450),
+    });
+    
+    // Set debug info
+    setDebugInfo(JSON.stringify({
+      urls,
+      origin: window.location.origin,
+      hostname: window.location.hostname
+    }, null, 2));
+  }, []);
+
+  // Test the direct URL
+  const testDirectUrl = async () => {
     try {
-      const results = await runImagePerformanceTest();
-      setTestResults(results);
-      
+      const urls = getTestImageUrls();
+      const res = await fetch(urls.properUrl);
+      if (res.ok) {
+        toast({
+          title: "Success!",
+          description: `Direct URL fetch successful. Status: ${res.status}`,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: "API Error",
+          description: `Failed with status: ${res.status} - ${res.statusText}`,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } catch (err) {
       toast({
-        title: 'Performance test complete',
-        description: 'Check the results panel for details',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      console.error('Error running performance test:', error);
-      toast({
-        title: 'Test failed',
-        description: error.message,
-        status: 'error',
+        title: "Error",
+        description: `Error testing URL: ${err.message}`,
+        status: "error",
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  // Apply network throttling
-  const applyNetworkThrottling = (condition) => {
-    setNetworkCondition(condition);
-    
-    // This is just for demonstration - actual throttling would be done in browser dev tools
-    toast({
-      title: 'Network condition changed',
-      description: `Set to ${condition}. Note: This is simulated. Use browser dev tools for actual throttling.`,
-      status: 'info',
-      duration: 5000,
-      isClosable: true,
-    });
+  // Test the incorrect URL to verify our fix
+  const testIncorrectUrl = async () => {
+    try {
+      const urls = getTestImageUrls();
+      
+      // Update test image to use the incorrect URL format
+      setTestImage({
+        original_url: urls.incorrectUrl,
+        thumbnail_small_url: `${urls.incorrectUrl}?width=150&height=150&quality=80`,
+        thumbnail_medium_url: `${urls.incorrectUrl}?width=400&height=300&quality=80`,
+        thumbnail_large_url: `${urls.incorrectUrl}?width=600&height=450&quality=80`,
+      });
+      
+      toast({
+        title: "Test Initiated",
+        description: "Testing with incorrect URL format to verify our fix works.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: `Error testing incorrect URL: ${err.message}`,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Test direct Backblaze URL to verify conversion
+  const testBackblazeUrl = async () => {
+    try {
+      const urls = getTestImageUrls();
+      
+      // Update test image to use the direct Backblaze URL
+      setTestImage({
+        original_url: urls.directBackblazeUrl,
+        thumbnail_small_url: `${urls.directBackblazeUrl}`,
+        thumbnail_medium_url: `${urls.directBackblazeUrl}`,
+        thumbnail_large_url: `${urls.directBackblazeUrl}`,
+      });
+      
+      toast({
+        title: "Test Initiated",
+        description: "Testing with direct Backblaze URL to verify our conversion works.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: `Error testing Backblaze URL: ${err.message}`,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   return (
-    <Container maxW="container.xl" py={8}>
-      <Heading as="h1" mb={6}>Image Optimization Tester</Heading>
+    <VStack spacing={6} align="stretch" p={6}>
+      <Heading size="lg">Image Optimization Test</Heading>
       
-      <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
-        {/* Controls Panel */}
-        <Box width={{ base: '100%', md: '300px' }} p={4} borderWidth={1} borderRadius="md">
-          <Heading as="h2" size="md" mb={4}>Test Controls</Heading>
-          
-          <VStack spacing={4} align="stretch">
-            <FormControl>
-              <FormLabel>Network Condition</FormLabel>
-              <Select 
-                value={networkCondition}
-                onChange={(e) => applyNetworkThrottling(e.target.value)}
-              >
-                <option value="online">Online (No Throttling)</option>
-                <option value="fast3g">Fast 3G</option>
-                <option value="slow3g">Slow 3G</option>
-                <option value="offline">Offline</option>
-              </Select>
-            </FormControl>
-            
-            <FormControl>
-              <FormLabel>Number of Test Images</FormLabel>
-              <NumberInput 
-                min={1} 
-                max={50} 
-                value={imageCount}
-                onChange={(valueString) => setImageCount(parseInt(valueString))}
-              >
-                <NumberInputField />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
-                </NumberInputStepper>
-              </NumberInput>
-            </FormControl>
-            
-            <FormControl>
-              <FormLabel>Container Width (px)</FormLabel>
-              <NumberInput 
-                min={100} 
-                max={800} 
-                value={containerWidth}
-                onChange={(valueString) => setContainerWidth(parseInt(valueString))}
-              >
-                <NumberInputField />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
-                </NumberInputStepper>
-              </NumberInput>
-            </FormControl>
-            
-            <FormControl display="flex" alignItems="center">
-              <FormLabel htmlFor="lazy-loading" mb="0">
-                Use Lazy Loading
-              </FormLabel>
-              <Switch 
-                id="lazy-loading" 
-                isChecked={useLazyLoading}
-                onChange={(e) => setUseLazyLoading(e.target.checked)}
-              />
-            </FormControl>
-            
-            <Button 
-              colorScheme="blue" 
-              onClick={generateTestImages}
-              isLoading={isLoading}
-            >
-              Generate Test Images
-            </Button>
-            
-            <Button 
-              colorScheme="green" 
-              onClick={runTest}
-              isLoading={isLoading}
-              isDisabled={testImages.length === 0}
-            >
-              Run Performance Test
-            </Button>
-          </VStack>
-        </Box>
-        
-        {/* Test Results Panel */}
-        <Box flex={1} p={4} borderWidth={1} borderRadius="md">
-          <Heading as="h2" size="md" mb={4}>Test Results</Heading>
-          
-          {testResults ? (
-            <VStack align="stretch" spacing={4}>
-              <StatGroup>
-                <Stat>
-                  <StatLabel>Total Images</StatLabel>
-                  <StatNumber>{testResults.currentMetrics.totalImages}</StatNumber>
-                </Stat>
-                
-                <Stat>
-                  <StatLabel>Total Size</StatLabel>
-                  <StatNumber>{testResults.currentMetrics.performance.totalImageSizeKB} KB</StatNumber>
-                  {testResults.comparison && (
-                    <StatHelpText>
-                      <StatArrow type={testResults.comparison.imageSizeImprovement > 0 ? 'decrease' : 'increase'} />
-                      {Math.abs(testResults.comparison.imageSizeImprovement)}%
-                    </StatHelpText>
-                  )}
-                </Stat>
-                
-                <Stat>
-                  <StatLabel>Avg Load Time</StatLabel>
-                  <StatNumber>{testResults.currentMetrics.performance.averageImageLoadTime} ms</StatNumber>
-                  {testResults.comparison && (
-                    <StatHelpText>
-                      <StatArrow type={testResults.comparison.loadTimeImprovement > 0 ? 'decrease' : 'increase'} />
-                      {Math.abs(testResults.comparison.loadTimeImprovement)}%
-                    </StatHelpText>
-                  )}
-                </Stat>
-              </StatGroup>
-              
-              <Divider />
-              
-              <Box>
-                <Text fontWeight="bold">Thumbnail Usage:</Text>
-                <HStack spacing={4} mt={2}>
-                  <Stat size="sm">
-                    <StatLabel>Small</StatLabel>
-                    <StatNumber>{testResults.currentMetrics.thumbnailUsage.small}</StatNumber>
-                  </Stat>
-                  <Stat size="sm">
-                    <StatLabel>Medium</StatLabel>
-                    <StatNumber>{testResults.currentMetrics.thumbnailUsage.medium}</StatNumber>
-                  </Stat>
-                  <Stat size="sm">
-                    <StatLabel>Large</StatLabel>
-                    <StatNumber>{testResults.currentMetrics.thumbnailUsage.large}</StatNumber>
-                  </Stat>
-                </HStack>
-              </Box>
-              
-              <Box>
-                <Text fontWeight="bold">Lazy Loading:</Text>
-                <HStack spacing={4} mt={2}>
-                  <Stat size="sm">
-                    <StatLabel>In Viewport</StatLabel>
-                    <StatNumber>{testResults.currentMetrics.lazyLoading.imagesInViewport}</StatNumber>
-                  </Stat>
-                  <Stat size="sm">
-                    <StatLabel>Outside Viewport</StatLabel>
-                    <StatNumber>{testResults.currentMetrics.lazyLoading.imagesOutsideViewport}</StatNumber>
-                  </Stat>
-                </HStack>
-              </Box>
-              
-              <Divider />
-              
-              <Box>
-                <Text fontWeight="bold">Raw Data:</Text>
-                <Box mt={2} p={2} bg="gray.50" borderRadius="md" maxH="200px" overflowY="auto">
-                  <Code display="block" whiteSpace="pre" fontSize="xs">
-                    {JSON.stringify(testResults, null, 2)}
-                  </Code>
-                </Box>
-              </Box>
-            </VStack>
-          ) : (
-            <Text color="gray.500">Run a performance test to see results</Text>
-          )}
-        </Box>
+      <Text fontWeight="semibold">Test Image:</Text>
+      <Flex justify="center" p={4} bg="gray.100" borderRadius="md">
+        {testImage ? (
+          <Box maxW="400px" maxH="300px" borderRadius="md" overflow="hidden" boxShadow="md">
+            <ResponsiveImage 
+              image={testImage}
+              alt="Test image"
+              width="100%"
+              height="100%"
+              objectFit="contain"
+              isVisible={true}
+            />
+          </Box>
+        ) : (
+          <Text>Loading test image...</Text>
+        )}
       </Flex>
       
-      {/* Image Gallery */}
-      <Box mt={8}>
-        <Heading as="h2" size="md" mb={4}>Test Images</Heading>
+      <VStack spacing={3} align="stretch">
+        <Button colorScheme="blue" onClick={testDirectUrl}>
+          Test Direct URL Fetch
+        </Button>
         
-        {testImages.length > 0 ? (
-          <Flex flexWrap="wrap" gap={4}>
-            {testImages.map((image) => (
-              <Box 
-                key={image.id} 
-                width={`${containerWidth}px`}
-                className="responsive-image-container"
-                data-testid="responsive-image"
-              >
-                {useLazyLoading ? (
-                  <LazyImage
-                    image={image}
-                    alt={image.title}
-                    width="100%"
-                    height="auto"
-                    aspectRatio={4/3}
-                  />
-                ) : (
-                  <ResponsiveImage
-                    image={image}
-                    alt={image.title}
-                    width="100%"
-                    height="auto"
-                    objectFit="cover"
-                  />
-                )}
-                <Text fontSize="sm" mt={1}>{image.title}</Text>
-              </Box>
-            ))}
-          </Flex>
-        ) : (
-          <Text color="gray.500">Generate test images to display them here</Text>
-        )}
+        <Button colorScheme="orange" onClick={testIncorrectUrl}>
+          Test with Incorrect URL Format
+        </Button>
+        
+        <Button colorScheme="green" onClick={testBackblazeUrl}>
+          Test with Direct Backblaze URL
+        </Button>
+      </VStack>
+      
+      <Box mt={4}>
+        <Text fontWeight="semibold">Debug Info:</Text>
+        <Box bg="gray.800" color="white" p={4} borderRadius="md" overflow="auto">
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {debugInfo}
+          </pre>
+        </Box>
       </Box>
-    </Container>
+    </VStack>
   );
 };
 

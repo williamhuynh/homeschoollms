@@ -58,14 +58,30 @@ const ResponsiveImage = ({
       return; // Skip progressive loading for blobs
     }
 
+    // Check for and fix any direct references to [...path].js
+    const fixedImage = { ...image };
+    const bucketName = 'homeschoollms'; // Your configured bucket name
+
+    // Fix any URLs that directly reference the edge function file
+    ['original_url', 'thumbnail_small_url', 'thumbnail_medium_url', 'thumbnail_large_url'].forEach(urlKey => {
+      if (fixedImage[urlKey] && fixedImage[urlKey].includes('[...path].js')) {
+        // Replace direct file reference with proper URL format
+        fixedImage[urlKey] = fixedImage[urlKey].replace(
+          /\/api\/images\/\[\.\.\.(path|params)\]\.js/i, 
+          `/api/images/${bucketName}`
+        );
+        console.log(`Fixed direct file access in ${urlKey}:`, fixedImage[urlKey]);
+      }
+    });
+
     // Log the image object structure
     console.log('ResponsiveImage received image:', {
-      image,
+      image: fixedImage,
       urls: {
-        original: image.original_url,
-        small: image.thumbnail_small_url,
-        medium: image.thumbnail_medium_url,
-        large: image.thumbnail_large_url
+        original: fixedImage.original_url,
+        small: fixedImage.thumbnail_small_url,
+        medium: fixedImage.thumbnail_medium_url,
+        large: fixedImage.thumbnail_large_url
       }
     });
 
@@ -73,15 +89,15 @@ const ResponsiveImage = ({
     setError(false);
     
     // Start with small thumbnail (or fallback to original if no thumbnails)
-    const smallSrc = getThumbnailUrl(image, 'small');
+    const smallSrc = getThumbnailUrl(fixedImage, 'small');
     console.log('Initial thumbnail URL:', {
-      image,
+      image: fixedImage,
       smallSrc,
       thumbnails: {
-        small: image.thumbnail_small_url,
-        medium: image.thumbnail_medium_url,
-        large: image.thumbnail_large_url,
-        original: image.original_url
+        small: fixedImage.thumbnail_small_url,
+        medium: fixedImage.thumbnail_medium_url,
+        large: fixedImage.thumbnail_large_url,
+        original: fixedImage.original_url
       }
     });
     
@@ -116,7 +132,7 @@ const ResponsiveImage = ({
     };
     
     // Prepare the next image to load based on size and transformations
-    const nextSrc = getThumbnailUrl(image, size, transformOptions);
+    const nextSrc = getThumbnailUrl(fixedImage, size, transformOptions);
     console.log('Next image URL:', {
       size,
       transformOptions,
@@ -140,10 +156,10 @@ const ResponsiveImage = ({
         setCurrentSrc(authenticatedNextSrc);
         
         // If this isn't the original, preload the original for highest quality
-        if (nextSrc !== image.original_url && image.original_url) {
+        if (nextSrc !== fixedImage.original_url && fixedImage.original_url) {
           // For original, we might still want some transformations like format conversion
           const originalWithTransforms = getThumbnailUrl(
-            { original_url: image.original_url },
+            { original_url: fixedImage.original_url },
             'original',
             { format: supportsWebP ? 'webp' : undefined }
           );
@@ -185,8 +201,6 @@ const ResponsiveImage = ({
     // We only want this to run when isVisible changes from false to true,
     // or when the image prop itself changes while visible.
   }, [isVisible, image]);
-
-
 
   // Handle window resize to potentially load different size
   useEffect(() => {

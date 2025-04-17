@@ -48,13 +48,6 @@ export const getAppropriateImageSize = ({
 };
 
 /**
- * Gets the URL for the appropriate thumbnail size
- * 
- * @param {Object} image - Image object with thumbnail URLs
- * @param {string} size - Size to retrieve ('small', 'medium', 'large', 'original')
- * @returns {string} - The URL for the requested size, falling back to larger sizes if not available
- */
-/**
  * Gets the URL for the appropriate thumbnail size, with optional transformations
  *
  * @param {Object} image - Image object with thumbnail URLs
@@ -144,26 +137,50 @@ export const getThumbnailUrl = (image, size = 'medium', options = {}) => {
   // Normalize the URL by removing any double slashes (except after protocol)
   const normalizedUrl = baseUrl.replace(/([^:]\/)\/+/g, '$1');
   
-  // Check if the URL is already using our Edge Function
-  const isEdgeFunction = normalizedUrl.includes('/api/images/');
+  // Check if the URL is using or should use our Edge Function
+  // Fix: Don't just check for "/api/images/" but ensure it's not directly accessing [...path].js
+  const isEdgePath = normalizedUrl.includes('/api/images/');
+  const isDirectFileAccess = normalizedUrl.includes('[...path].js');
   
   console.log('URL normalization:', {
     originalUrl: baseUrl,
     normalizedUrl,
-    isEdgeFunction
+    isEdgePath,
+    isDirectFileAccess
   });
   
-  // If it's not an Edge Function URL, we can't apply transformations
-  if (!isEdgeFunction) {
-    console.log('Not an Edge Function URL, returning normalized URL:', normalizedUrl);
+  let urlToTransform = normalizedUrl;
+  
+  // Fix the URL if it's incorrectly accessing the [...path].js file directly
+  if (isDirectFileAccess) {
+    // Replace the [...path].js with the proper bucket name
+    const bucketName = 'homeschoollms'; // Use your configured bucket name
+    urlToTransform = normalizedUrl.replace(/\/api\/images\/\[\.\.\.(path|params)\]\.js/i, `/api/images/${bucketName}`);
+    console.log('Fixed direct file access URL:', urlToTransform);
+  } else if (!isEdgePath && normalizedUrl.includes('backblazeb2.com')) {
+    // If it's a direct Backblaze URL, convert it to use the edge function
+    const bucketName = 'homeschoollms'; // Use your configured bucket name
+    
+    // Extract the path part from the Backblaze URL
+    const match = normalizedUrl.match(/backblazeb2\.com\/(.+)/);
+    if (match && match[1]) {
+      const path = match[1];
+      urlToTransform = `${window.location.origin}/api/images/${bucketName}/${path}`;
+      console.log('Converted direct Backblaze URL to edge function:', urlToTransform);
+    }
+  }
+  
+  // If it's not an Edge Function URL and we couldn't convert it, return as is
+  if (!isEdgePath && urlToTransform === normalizedUrl) {
+    console.log('Not an Edge Function URL and could not convert, returning normalized URL:', normalizedUrl);
     return normalizedUrl;
   }
   
   // Apply transformations by adding query parameters
   // Handle both relative and absolute URLs correctly
-  const url = normalizedUrl.startsWith('http') ?
-    new URL(normalizedUrl) :
-    new URL(normalizedUrl.replace(/^\/+/, ''), window.location.origin);
+  const url = urlToTransform.startsWith('http') ?
+    new URL(urlToTransform) :
+    new URL(urlToTransform.replace(/^\/+/, ''), window.location.origin);
   
   if (options.width) {
     url.searchParams.set('width', options.width);

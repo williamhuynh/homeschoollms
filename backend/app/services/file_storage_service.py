@@ -247,6 +247,9 @@ class FileStorageService:
             if VERCEL_URL:
                 base_url = VERCEL_URL.rstrip('/')
                 path = EDGE_FUNCTION_PATH.lstrip('/')
+                # Fix: Ensure the path doesn't include [...path].js
+                if path.endswith('[...path].js'):
+                    path = "api/images"
                 edge_function_url = f"{base_url}/{path}/{thumbnail_path}"
                 return {
                     "original_url": edge_function_url,
