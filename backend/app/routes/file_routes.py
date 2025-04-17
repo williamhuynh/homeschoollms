@@ -78,18 +78,23 @@ async def get_signed_url(
         # Use a hardcoded production URL instead of relying on environment variable
         vercel_url = "https://homeschool-lms.vercel.app"
         if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            # Replace slashes with the text "SLASH" to avoid URL encoding issues with slashes
-            # This is safer than other encoding approaches
-            # Use the path-based routing approach which handles slashes properly
-            # e.g. /api/images/evidence/file.png
-            clean_path = file_path.replace("/", "SLASH")
+            # Instead of using our API route, construct a direct URL to Backblaze B2
+            # Format: https://<bucket_name>.s3.us-east-005.backblazeb2.com/<path>
+            bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
+            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+            
+            # Remove https:// from the endpoint
+            backblaze_host = backblaze_endpoint.replace('https://', '')
+            
+            # Construct the direct Backblaze URL
+            direct_url = f"https://{bucket_name}.{backblaze_host}/{file_path}"
+            logger.info(f"Constructed direct Backblaze URL: {direct_url}")
+            
+            # URL encode the direct URL for Vercel's image optimization
+            encoded_direct_url = urllib.parse.quote(direct_url, safe='')
             
             # Format URL for Vercel's image optimization
-            # We use our direct path handler instead of redirect with query params
-            img_path = f"{vercel_url}/api/images/{file_path}"
-            encoded_img_path = urllib.parse.quote(img_path, safe='')
-            
-            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_img_path}"
+            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_direct_url}"
             
             if width:
                 optimized_url += f"&w={width}"
@@ -99,7 +104,7 @@ async def get_signed_url(
                 optimized_url += f"&q={quality}"
                 
             response["optimized_url"] = optimized_url
-            logger.info(f"Generated optimized image URL using path approach: {width}x{height}")
+            logger.info(f"Generated optimized image URL using direct Backblaze URL: {width}x{height}")
         
         logger.info(f"Successfully generated signed URL for file: {file_path}")
         return response
