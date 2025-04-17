@@ -74,27 +74,33 @@ async def get_signed_url(
             "expiration": expiration
         }
         
-        # If width or height parameters are provided, use Vercel's built-in image optimization
+        # If width or height parameters are provided, use our custom S3 proxy instead
         # Use a hardcoded production URL instead of relying on environment variable
         vercel_url = "https://homeschool-lms.vercel.app"
         if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            # Ensure the signed URL is properly URL encoded, twice - once for being a parameter and once for the URL itself
+            # Encode the signed URL once for the proxy
             encoded_url = urllib.parse.quote(signed_url, safe='')
-            double_encoded_url = urllib.parse.quote(encoded_url, safe='')
             
-            # Format: https://your-site.vercel.app/_vercel/image?url=<double-encoded-url>&w=<width>&h=<height>&q=<quality>
-            # Using Vercel's built-in image optimization
-            optimized_url = f"{vercel_url}/_vercel/image?url={double_encoded_url}"
+            # Use our custom proxy instead of Vercel's image optimization
+            # Format: https://your-site.vercel.app/api/images/proxy?url=<encoded-url>
+            optimized_url = f"{vercel_url}/api/images/proxy?url={encoded_url}"
             
-            if width:
-                optimized_url += f"&w={width}"
-            if height:
-                optimized_url += f"&h={height}"
-            if quality:
-                optimized_url += f"&q={quality}"
+            # The proxy will handle the image directly from S3, no need for Vercel's image optimization
+            # We can still use Vercel's image optimization on top of our proxy for resizing
+            if width or height or quality:
+                # Now we can use Vercel's image optimization service with our simpler proxy URL
+                simple_proxy_url = urllib.parse.quote(f"{vercel_url}/api/images/proxy?url={encoded_url}")
+                optimized_url = f"{vercel_url}/_vercel/image?url={simple_proxy_url}"
+                
+                if width:
+                    optimized_url += f"&w={width}"
+                if height:
+                    optimized_url += f"&h={height}"
+                if quality:
+                    optimized_url += f"&q={quality}"
                 
             response["optimized_url"] = optimized_url
-            logger.info(f"Generated Vercel image optimization URL for dimensions: {width}x{height}")
+            logger.info(f"Generated optimized image URL using S3 proxy for dimensions: {width}x{height}")
         
         logger.info(f"Successfully generated signed URL for file: {file_path}")
         return response
