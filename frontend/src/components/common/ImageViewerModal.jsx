@@ -18,20 +18,45 @@ import {
   Text,
 } from '@chakra-ui/react';
 import ResponsiveImage from './ResponsiveImage';
+import SignedImage from './SignedImage';
 import { Download, Trash2, Share2, X } from 'react-feather';
 
-const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId, onImageDeleted }) => {
+const ImageViewerModal = ({ 
+  isOpen, 
+  onClose, 
+  image, 
+  studentId, 
+  learningOutcomeId, 
+  onImageDeleted,
+  useSignedImages = false
+}) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
+  const extractImagePath = (url) => {
+    if (!url) return null;
+    
+    const apiPathMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
+    if (apiPathMatch && apiPathMatch[1]) {
+      return apiPathMatch[1];
+    }
+    
+    const backblazeMatch = url.match(/backblazeb2\.com\/(.+)/);
+    if (backblazeMatch && backblazeMatch[1]) {
+      return backblazeMatch[1];
+    }
+    
+    return url;
+  };
+  
+  const imagePath = extractImagePath(image?.fileUrl);
+
   const refreshToken = async () => {
     console.log('Refreshing token...');
-    // Import supabase directly to refresh the session
     const { supabase } = await import('../../services/supabase');
     
-    // Refresh the session to get a new token
     const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession();
     
     if (refreshError) {
@@ -41,10 +66,8 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
     
     console.log('Token refresh successful:', sessionData ? 'New token obtained' : 'Failed to get new token');
     
-    // Small delay to ensure token propagation
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Return the fresh token
     return sessionData?.session?.access_token || localStorage.getItem('token');
   };
 
@@ -52,7 +75,6 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
     try {
       setIsLoading(true);
       
-      // Get fresh token
       const freshToken = await refreshToken();
       
       const response = await fetch(
@@ -71,7 +93,6 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
 
       const data = await response.json();
       
-      // Create a temporary link and trigger download
       const link = document.createElement('a');
       link.href = data.download_url;
       link.download = image.file_name || 'evidence';
@@ -103,7 +124,6 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
     try {
       setIsLoading(true);
       
-      // Get fresh token
       const freshToken = await refreshToken();
       
       const response = await fetch(
@@ -123,7 +143,6 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
 
       const data = await response.json();
       
-      // Copy the share URL to clipboard
       await navigator.clipboard.writeText(data.share_url);
       
       toast({
@@ -150,7 +169,6 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
     try {
       setIsDeleting(true);
       
-      // Get fresh token
       const freshToken = await refreshToken();
       
       const response = await fetch(
@@ -174,13 +192,10 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
         isClosable: true,
       });
       
-      // Close the delete confirmation dialog
       setIsDeleteAlertOpen(false);
       
-      // Close the image viewer modal
       onClose();
       
-      // Notify parent component that image was deleted
       if (onImageDeleted) {
         onImageDeleted(image._id);
       }
@@ -228,72 +243,84 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
             w="100vw"
             position="relative"
           >
-            <ResponsiveImage
-              image={{
-                original_url: image.fileUrl,
-                thumbnail_small_url: image.thumbnail_small_url || image.fileUrl,
-                thumbnail_medium_url: image.thumbnail_medium_url || image.fileUrl,
-                thumbnail_large_url: image.thumbnail_large_url || image.fileUrl
-              }}
-              alt={image.title || 'Evidence'}
-              maxH="85vh"
-              maxW="90vw"
-              objectFit="contain"
-              borderRadius="md"
-              fallbackSrc="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-            />
+            {useSignedImages && imagePath ? (
+              <SignedImage
+                imagePath={imagePath}
+                alt={image.title || 'Evidence'}
+                quality={90}
+                imgProps={{
+                  style: {
+                    maxHeight: '85vh',
+                    maxWidth: '90vw',
+                    objectFit: 'contain',
+                    borderRadius: '0.375rem',
+                  }
+                }}
+              />
+            ) : (
+              <ResponsiveImage
+                image={{
+                  original_url: image.fileUrl,
+                  thumbnail_small_url: image.thumbnail_small_url || image.fileUrl,
+                  thumbnail_medium_url: image.thumbnail_medium_url || image.fileUrl,
+                  thumbnail_large_url: image.thumbnail_large_url || image.fileUrl
+                }}
+                alt={image.title || 'Evidence'}
+                maxH="85vh"
+                maxW="90vw"
+                objectFit="contain"
+                borderRadius="md"
+                fallbackSrc="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+              />
+            )}
             
             <Box mt={4} bg="blackAlpha.600" p={3} borderRadius="md" color="white">
               <Text fontWeight="bold" fontSize="lg">{image.title || image.file_name || 'Evidence'}</Text>
               {image.description && (
                 <Text fontSize="md" mt={1}>{image.description}</Text>
               )}
-            </Box>
             
-            <Flex 
-              position="fixed" 
-              bottom={8} 
-              bg="blackAlpha.700" 
-              borderRadius="full" 
-              p={2}
-              boxShadow="lg"
-            >
-              <IconButton
-                icon={<Download />}
-                onClick={handleDownload}
-                aria-label="Download"
-                colorScheme="blue"
-                isLoading={isLoading}
-                mr={2}
-                borderRadius="full"
-              />
-              <IconButton
-                icon={<Share2 />}
-                onClick={handleShare}
-                aria-label="Share"
-                colorScheme="green"
-                isLoading={isLoading}
-                mr={2}
-                borderRadius="full"
-              />
-              <IconButton
-                icon={<Trash2 />}
-                onClick={() => setIsDeleteAlertOpen(true)}
-                aria-label="Delete"
-                colorScheme="red"
-                isLoading={isDeleting}
-                borderRadius="full"
-              />
-            </Flex>
+              <Flex mt={3} justify="center" gap={4}>
+                <Button
+                  leftIcon={<Download />}
+                  onClick={handleDownload}
+                  isLoading={isLoading}
+                  loadingText="Downloading"
+                  colorScheme="blue"
+                  variant="solid"
+                >
+                  Download
+                </Button>
+                
+                <Button
+                  leftIcon={<Share2 />}
+                  onClick={handleShare}
+                  isLoading={isLoading}
+                  loadingText="Sharing"
+                  colorScheme="green"
+                  variant="solid"
+                >
+                  Share
+                </Button>
+                
+                <Button
+                  leftIcon={<Trash2 />}
+                  onClick={() => setIsDeleteAlertOpen(true)}
+                  colorScheme="red"
+                  variant="solid"
+                >
+                  Delete
+                </Button>
+              </Flex>
+            </Box>
           </Flex>
         </ModalContent>
       </Modal>
-
-      {/* Delete Confirmation Dialog */}
+      
       <AlertDialog
         isOpen={isDeleteAlertOpen}
-        onClose={() => setIsDeleteAlertOpen(false)}
         leastDestructiveRef={undefined}
+        onClose={() => setIsDeleteAlertOpen(false)}
       >
         <AlertDialogOverlay>
           <AlertDialogContent>
@@ -302,18 +329,18 @@ const ImageViewerModal = ({ isOpen, onClose, image, studentId, learningOutcomeId
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to delete this evidence? This action cannot be undone.
+              Are you sure? This action cannot be undone.
             </AlertDialogBody>
 
             <AlertDialogFooter>
               <Button onClick={() => setIsDeleteAlertOpen(false)}>
                 Cancel
               </Button>
-              <Button 
-                colorScheme="red" 
-                onClick={handleDelete} 
-                ml={3}
+              <Button
+                colorScheme="red"
+                onClick={handleDelete}
                 isLoading={isDeleting}
+                ml={3}
               >
                 Delete
               </Button>

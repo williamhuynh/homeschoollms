@@ -1,4 +1,4 @@
-import { Box, IconButton, Text, Container, Spinner, Center, VStack, useDisclosure, Button } from '@chakra-ui/react'
+import { Box, IconButton, Text, Container, Spinner, Center, VStack, useDisclosure, Button, Flex } from '@chakra-ui/react'
 import styles from '../../styles/LearningOutcomes.module.css'
 import { ArrowLeft, Plus } from 'react-feather'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -8,6 +8,9 @@ import { useStudents } from '../../contexts/StudentsContext'
 import { useFileUploadModal } from '../../contexts/FileUploadModalContext'
 import ImageGallery from '../../components/common/ImageGallery'
 import { getEvidenceForLearningOutcome } from '../../services/api'
+
+// Feature flag for enabling SignedImage
+const USE_SIGNED_IMAGES = process.env.REACT_APP_USE_SIGNED_IMAGES === 'true' || true;
 
 const LearningOutcomePage = () => {
   const { openModal } = useFileUploadModal()
@@ -72,7 +75,10 @@ const LearningOutcomePage = () => {
               description: outcome.description,
               grade_level: student?.grade_level
             })
+            
+            // The ImageGallery component handles extracting the image path internally
             setEvidence(evidenceData)
+            
             setError(null)
           }
         } catch (err) {
@@ -175,40 +181,39 @@ const LearningOutcomePage = () => {
         </Text>
 
         {/* Evidence Gallery */}
-        <Box mb={4}>
-          <Text fontSize="lg" fontWeight="bold" mb={4}>
-            Evidence
-          </Text>
+        <Box mt={8} p={4}>
+          <Flex justify="space-between" align="center" mb={4}>
+            <Text fontSize="lg" fontWeight="bold">
+              Evidence
+            </Text>
+            <Button 
+              leftIcon={<Plus />} 
+              colorScheme="blue" 
+              onClick={() => openModal({
+                studentId, 
+                learningOutcomeId,
+                initialLearningOutcomeCode: learningOutcome.code
+              })}
+            >
+              Add Evidence
+            </Button>
+          </Flex>
           
           {evidenceLoading ? (
-            <Center p={8}>
+            <Center p={10}>
               <Spinner size="xl" color="blue.500" />
             </Center>
           ) : evidence.length === 0 ? (
-            <Center p={8} borderWidth="1px" borderRadius="lg" borderStyle="dashed">
+            <Center p={10} borderWidth={1} borderRadius="md" borderStyle="dashed">
               <VStack spacing={4}>
-                <Text>No evidence has been recorded yet</Text>
-                <Button
-                  leftIcon={<Plus size={16} />}
-                  colorScheme="blue"
+                <Text color="gray.500">No evidence uploaded yet</Text>
+                <Button 
+                  leftIcon={<Plus />} 
+                  colorScheme="blue" 
                   onClick={() => openModal({
-                    studentId,
+                    studentId, 
                     learningOutcomeId,
-                    learningOutcomeDescription: learningOutcome.description,
-                    initialLearningAreaCode: location.state?.subject?.code,
-                    initialLearningOutcomeCode: learningOutcome.code,
-                    onSubmit: async (data) => {
-                      console.log('Evidence uploaded successfully:', data)
-                      try {
-                        setEvidenceLoading(true)
-                        const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
-                        setEvidence(updatedEvidence)
-                      } catch (err) {
-                        console.error('Error refreshing evidence:', err)
-                      } finally {
-                        setEvidenceLoading(false)
-                      }
-                    }
+                    initialLearningOutcomeCode: learningOutcome.code
                   })}
                 >
                   Add Evidence
@@ -216,45 +221,16 @@ const LearningOutcomePage = () => {
               </VStack>
             </Center>
           ) : (
-            <Box>
-              <ImageGallery
-                images={evidence}
-                studentId={studentId}
-                learningOutcomeId={learningOutcomeId}
-                onImageDeleted={handleImageDeleted}
-                columns={{ base: 2, sm: 2, md: 3, lg: 3 }}
-                spacing={4}
-                aspectRatio={1}
-              />
-              
-              <Center mt={6}>
-                <Button
-                  leftIcon={<Plus size={16} />}
-                  colorScheme="blue"
-                  onClick={() => openModal({
-                    studentId,
-                    learningOutcomeId,
-                    learningOutcomeDescription: learningOutcome.description,
-                    initialLearningAreaCode: location.state?.subject?.code,
-                    initialLearningOutcomeCode: learningOutcome.code,
-                    onSubmit: async (data) => {
-                      console.log('Evidence uploaded successfully:', data)
-                      try {
-                        setEvidenceLoading(true)
-                        const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
-                        setEvidence(updatedEvidence)
-                      } catch (err) {
-                        console.error('Error refreshing evidence:', err)
-                      } finally {
-                        setEvidenceLoading(false)
-                      }
-                    }
-                  })}
-                >
-                  Add More Evidence
-                </Button>
-              </Center>
-            </Box>
+            <ImageGallery 
+              images={evidence} 
+              studentId={studentId} 
+              learningOutcomeId={learningOutcomeId} 
+              onImageDeleted={handleImageDeleted}
+              useSignedImages={USE_SIGNED_IMAGES}
+              columns={{ base: 1, sm: 2, md: 3 }}
+              spacing={4}
+              aspectRatio={0.75}
+            />
           )}
         </Box>
       </Box>

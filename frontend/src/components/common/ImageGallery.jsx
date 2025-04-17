@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Grid, Box, useBreakpointValue, VStack, Text } from '@chakra-ui/react'; // Added VStack and Text
 import LazyImage from './LazyImage';
+import SignedImage from './SignedImage'; // Import the new SignedImage component
 import ImageViewerModal from './ImageViewerModal';
+
+// Feature flag to enable gradual migration
+const USE_SIGNED_IMAGE = process.env.REACT_APP_USE_SIGNED_IMAGE === 'true' || true; // Default to true, can be controlled via env var
 
 /**
  * A responsive image gallery component that displays a grid of images with lazy loading
@@ -36,7 +40,8 @@ const ImageGallery = ({
   columns = { base: 2, sm: 3, md: 4, lg: 5 },
   spacing = 4,
   aspectRatio = 1,
-  borderRadius = 'md'
+  borderRadius = 'md',
+  useSignedImages = USE_SIGNED_IMAGE // Allow overriding the feature flag per instance
 }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,6 +87,31 @@ const ImageGallery = ({
             thumbnail_url: image.thumbnail_url,
             availableProps: Object.keys(image)
           });
+          
+          // Extract the actual path from the URL to be used with SignedImage
+          const extractImagePath = (url) => {
+            if (!url) return null;
+            
+            // For URLs that use our API format, extract the path part
+            const apiPathMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
+            if (apiPathMatch && apiPathMatch[1]) {
+              return apiPathMatch[1];
+            }
+            
+            // For direct Backblaze URLs, extract the path after the domain
+            const backblazeMatch = url.match(/backblazeb2\.com\/(.+)/);
+            if (backblazeMatch && backblazeMatch[1]) {
+              return backblazeMatch[1];
+            }
+            
+            // Use the full URL as fallback
+            return url;
+          };
+          
+          // Get the image path for SignedImage
+          const originalUrl = image.file_url || image.fileUrl;
+          const imagePath = extractImagePath(originalUrl);
+          
           return (
             <Box // Outer Box (Card)
               key={image.id || image._id}
@@ -106,19 +136,37 @@ const ImageGallery = ({
                   overflow="hidden" // Ensure image corners are rounded
                 >
                   <Box position="absolute" top="0" left="0" width="100%" height="100%">
-                    <LazyImage
-                      image={{
-                        original_url: image.file_url || image.fileUrl,
-                        thumbnail_small_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl,
-                        thumbnail_medium_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl,
-                        thumbnail_large_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl
-                      }}
-                      alt={image.title || image.file_name || 'Gallery image'}
-                      width="100%"
-                      height="100%"
-                      objectFit="cover"
-                      // borderRadius={borderRadius} // Remove from LazyImage, apply to container
-                    />
+                    {useSignedImages && imagePath ? (
+                      // New approach using SignedImage
+                      <SignedImage
+                        imagePath={imagePath}
+                        width="100%"
+                        height="100%"
+                        quality={80}
+                        alt={image.title || image.file_name || 'Gallery image'}
+                        imgProps={{
+                          style: {
+                            objectFit: 'cover',
+                            width: '100%',
+                            height: '100%'
+                          }
+                        }}
+                      />
+                    ) : (
+                      // Legacy approach using LazyImage
+                      <LazyImage
+                        image={{
+                          original_url: image.file_url || image.fileUrl,
+                          thumbnail_small_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl,
+                          thumbnail_medium_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl,
+                          thumbnail_large_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl
+                        }}
+                        alt={image.title || image.file_name || 'Gallery image'}
+                        width="100%"
+                        height="100%"
+                        objectFit="cover"
+                      />
+                    )}
                   </Box>
                 </Box>
                 <Text fontWeight="bold" fontSize="sm" noOfLines={1}>
@@ -142,6 +190,7 @@ const ImageGallery = ({
           studentId={studentId}
           learningOutcomeId={learningOutcomeId}
           onImageDeleted={handleImageDeleted}
+          useSignedImages={useSignedImages} // Pass the flag to the modal
         />
       )}
     </>

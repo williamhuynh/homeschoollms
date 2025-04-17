@@ -6,6 +6,10 @@ import { useEffect, useState } from 'react'
 import { getStudentBySlug, getLatestEvidenceForOutcomes } from '../../services/api'
 import { NSWCurriculum } from '../../services/curriculum'
 import LazyImage from '../../components/common/LazyImage'
+import SignedImage from '../../components/common/SignedImage'
+
+// Feature flag for enabling SignedImage
+const USE_SIGNED_IMAGES = process.env.REACT_APP_USE_SIGNED_IMAGES === 'true' || true;
 
 const SubjectContentPage = () => {
   const navigate = useNavigate()
@@ -19,6 +23,26 @@ const SubjectContentPage = () => {
   const [curriculum, setCurriculum] = useState(null)
   const [evidenceMap, setEvidenceMap] = useState({})
   const [evidenceLoading, setEvidenceLoading] = useState(false)
+
+  // Helper to extract file path from URL
+  const extractImagePath = (url) => {
+    if (!url) return null;
+    
+    // For URLs that use our API format, extract the path part
+    const apiPathMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
+    if (apiPathMatch && apiPathMatch[1]) {
+      return apiPathMatch[1];
+    }
+    
+    // For direct Backblaze URLs, extract the path after the domain
+    const backblazeMatch = url.match(/backblazeb2\.com\/(.+)/);
+    if (backblazeMatch && backblazeMatch[1]) {
+      return backblazeMatch[1];
+    }
+    
+    // Use the full URL as fallback
+    return url;
+  };
 
   // Initialize curriculum and fetch data
   useEffect(() => {
@@ -154,20 +178,40 @@ const SubjectContentPage = () => {
                       <Spinner size="md" color="blue.500" />
                     </Center>
                   ) : evidenceMap[outcome.code] ? (
-                    <LazyImage
-                      image={{
-                        original_url: evidenceMap[outcome.code].fileUrl,
-                        thumbnail_small_url: evidenceMap[outcome.code].thumbnail_small_url || evidenceMap[outcome.code].fileUrl,
-                        thumbnail_medium_url: evidenceMap[outcome.code].thumbnail_medium_url || evidenceMap[outcome.code].fileUrl,
-                        thumbnail_large_url: evidenceMap[outcome.code].thumbnail_large_url || evidenceMap[outcome.code].fileUrl
-                      }}
-                      alt={`Evidence for ${outcome.name}`}
-                      width="100%"
-                      height="100%"
-                      objectFit="cover"
-                      borderRadius="md"
-                      rootMargin="200px"
-                    />
+                    USE_SIGNED_IMAGES ? (
+                      <SignedImage
+                        imagePath={extractImagePath(evidenceMap[outcome.code].fileUrl)}
+                        alt={`Evidence for ${outcome.name}`}
+                        width="100%"
+                        height="100%"
+                        imgProps={{
+                          style: {
+                            objectFit: 'cover',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '0.375rem'
+                          }
+                        }}
+                      />
+                    ) : (
+                      <LazyImage
+                        image={{
+                          original_url: evidenceMap[outcome.code].fileUrl,
+                          thumbnail_small_url: evidenceMap[outcome.code].thumbnail_small_url || evidenceMap[outcome.code].fileUrl,
+                          thumbnail_medium_url: evidenceMap[outcome.code].thumbnail_medium_url || evidenceMap[outcome.code].fileUrl,
+                          thumbnail_large_url: evidenceMap[outcome.code].thumbnail_large_url || evidenceMap[outcome.code].fileUrl
+                        }}
+                        alt={`Evidence for ${outcome.name}`}
+                        width="100%"
+                        height="100%"
+                        objectFit="cover"
+                        borderRadius="md"
+                        rootMargin="200px"
+                      />
+                    )
                   ) : (
                     <LazyImage
                       image={{
