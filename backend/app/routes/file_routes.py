@@ -74,32 +74,27 @@ async def get_signed_url(
             "expiration": expiration
         }
         
-        # If width or height parameters are provided and VERCEL_URL is set, generate an image optimization URL
+        # If width or height parameters are provided, use Vercel's built-in image optimization
         # Use a hardcoded production URL instead of relying on environment variable
         vercel_url = "https://homeschool-lms.vercel.app"
         if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            edge_function_path = os.getenv('EDGE_FUNCTION_PATH', '/api/images')
-            bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', '')
-            
-            # Construct the Vercel image optimization URL
-            base_url = vercel_url.rstrip('/')
-            path = edge_function_path.lstrip('/')
-            
-            # Ensure the signed URL is properly URL encoded for Vercel's image optimizer
+            # Ensure the signed URL is properly URL encoded, twice - once for being a parameter and once for the URL itself
             encoded_url = urllib.parse.quote(signed_url, safe='')
+            double_encoded_url = urllib.parse.quote(encoded_url, safe='')
             
-            # Format: https://your-site.vercel.app/_vercel/image?url=<encoded-url>&w=<width>&h=<height>&q=<quality>
-            vercel_image_url = f"{base_url}/_vercel/image?url={encoded_url}"
+            # Format: https://your-site.vercel.app/_vercel/image?url=<double-encoded-url>&w=<width>&h=<height>&q=<quality>
+            # Using Vercel's built-in image optimization
+            optimized_url = f"{vercel_url}/_vercel/image?url={double_encoded_url}"
             
             if width:
-                vercel_image_url += f"&w={width}"
+                optimized_url += f"&w={width}"
             if height:
-                vercel_image_url += f"&h={height}"
+                optimized_url += f"&h={height}"
             if quality:
-                vercel_image_url += f"&q={quality}"
+                optimized_url += f"&q={quality}"
                 
-            response["optimized_url"] = vercel_image_url
-            logger.info(f"Generated optimized image URL for dimensions: {width}x{height}")
+            response["optimized_url"] = optimized_url
+            logger.info(f"Generated Vercel image optimization URL for dimensions: {width}x{height}")
         
         logger.info(f"Successfully generated signed URL for file: {file_path}")
         return response

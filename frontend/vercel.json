@@ -2,10 +2,6 @@
   "version": 2,
   "routes": [
     {
-      "src": "/api/images/(.*)",
-      "dest": "/api/images/[...path].js"
-    },
-    {
       "src": "/api/files/signed-url",
       "dest": "/api/files/signed-url.js"
     }
