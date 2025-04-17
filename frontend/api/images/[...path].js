@@ -480,3 +480,67 @@ export default async function handler(req) {
     });
   }
 }
+
+// This endpoint uses path segments to avoid URL encoding issues with slashes
+module.exports = async function(req, res) {
+  try {
+    console.log("IMAGE PATH: Handler called");
+    
+    // Get path from the URL pattern matching
+    // The path will be an array of segments
+    const { path } = req.query;
+    
+    if (!path || !Array.isArray(path) || path.length === 0) {
+      console.error("No path segments provided");
+      return res.status(400).json({ error: 'Path is required' });
+    }
+    
+    // Convert path array back to a string
+    const filePath = path.join('/');
+    console.log(`IMAGE PATH: Requested file path: ${filePath}`);
+    
+    // Get the backend API URL from environment or use the default
+    const backendUrl = process.env.BACKEND_API_URL || 'https://homeschoollms-server.onrender.com';
+    
+    // Get authorization header from the incoming request
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      // Get the authorization from cookies or localStorage (needs client-side code)
+      // For now, let's continue without auth and see if it fails at the backend
+    }
+    
+    // Call the backend to get a signed URL for this path
+    const apiUrl = `${backendUrl}/api/files/signed-url?file_path=${encodeURIComponent(filePath)}`;
+    console.log(`IMAGE PATH: Fetching signed URL from: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { 'Authorization': authHeader } : {})
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`IMAGE PATH ERROR: Backend returned ${response.status}`);
+      const errorData = await response.json();
+      return res.status(response.status).json(errorData);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.signed_url) {
+      return res.status(500).json({ error: 'No signed URL returned from backend' });
+    }
+    
+    console.log(`IMAGE PATH: Successfully got signed URL, redirecting`);
+    
+    // Redirect directly to the signed URL
+    res.redirect(307, data.signed_url);
+  } catch (error) {
+    console.error('IMAGE PATH ERROR:', error);
+    res.status(500).json({ error: 'Handler failed', message: error.message });
+  }
+};

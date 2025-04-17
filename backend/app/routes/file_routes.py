@@ -78,13 +78,18 @@ async def get_signed_url(
         # Use a hardcoded production URL instead of relying on environment variable
         vercel_url = "https://homeschool-lms.vercel.app"
         if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            # Instead of using the complex signed URL directly, use our redirect endpoint
-            # which will be much simpler for Vercel's image optimizer to handle
-            redirect_url = f"{vercel_url}/api/images/redirect?path={urllib.parse.quote(file_path)}"
+            # Replace slashes with the text "SLASH" to avoid URL encoding issues with slashes
+            # This is safer than other encoding approaches
+            # Use the path-based routing approach which handles slashes properly
+            # e.g. /api/images/evidence/file.png
+            clean_path = file_path.replace("/", "SLASH")
             
-            # Now use Vercel's image optimization with the redirect URL
-            encoded_redirect_url = urllib.parse.quote(redirect_url)
-            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_redirect_url}"
+            # Format URL for Vercel's image optimization
+            # We use our direct path handler instead of redirect with query params
+            img_path = f"{vercel_url}/api/images/{file_path}"
+            encoded_img_path = urllib.parse.quote(img_path, safe='')
+            
+            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_img_path}"
             
             if width:
                 optimized_url += f"&w={width}"
@@ -94,7 +99,7 @@ async def get_signed_url(
                 optimized_url += f"&q={quality}"
                 
             response["optimized_url"] = optimized_url
-            logger.info(f"Generated optimized image URL using redirect approach: {width}x{height}")
+            logger.info(f"Generated optimized image URL using path approach: {width}x{height}")
         
         logger.info(f"Successfully generated signed URL for file: {file_path}")
         return response
