@@ -6,8 +6,8 @@
       "dest": "/api/files/signed-url.js"
     },
     {
-      "src": "/api/images/proxy",
-      "dest": "/api/images/proxy.js"
+      "src": "/api/images/redirect",
+      "dest": "/api/images/redirect.js"
     }
   ],
   "env": {
