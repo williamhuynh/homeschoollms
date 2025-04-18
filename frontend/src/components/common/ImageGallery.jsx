@@ -156,7 +156,7 @@ const ImageGallery = ({
                 <Box // Image container with aspect ratio
                   position="relative"
                   width="100%"
-                  paddingBottom={`${100 * aspectRatio}%`} // 3:4 portrait aspect ratio (when aspectRatio=0.75)
+                  paddingBottom={`${100 / aspectRatio}%`} // Changed from * to / to make portrait (3:4) aspect ratio
                   borderRadius={borderRadius} // Apply border radius to image container too
                   overflow="hidden" // Ensure image corners are rounded
                 >
