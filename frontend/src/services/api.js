@@ -361,7 +361,20 @@ export const deleteEvidence = async (studentId, learningOutcomeId, evidenceId) =
     return response.data;
   } catch (error) {
     console.error('Error deleting evidence:', error);
-    throw error;
+    
+    // If the evidence is not found (404), consider it already deleted and return success
+    if (error.response?.status === 404) {
+      console.log('Evidence not found (404), treating as already deleted');
+      return { success: true, message: 'Evidence already deleted or does not exist' };
+    }
+    
+    // Add more details to the error
+    const errorDetail = error.response?.data?.detail || error.message || 'Unknown error';
+    const enhancedError = new Error(`Failed to delete evidence: ${errorDetail}`);
+    enhancedError.statusCode = error.response?.status;
+    enhancedError.originalError = error;
+    
+    throw enhancedError;
   }
 };
 

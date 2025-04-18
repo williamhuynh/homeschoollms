@@ -183,8 +183,29 @@ const ImageViewerModal = ({
         }
       );
 
+      if (response.status === 404) {
+        console.log('Evidence not found, likely already deleted');
+        toast({
+          title: 'Image already removed',
+          description: 'The evidence was already deleted or does not exist.',
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+        
+        setIsDeleteAlertOpen(false);
+        onClose();
+        
+        if (onImageDeleted) {
+          onImageDeleted(image._id);
+        }
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to delete image');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || `Server error (${response.status})`;
+        throw new Error(`Failed to delete image: ${errorMessage}`);
       }
 
       toast({
@@ -205,11 +226,15 @@ const ImageViewerModal = ({
       console.error('Delete error:', error);
       toast({
         title: 'Delete failed',
-        description: error.message,
+        description: error.message || 'An unknown error occurred',
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
+      
+      if (onImageDeleted) {
+        onImageDeleted(image._id);
+      }
     } finally {
       setIsDeleting(false);
     }
