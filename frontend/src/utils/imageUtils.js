@@ -152,72 +152,103 @@ export const preloadImage = (src) => {
 };
 
 /**
- * Get a signed URL for an image from the backend API
- * @param {string} imagePath The path of the image in storage
- * @param {Object} options Optional parameters
- * @param {number|string} options.width Optional width for image resize
- * @param {number|string} options.height Optional height for image resize
- * @param {number} options.quality Image quality (1-100), default is 80
- * @param {number} options.expiration URL expiration time in seconds, default is 3600 (1 hour)
- * @param {string} options.contentDisposition How file should be presented - 'inline' or 'attachment'
- * @returns {Promise<Object>} Object containing signed URLs
+ * Get a signed URL for an image with optional optimization parameters
+ * @param {string} filePath - Path to the image in storage
+ * @param {Object} options - Optimization options
+ * @param {number} [options.width] - Desired width
+ * @param {number} [options.height] - Desired height
+ * @param {number} [options.quality=80] - Image quality (1-100)
+ * @returns {Promise<string>} - Returns the optimized image URL
  */
-import { authorizedFetch } from './authUtils';
+import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
-export async function getSignedImageUrl(imagePath, options = {}) {
+export const getSignedImageUrl = async (filePath, options = {}) => {
   try {
-    // Create URL parameters
+    const { width, height, quality = 80 } = options;
     const params = new URLSearchParams();
-    params.append('file_path', imagePath);
     
-    if (options.width) {
-      // If width is a percentage string, convert to a number or use 'auto'
-      const width = typeof options.width === 'string' && options.width.includes('%') 
-        ? 'auto' // Use 'auto' for percentage widths
-        : options.width;
-      params.append('width', width);
-    }
+    if (width) params.append('width', width);
+    if (height) params.append('height', height);
+    if (quality) params.append('quality', quality);
     
-    if (options.height) {
-      // If height is a percentage string, convert to a number or use 'auto'
-      const height = typeof options.height === 'string' && options.height.includes('%') 
-        ? 'auto' // Use 'auto' for percentage heights
-        : options.height;
-      params.append('height', height);
-    }
+    const response = await axios.get(
+      `${API_BASE_URL}/files/signed-url?file_path=${encodeURIComponent(filePath)}&${params.toString()}`,
+      { withCredentials: true }
+    );
     
-    if (options.quality) params.append('quality', options.quality);
-    if (options.expiration) params.append('expiration', options.expiration);
-    if (options.contentDisposition) params.append('content_disposition', options.contentDisposition);
-    
-    // Get the API URL from environment or use a default
-    const apiUrl = `/api/files/signed-url?${params.toString()}`;
-    
-    console.log(`Calling API: ${apiUrl}`);
-    
-    // Make the request using authorizedFetch
-    const response = await authorizedFetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to get signed URL');
-    }
-    
-    const data = await response.json();
-    console.log('Received signed URL response:', data);
-    
-    return {
-      signedUrl: data.signed_url,
-      optimizedUrl: data.optimized_url || data.signed_url, // Use optimized if available
-      expiration: data.expiration
-    };
+    return response.data.optimized_url || response.data.signed_url;
   } catch (error) {
-    console.error('Error getting signed URL:', error);
+    console.error('Error getting signed image URL:', error);
     throw error;
   }
-}
+};
+
+/**
+ * Generate a responsive image srcset using Cloudinary
+ * @param {string} filePath - Path to the image in storage
+ * @param {Object} options - Optimization options
+ * @param {number[]} [options.sizes=[320, 640, 1024, 1600]] - Array of widths to generate
+ * @param {number} [options.quality=80] - Image quality (1-100)
+ * @returns {Promise<string>} - Returns the srcset string
+ */
+export const getResponsiveSrcset = async (filePath, options = {}) => {
+  const { sizes = [320, 640, 1024, 1600], quality = 80 } = options;
+  
+  const srcsetPromises = sizes.map(async (width) => {
+    const url = await getSignedImageUrl(filePath, { width, quality });
+    return `${url} ${width}w`;
+  });
+  
+  const srcset = await Promise.all(srcsetPromises);
+  return srcset.join(', ');
+};
+
+/**
+ * Generate a responsive image sizes attribute
+ * @param {string} defaultSize - Default size (e.g., '100vw' or '800px')
+ * @param {Object} breakpoints - Media query breakpoints
+ * @returns {string} - Returns the sizes attribute string
+ */
+export const getResponsiveSizes = (defaultSize, breakpoints = {}) => {
+  if (!breakpoints || Object.keys(breakpoints).length === 0) {
+    return defaultSize;
+  }
+  
+  const sizes = Object.entries(breakpoints)
+    .sort(([a], [b]) => parseInt(b) - parseInt(a))
+    .map(([width, size]) => `(max-width: ${width}px) ${size}`)
+    .join(', ');
+    
+  return `${sizes}, ${defaultSize}`;
+};
+
+/**
+ * Check if a URL is a Cloudinary URL
+ * @param {string} url - URL to check
+ * @returns {boolean} - True if the URL is from Cloudinary
+ */
+export const isCloudinaryUrl = (url) => {
+  if (!url) return false;
+  return url.includes('cloudinary.com');
+};
+
+/**
+ * Get the original URL from a Cloudinary URL
+ * @param {string} url - Cloudinary URL
+ * @returns {string} - Original URL without transformations
+ */
+export const getOriginalUrlFromCloudinary = (url) => {
+  if (!url || !isCloudinaryUrl(url)) return url;
+  
+  try {
+    const urlObj = new URL(url);
+    // Remove all transformations from the URL
+    const pathParts = urlObj.pathname.split('/');
+    const lastPart = pathParts[pathParts.length - 1];
+    return `${urlObj.origin}/${pathParts[1]}/${pathParts[2]}/${lastPart}`;
+  } catch (error) {
+    console.error('Error parsing Cloudinary URL:', error);
+    return url;
+  }
+};

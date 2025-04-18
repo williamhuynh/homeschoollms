@@ -1,7 +1,7 @@
 # Image Optimization Architecture
 
 ## Overview
-This document outlines the image optimization system implemented in the Homeschool LMS application. The system uses a secure proxy endpoint in conjunction with Vercel's image optimization service and Backblaze B2 storage to deliver optimized images efficiently while maintaining security.
+This document outlines the image optimization system implemented in the Homeschool LMS application. The system uses Cloudinary's image optimization service in conjunction with Backblaze B2 storage to deliver optimized images efficiently while maintaining security.
 
 ## Architecture
 
@@ -9,32 +9,26 @@ This document outlines the image optimization system implemented in the Homescho
 1. **Backblaze B2**
    - Primary storage for original images
    - Provides secure, scalable object storage
-   - Accessible via pre-signed URLs only
    - Bucket MUST remain private (not publicly accessible)
    - All access must be authenticated via signed URLs
 
-2. **Backend (FastAPI)**
-   - Generates pre-signed URLs for Backblaze B2
-   - Handles authentication and authorization
-   - Constructs URLs for image optimization
-   - Validates user permissions before generating URLs
-
-3. **Proxy Endpoint (Vercel Edge Function)**
-   - Handles secure image retrieval from Backblaze
-   - Uses signed URLs to access Backblaze B2
-   - Provides proper caching headers
-   - Runs on Vercel's edge network
-
-4. **Vercel Image Optimization**
+2. **Cloudinary**
    - Provides on-the-fly image optimization
+   - Handles secure fetching from Backblaze B2
    - Supports various formats (WebP, JPEG, PNG)
    - Handles resizing and quality adjustments
    - Caches optimized images at the edge
-   - Uses proxy endpoint for secure access
+   - Uses signed URLs for secure access
+
+3. **Backend (FastAPI)**
+   - Generates pre-signed URLs for Backblaze B2
+   - Handles authentication and authorization
+   - Constructs Cloudinary fetch URLs
+   - Validates user permissions before generating URLs
 
 ### Flow Diagram
 ```
-Frontend Request → Backend (signed URL) → Proxy Endpoint → Vercel Image Optimization → Client
+Frontend Request → Backend (signed URL) → Cloudinary (fetch + optimize) → Client
 ```
 
 ## Implementation Details
@@ -53,30 +47,10 @@ async def get_signed_url(
     # Generate signed URL for Backblaze
     signed_url = generate_backblaze_signed_url(file_path)
     
-    # If optimization requested, construct proxy URL
-    if width or height:
-        proxy_url = f"{vercel_url}/api/images?url={encoded_signed_url}"
-        return construct_optimized_url(proxy_url, width, height, quality)
+    # Construct Cloudinary fetch URL with optimizations
+    cloudinary_url = construct_cloudinary_url(signed_url, width, height, quality)
     
-    return {"signed_url": signed_url}
-```
-
-### Proxy Endpoint (Edge Function)
-```javascript
-export async function GET(request) {
-    const { searchParams } = new URL(request.url);
-    const signedUrl = searchParams.get('url');
-    
-    // Fetch image using signed URL
-    const response = await fetch(signedUrl);
-    
-    return new NextResponse(response.body, {
-        headers: {
-            'Content-Type': response.headers.get('content-type'),
-            'Cache-Control': 'public, max-age=31536000, immutable'
-        }
-    });
-}
+    return {"url": cloudinary_url}
 ```
 
 ### Frontend Components
@@ -108,14 +82,9 @@ export async function GET(request) {
 https://<bucket>.s3.<region>.backblazeb2.com/<path>?X-Amz-Algorithm=...&X-Amz-Credential=...&X-Amz-Date=...&X-Amz-Expires=...&X-Amz-SignedHeaders=...&X-Amz-Signature=...
 ```
 
-### Proxy URL
+### Cloudinary Fetch URL
 ```
-https://<vercel-domain>/api/images?url=<encoded-signed-url>
-```
-
-### Optimized Vercel URL
-```
-https://<vercel-domain>/_vercel/image?url=<proxy-url>&w=800&h=600&q=80
+https://res.cloudinary.com/<cloud-name>/image/fetch/<transformation>/https://<bucket>.s3.<region>.backblazeb2.com/<path>?<auth-params>
 ```
 
 ## Configuration
@@ -128,6 +97,7 @@ BACKBLAZE_ENDPOINT=https://s3.region.backblazeb2.com
 BACKBLAZE_KEY_ID=your-key-id
 BACKBLAZE_APPLICATION_KEY=your-application-key
 BACKBLAZE_BUCKET_NAME=your-bucket-name
+CLOUDINARY_CLOUD_NAME=your-cloud-name
 ```
 
 #### Frontend
@@ -149,7 +119,6 @@ VITE_USE_SIGNED_IMAGES=true
    - File paths validated against user access
    - Rate limiting implemented on URL generation
    - Signed URLs required for all access
-   - Proxy endpoint runs on edge network
 
 3. **Bucket Configuration**
    - Bucket must be configured as private
@@ -157,19 +126,18 @@ VITE_USE_SIGNED_IMAGES=true
    - All access must be authenticated
    - Signed URLs required for all operations
 
-4. **Proxy Security**
-   - Runs on Vercel's edge network
-   - Handles signed URLs securely
-   - Implements proper caching
-   - Validates responses
+4. **Cloudinary Security**
+   - Allowed fetch domains properly configured
+   - Secure URL signing maintained
+   - Private bucket access preserved
+   - Proper authentication flow
 
 ## Performance Optimizations
 
 1. **Caching**
-   - Vercel caches optimized images at edge locations
+   - Cloudinary caches optimized images at edge locations
    - Browser caching headers properly set
    - Immutable cache for static images
-   - Proxy responses cached appropriately
 
 2. **Lazy Loading**
    - Images load only when entering viewport
@@ -228,25 +196,23 @@ VITE_USE_SIGNED_IMAGES=true
    - Confirm Backblaze permissions
    - Verify bucket is private
    - Check signed URL expiration
-   - Verify proxy endpoint configuration
+   - Verify Cloudinary fetch settings
 
 2. **Performance Issues**
    - Verify image dimensions
    - Check quality settings
    - Monitor cache hit rates
    - Check signed URL generation
-   - Monitor proxy response times
+   - Monitor Cloudinary response times
 
 ### Debug Tools
 - Browser network inspector
 - Backend logging
-- Vercel deployment logs
+- Cloudinary dashboard
 - Backblaze access logs
-- Proxy endpoint logs
 
 ## References
 
-- [Vercel Image Optimization Docs](https://vercel.com/docs/concepts/image-optimization)
+- [Cloudinary Documentation](https://cloudinary.com/documentation)
 - [Backblaze B2 API Docs](https://www.backblaze.com/b2/docs/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Vercel Edge Functions](https://vercel.com/docs/concepts/functions/edge-functions) 
+- [FastAPI Documentation](https://fastapi.tiangolo.com/) 

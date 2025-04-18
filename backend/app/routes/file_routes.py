@@ -24,7 +24,7 @@ async def get_signed_url(
 ):
     """
     Generate a signed URL for accessing a file in Backblaze B2 storage.
-    For images, also generates an optimized URL using our proxy endpoint.
+    For images, also generates an optimized URL using Cloudinary.
     """
     try:
         # Get the file storage service from the app
@@ -44,25 +44,34 @@ async def get_signed_url(
 
         # If image optimization is requested
         if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            # Use our proxy endpoint
-            vercel_url = "https://homeschool-lms.vercel.app"
-            encoded_signed_url = urllib.parse.quote(signed_url, safe='')
+            # Get Cloudinary cloud name from environment
+            cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
+            if not cloud_name:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Cloudinary cloud name not configured"
+                )
             
-            # Construct the proxy URL
-            proxy_url = f"{vercel_url}/api/images?url={encoded_signed_url}"
+            # Construct Cloudinary fetch URL
+            cloudinary_url = f"https://res.cloudinary.com/{cloud_name}/image/fetch"
             
-            # Use Vercel's image optimization with our proxy URL
-            optimized_url = f"{vercel_url}/_vercel/image?url={proxy_url}"
+            # Add transformations if specified
+            if width or height or quality:
+                cloudinary_url += "/"
+                transformations = []
+                if width:
+                    transformations.append(f"w_{width}")
+                if height:
+                    transformations.append(f"h_{height}")
+                if quality:
+                    transformations.append(f"q_{quality}")
+                cloudinary_url += ",".join(transformations)
             
-            if width:
-                optimized_url += f"&w={width}"
-            if height:
-                optimized_url += f"&h={height}"
-            if quality:
-                optimized_url += f"&q={quality}"
-                
-            response["optimized_url"] = optimized_url
-            logger.info(f"Generated optimized image URL: {width}x{height}")
+            # Add the signed URL as the source
+            cloudinary_url += f"/{urllib.parse.quote(signed_url, safe='')}"
+            
+            response["optimized_url"] = cloudinary_url
+            logger.info(f"Generated Cloudinary optimized image URL: {width}x{height}")
 
         logger.info(f"Successfully generated signed URL for file: {file_path}")
         return response
