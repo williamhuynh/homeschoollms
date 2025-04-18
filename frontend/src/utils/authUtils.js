@@ -1,5 +1,31 @@
 import { supabase, getSession, signOut } from '../services/supabase';
 
+// Helper function to safely access localStorage
+const safeLocalStorage = {
+  getItem: (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.warn('localStorage not available:', error);
+      return null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn('localStorage not available:', error);
+    }
+  },
+  removeItem: (key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.warn('localStorage not available:', error);
+    }
+  }
+};
+
 // Check if the token is expired or will expire soon (within 5 minutes)
 export const isTokenExpired = (token) => {
   if (!token) return true;
@@ -29,7 +55,7 @@ export const forceLogout = async () => {
   console.log('Forcing logout due to invalid token');
   try {
     // Remove token from localStorage
-    localStorage.removeItem('token');
+    safeLocalStorage.removeItem('token');
     
     // Call Supabase sign out
     await signOut();
@@ -47,7 +73,7 @@ export const forceLogout = async () => {
 export const getAuthToken = async () => {
   try {
     // First try to get the current token from localStorage
-    const currentToken = localStorage.getItem('token');
+    const currentToken = safeLocalStorage.getItem('token');
     
     // Check if we have a token and if it's not expired
     if (currentToken && !isTokenExpired(currentToken)) {
@@ -62,7 +88,7 @@ export const getAuthToken = async () => {
     if (session && session.access_token) {
       console.log('Got fresh token from session');
       // Save the fresh token
-      localStorage.setItem('token', session.access_token);
+      safeLocalStorage.setItem('token', session.access_token);
       return session.access_token;
     } else {
       console.warn('No valid session available, forcing logout');
