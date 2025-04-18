@@ -1,35 +1,16 @@
 {
   "version": 2,
-  "routes": [
-    {
-      "src": "/api/files/signed-url",
-      "dest": "/api/files/signed-url.js"
-    }
-  ],
   "env": {
-    "EDGE_DEBUG": "1",
-    "BACKBLAZE_ENDPOINT": "@backblaze-endpoint",
-    "BACKBLAZE_BUCKET_NAME": "@backblaze-bucket-name",
-    "BACKBLAZE_KEY_ID": "@backblaze-key-id",
-    "BACKBLAZE_APPLICATION_KEY": "@backblaze-application-key",
     "BACKEND_API_URL": "https://homeschool-lms.onrender.com"
   },
   "rewrites": [
     {
       "source": "/api/files/signed-url",
       "destination": "https://homeschool-lms.onrender.com/api/files/signed-url"
-    },
-    {
-      "source": "/api/images/redirect",
-      "destination": "https://homeschool-lms.onrender.com/api/images/redirect"
-    },
-    {
-      "source": "/api/images/(.*)",
-      "destination": "/api/images/[...path]"
     }
   ],
   "images": {
-    "domains": ["homeschool-lms.vercel.app"],
+    "domains": ["homeschool-lms.vercel.app", "res.cloudinary.com"],
     "minimumCacheTTL": 60,
     "formats": ["image/avif", "image/webp"],
     "sizes": [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840]
