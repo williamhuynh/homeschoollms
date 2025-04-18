@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import UpdateStudentSlugs from '../../components/admin/UpdateStudentSlugs'
 import DeleteStudent from '../../components/admin/DeleteStudent'
 import ManageParentAccess from '../../components/admin/ManageParentAccess'
+import { useUser } from '../../contexts/UserContext'
 
 const AdminPage = () => {
   const navigate = useNavigate()
+  const { isAdmin } = useUser()
 
   return (
     <Container maxW="container.md" py={8}>
@@ -26,8 +28,8 @@ const AdminPage = () => {
         <Box>
           <Heading size="md" mb={4}>Student Management</Heading>
           <VStack spacing={4} align="stretch">
-            <UpdateStudentSlugs />
-            <Divider my={2} />
+            {isAdmin() && <UpdateStudentSlugs />}
+            {isAdmin() && <Divider my={2} />}
             <DeleteStudent />
           </VStack>
         </Box>

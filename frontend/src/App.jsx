@@ -17,6 +17,7 @@ import BottomNav from './components/navigation/BottomNav'
 import AddStudent from './pages/students/AddStudent'
 import { StudentsProvider } from './contexts/StudentsContext'
 import { FileUploadModalProvider } from './contexts/FileUploadModalContext'
+import { UserProvider } from './contexts/UserContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
 function App() {
@@ -65,123 +66,125 @@ function App() {
 
   return (
     <ChakraProvider>
-      <StudentsProvider>
-        <BrowserRouter>
-          <FileUploadModalProvider>
-          <Routes>
-            <Route path="/" element={
-              isAuthenticatedOverride || isAuthenticated ? 
-                <Navigate to="/students" replace /> : 
-                <Navigate to="/login" replace />
-            } />
-            <Route 
-              path="/login" 
-              element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
-            />
-            <Route 
-              path="/register" 
-              element={<RegisterPage />}
-            />
-            <Route 
-              path="/reset-password" 
-              element={<ResetPasswordPage />}
-            />
-            <Route 
-              path="/students" 
-              element={
+      <UserProvider>
+        <StudentsProvider>
+          <BrowserRouter>
+            <FileUploadModalProvider>
+            <Routes>
+              <Route path="/" element={
                 isAuthenticatedOverride || isAuthenticated ? 
-                  <StudentSelection /> : 
+                  <Navigate to="/students" replace /> : 
                   <Navigate to="/login" replace />
-              } 
-            />
-            <Route 
-              path="/students/new" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <AddStudent /> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-            {/* Student detail page - redirects to progress */}
-            <Route 
-              path="/students/:studentId" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <Navigate to="progress" replace /> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-            <Route 
-              path="/students/:studentId/progress" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <>
-                    <StudentProgressPage />
-                    <BottomNav />
-                  </> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-            <Route 
-              path="/students/:studentId/subjects/:subject" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <>
-                    <SubjectContentPage />
-                    <BottomNav />
-                  </> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-            <Route 
-              path="/students/:studentId/learning-outcomes/:learningOutcomeId" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <>
-                    <LearningOutcomePage />
-                    <BottomNav />
-                  </> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-            <Route 
-              path="/students/:studentId/content/create" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <ContentCreatePage /> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-            <Route 
-              path="/admin" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <AdminPage /> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-            {/* Profile Page Route */}
-            <Route 
-              path="/profile" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <ProfilePage /> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-            {/* Avatar Settings Page Route */}
-            <Route 
-              path="/profile/avatar" 
-              element={
-                isAuthenticatedOverride || isAuthenticated ? 
-                  <AvatarSettingsPage /> : 
-                  <Navigate to="/login" replace />
-              } 
-            />
-          </Routes>
-          </FileUploadModalProvider>
-        </BrowserRouter>
-      </StudentsProvider>
+              } />
+              <Route 
+                path="/login" 
+                element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
+              />
+              <Route 
+                path="/register" 
+                element={<RegisterPage />}
+              />
+              <Route 
+                path="/reset-password" 
+                element={<ResetPasswordPage />}
+              />
+              <Route 
+                path="/students" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <StudentSelection /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/new" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <AddStudent /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              {/* Student detail page - redirects to progress */}
+              <Route 
+                path="/students/:studentId" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <Navigate to="progress" replace /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/:studentId/progress" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <>
+                      <StudentProgressPage />
+                      <BottomNav />
+                    </> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/:studentId/subjects/:subject" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <>
+                      <SubjectContentPage />
+                      <BottomNav />
+                    </> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/:studentId/learning-outcomes/:learningOutcomeId" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <>
+                      <LearningOutcomePage />
+                      <BottomNav />
+                    </> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/:studentId/content/create" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <ContentCreatePage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/admin" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <AdminPage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              {/* Profile Page Route */}
+              <Route 
+                path="/profile" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <ProfilePage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              {/* Avatar Settings Page Route */}
+              <Route 
+                path="/profile/avatar" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <AvatarSettingsPage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+            </Routes>
+            </FileUploadModalProvider>
+          </BrowserRouter>
+        </StudentsProvider>
+      </UserProvider>
     </ChakraProvider>
   )
 }

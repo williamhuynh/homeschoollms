@@ -5,10 +5,12 @@ import StudentList from '../../components/students/StudentList'
 import BottomNav from '../../components/navigation/BottomNav' // Import BottomNav
 import { useEffect, useState } from 'react'
 import { useStudents } from '../../contexts/StudentsContext'
+import { useUser } from '../../contexts/UserContext' // Import useUser hook
 import { getStudents } from '../../services/api'
 
 const StudentSelection = () => {
   const { students, setStudents } = useStudents()
+  const { isAdmin } = useUser() // Get isAdmin function from UserContext
   const navigate = useNavigate()
   const toast = useToast()
   const [loading, setLoading] = useState(true)
@@ -91,29 +93,32 @@ const StudentSelection = () => {
               aria-label="Add student"
               onClick={handleAddStudent}
             />
-            <IconButton
-              icon={<span>🐞</span>}
-              variant="outline"
-              colorScheme="red"
-              aria-label="Debug info"
-              onClick={() => {
-                const token = localStorage.getItem('token');
-                toast({
-                  title: 'Debug Info',
-                  description: (
-                    <VStack align="start">
-                      <Text>Token exists: {token ? 'Yes' : 'No'}</Text>
-                      <Text>Token length: {token ? token.length : 0}</Text>
-                      <Text>API URL: {window.location.hostname === 'localhost' ? 
-                        'http://localhost:8000' : 'https://homeschoollms-server.onrender.com'}</Text>
-                    </VStack>
-                  ),
-                  status: 'info',
-                  duration: 10000,
-                  isClosable: true,
-                });
-              }}
-            />
+            {/* Only render debug button for admin users */}
+            {isAdmin() && (
+              <IconButton
+                icon={<span>🐞</span>}
+                variant="outline"
+                colorScheme="red"
+                aria-label="Debug info"
+                onClick={() => {
+                  const token = localStorage.getItem('token');
+                  toast({
+                    title: 'Debug Info',
+                    description: (
+                      <VStack align="start">
+                        <Text>Token exists: {token ? 'Yes' : 'No'}</Text>
+                        <Text>Token length: {token ? token.length : 0}</Text>
+                        <Text>API URL: {window.location.hostname === 'localhost' ? 
+                          'http://localhost:8000' : 'https://homeschoollms-server.onrender.com'}</Text>
+                      </VStack>
+                    ),
+                    status: 'info',
+                    duration: 10000,
+                    isClosable: true,
+                  });
+                }}
+              />
+            )}
           </Flex>
         </Flex>
 

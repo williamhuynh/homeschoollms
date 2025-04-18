@@ -7,8 +7,11 @@ import {
     Input,
     Select,
     Button,
-    useToast
+    useToast,
+    Box,
+    IconButton
   } from '@chakra-ui/react'
+  import { CloseIcon } from '@chakra-ui/icons'
   import { useState } from 'react'
   import { useNavigate } from 'react-router-dom'
   import { createStudent } from '../../services/api'
@@ -79,7 +82,15 @@ import {
     }
   
     return (
-      <Container maxW="container.sm" py={8}>
+      <Container maxW="container.sm" py={8} position="relative">
+        <Box position="absolute" top={2} left={2}>
+          <IconButton
+            icon={<CloseIcon />}
+            size="sm"
+            aria-label="Go back"
+            onClick={() => navigate('/students')}
+          />
+        </Box>
         <VStack spacing={8} align="stretch">
           <Heading size="xl">Add New Student</Heading>
           
