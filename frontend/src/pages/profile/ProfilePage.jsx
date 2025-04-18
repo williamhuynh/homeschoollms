@@ -15,6 +15,7 @@ import {
 import { ArrowLeft, LogOut, Settings } from 'react-feather'
 import { useNavigate, Link as RouterLink } from 'react-router-dom' // Use RouterLink for internal navigation
 import { getCurrentUser, logout } from '../../services/api' // Assuming logout function exists in api.js
+import UserAvatar from '../../components/common/UserAvatar'
 
 const ProfilePage = () => {
   const navigate = useNavigate()
@@ -110,32 +111,27 @@ const ProfilePage = () => {
           Back to Students
         </Button>
 
-        <Heading size="xl" textAlign="center" mb={4}>Profile</Heading>
-
         <Center>
           <VStack spacing={4}>
-            <Avatar 
-              size="xl" 
-              name={user ? `${user.first_name} ${user.last_name}` : ''} 
-              // src={user?.avatar_url} // Uncomment if you have avatar URLs
+            <UserAvatar 
+              user={user}
+              size="xl"
+              isClickable={true}
             />
             <Heading size="lg">{user ? `${user.first_name} ${user.last_name}` : 'Loading...'}</Heading>
-            <Text fontSize="md" color="gray.600">
-              Role: {user ? getRoleName(user.access_level) : 'Loading...'}
-            </Text>
           </VStack>
         </Center>
 
-        {/* Admin Tools Link - Available to all users */}
+        {/* Settings Link - Changed from Admin Tools */}
         <Button
-          as={RouterLink} // Use RouterLink for internal navigation
+          as={RouterLink}
           to="/admin"
           leftIcon={<Settings size={20} />}
           variant="outline"
           colorScheme="gray"
-          mt={6} // Add margin top
+          mt={6}
         >
-          Admin Tools
+          Settings
         </Button>
 
         {/* Logout Button */}
@@ -143,7 +139,7 @@ const ProfilePage = () => {
           leftIcon={<LogOut size={20} />}
           colorScheme="red"
           onClick={handleLogout}
-          mt={2} // Always use consistent margin since Admin Tools button is always present
+          mt={2}
         >
           Logout
         </Button>

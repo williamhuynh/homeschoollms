@@ -20,7 +20,7 @@ const AdminPage = () => {
           >
             Back to Students
           </Button>
-          <Heading size="xl" mt={2}>Admin Tools</Heading>
+          <Heading size="xl" mt={2}>Settings</Heading>
         </Box>
 
         <Box>
