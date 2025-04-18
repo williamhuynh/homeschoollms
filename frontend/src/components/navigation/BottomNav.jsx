@@ -30,7 +30,13 @@ const BottomNav = () => {
         <IconButton
           icon={<Home />}
           variant="ghost"
-          onClick={() => navigate(`/students/${studentId}/progress`)}
+          onClick={() => {
+            if (studentId) {
+              navigate(`/students/${studentId}/progress`);
+            } else {
+              navigate('/students');
+            }
+          }}
           aria-label="Home"
         />
         <IconButton
