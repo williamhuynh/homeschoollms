@@ -19,5 +19,10 @@
       "source": "/api/files/signed-url",
       "destination": "https://homeschool-lms.onrender.com/api/files/signed-url"
     }
-  ]
+  ],
+  "images": {
+    "domains": ["s3.us-east-005.backblazeb2.com"],
+    "minimumCacheTTL": 60,
+    "formats": ["image/avif", "image/webp"]
+  }
 }

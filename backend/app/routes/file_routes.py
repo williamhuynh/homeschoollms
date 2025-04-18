@@ -44,11 +44,15 @@ async def get_signed_url(
 
         # If image optimization is requested
         if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            vercel_url = "https://homeschool-lms.vercel.app"
-            encoded_signed_url = urllib.parse.quote(signed_url, safe='')
+            # Construct the base URL for the image
+            base_url = f"https://s3.us-east-005.backblazeb2.com/homeschoollms/{file_path}"
             
             # Use Vercel's image optimization service
-            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_signed_url}"
+            vercel_url = "https://homeschool-lms.vercel.app"
+            encoded_base_url = urllib.parse.quote(base_url, safe='')
+            
+            # Construct the optimized URL
+            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_base_url}"
             
             if width:
                 optimized_url += f"&w={width}"
