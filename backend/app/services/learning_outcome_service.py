@@ -201,10 +201,13 @@ class LearningOutcomeService:
             # Try to find outcome by ObjectId first
             try:
                 outcome_obj_id = ObjectId(learning_outcome_id)
+                logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
             except:
                 outcome_obj_id = None
+                logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
                 
             # If not found by ObjectId, try to find by code (case-insensitive)
+            outcome_code = learning_outcome_id
             if not outcome_obj_id:
                 logger.info(f"Looking up learning outcome by code: {learning_outcome_id}")
                 logger.info(f"Database name: {db.name}")
@@ -213,22 +216,32 @@ class LearningOutcomeService:
                 import re
                 code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
                 outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
-                if not outcome:
+                if outcome:
+                    outcome_obj_id = outcome["_id"]
+                    logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
+                else:
                     logger.info(f"No learning outcome found with code: {learning_outcome_id}")
-                    return []
-                outcome_obj_id = outcome["_id"]
-                logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
             
-            logger.info(f"Querying evidence for student {student_obj_id} and outcome {outcome_obj_id}")
-            # Only return evidence that is not marked as deleted
-            evidence = await db.student_evidence.find({
+            # Build a query that will match evidence regardless of how it was stored
+            query = {
                 "student_id": student_obj_id,
-                "learning_outcome_id": outcome_obj_id,
                 "$or": [
                     {"deleted": {"$exists": False}},
                     {"deleted": False}
                 ]
-            }).to_list(None)
+            }
+            
+            # Add conditions to match either by ObjectId or by code string
+            id_conditions = []
+            if outcome_obj_id:
+                id_conditions.append({"learning_outcome_id": outcome_obj_id})
+            id_conditions.append({"learning_outcome_id": outcome_code})
+            id_conditions.append({"learning_outcome_code": outcome_code})
+            
+            query["$or"] = id_conditions
+            
+            logger.info(f"Querying evidence with: {query}")
+            evidence = await db.student_evidence.find(query).to_list(None)
             
             logger.info(f"Found {len(evidence)} evidence records")
             
@@ -243,49 +256,36 @@ class LearningOutcomeService:
                     else:
                         serialized_item[key] = value
                 
-                # Ensure the file_url field is properly formatted
-                if "file_url" in serialized_item:
-                    file_url = serialized_item["file_url"]
-                    # If it doesn't start with http, generate a presigned URL
-                    if not file_url.startswith("http"):
+                # Handle file paths for Cloudinary or Backblaze
+                if "file_path" in serialized_item:
+                    file_path = serialized_item["file_path"]
+                    # Generate optimized image URL
+                    try:
                         from ..services.file_storage_service import file_storage_service
+                        image_url = file_storage_service.generate_presigned_url(file_path)
+                        serialized_item["fileUrl"] = image_url
                         
-                        # Remove bucket name from the beginning if it's there
-                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
-                        if file_url.startswith(f"{bucket_name}/"):
-                            file_url = file_url[len(f"{bucket_name}/"):]
-                            
-                        # Generate a presigned URL with proper headers
-                        try:
-                            presigned_url = file_storage_service.generate_presigned_url(file_url)
-                            serialized_item["fileUrl"] = presigned_url
-                        except Exception as e:
-                            logger.error(f"Error generating presigned URL: {str(e)}")
-                            # Fallback to direct URL if presigned URL generation fails
-                            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                            serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                        # Generate thumbnail URL
+                        thumbnail_url = file_storage_service.generate_presigned_url(
+                            file_path, 
+                            width=150, 
+                            height=150, 
+                            quality=80
+                        )
+                        serialized_item["thumbnailUrl"] = thumbnail_url
+                    except Exception as e:
+                        logger.error(f"Error generating image URLs: {str(e)}")
+                        # Use direct URLs from upload if available
+                        if "file_url" in serialized_item:
+                            serialized_item["fileUrl"] = serialized_item["file_url"]
                 
-                # Handle thumbnail_url field similarly
-                if "thumbnail_url" in serialized_item:
-                    thumbnail_url = serialized_item["thumbnail_url"]
-                    # If it doesn't start with http, generate a presigned URL
-                    if thumbnail_url and not thumbnail_url.startswith("http"):
-                        from ..services.file_storage_service import file_storage_service
-                        
-                        # Remove bucket name from the beginning if it's there
-                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
-                        if thumbnail_url.startswith(f"{bucket_name}/"):
-                            thumbnail_url = thumbnail_url[len(f"{bucket_name}/"):]
-                            
-                        # Generate a presigned URL with proper headers
-                        try:
-                            presigned_url = file_storage_service.generate_presigned_url(thumbnail_url)
-                            serialized_item["thumbnailUrl"] = presigned_url
-                        except Exception as e:
-                            logger.error(f"Error generating presigned URL for thumbnail: {str(e)}")
-                            # Fallback to direct URL if presigned URL generation fails
-                            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                            serialized_item["thumbnailUrl"] = f"{backblaze_endpoint}/{bucket_name}/{thumbnail_url}"
+                # Fallback to existing file_url if available
+                if "fileUrl" not in serialized_item and "file_url" in serialized_item:
+                    serialized_item["fileUrl"] = serialized_item["file_url"]
+                
+                # Fallback to existing thumbnail_url if available
+                if "thumbnailUrl" not in serialized_item and "thumbnail_url" in serialized_item:
+                    serialized_item["thumbnailUrl"] = serialized_item["thumbnail_url"]
                 
                 serializable_evidence.append(serialized_item)
             

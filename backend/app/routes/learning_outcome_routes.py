@@ -69,6 +69,11 @@ async def get_evidence(
         logger.info(f"Fetching evidence for student {student_id} and outcome {learning_outcome_id}")
         evidence = await LearningOutcomeService.get_evidence(student_id, learning_outcome_id)
         logger.info(f"Found {len(evidence)} evidence records")
+        
+        # Log the first few evidence items for debugging
+        if evidence and len(evidence) > 0:
+            logger.info(f"First evidence item: {evidence[0].get('title', 'No title')} - {evidence[0].get('fileUrl', 'No URL')}")
+        
         return evidence
     except Exception as e:
         logger.error(f"Error fetching evidence: {str(e)}")
@@ -188,6 +193,7 @@ async def upload_evidence(
                 "student_id": ObjectId(student_id),
                 "learning_outcome_id": learning_outcome_id,
                 "learning_outcome_code": outcome_code_to_use, # Store the code used
+                "outcome_obj_id": outcome_obj_id, # Also store the ObjectId for future queries
                 "location": location, # New field
                 "file_path": file_path,
                 "file_type": file.content_type,
