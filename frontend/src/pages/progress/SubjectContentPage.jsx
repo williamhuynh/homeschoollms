@@ -7,7 +7,7 @@ import { getStudentBySlug, getLatestEvidenceForOutcomes } from '../../services/a
 import { NSWCurriculum } from '../../services/curriculum'
 import LazyImage from '../../components/common/LazyImage'
 import SignedImage from '../../components/common/SignedImage'
-import placeholderImage from '../../assets/images/evidence-placeholder.svg'
+import placeholderImage from '../../assets/images/placeholder-photo.jpg'
 
 // Feature flag for enabling SignedImage
 const USE_SIGNED_IMAGES = process.env.REACT_APP_USE_SIGNED_IMAGES === 'true' || true;
