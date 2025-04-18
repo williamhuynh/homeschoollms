@@ -24,7 +24,7 @@ async def get_signed_url(
 ):
     """
     Generate a signed URL for accessing a file in Backblaze B2 storage.
-    For images, also generates an optimized URL using Vercel's image optimization service.
+    For images, also generates an optimized URL using our proxy endpoint.
     """
     try:
         # Get the file storage service from the app
@@ -44,15 +44,15 @@ async def get_signed_url(
 
         # If image optimization is requested
         if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            # Construct the base URL for the image
-            base_url = f"https://s3.us-east-005.backblazeb2.com/homeschoollms/{file_path}"
-            
-            # Use Vercel's image optimization service
+            # Use our proxy endpoint
             vercel_url = "https://homeschool-lms.vercel.app"
-            encoded_base_url = urllib.parse.quote(base_url, safe='')
+            encoded_signed_url = urllib.parse.quote(signed_url, safe='')
             
-            # Construct the optimized URL
-            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_base_url}"
+            # Construct the proxy URL
+            proxy_url = f"{vercel_url}/api/images?url={encoded_signed_url}"
+            
+            # Use Vercel's image optimization with our proxy URL
+            optimized_url = f"{vercel_url}/_vercel/image?url={proxy_url}"
             
             if width:
                 optimized_url += f"&w={width}"

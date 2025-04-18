@@ -23,6 +23,13 @@
   "images": {
     "domains": ["s3.us-east-005.backblazeb2.com"],
     "minimumCacheTTL": 60,
-    "formats": ["image/avif", "image/webp"]
+    "formats": ["image/avif", "image/webp"],
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "s3.us-east-005.backblazeb2.com",
+        "pathname": "/homeschoollms/**"
+      }
+    ]
   }
 }
