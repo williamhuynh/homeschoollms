@@ -38,22 +38,31 @@ const SignedImage = ({
       return null;
     }
     
-    // For Cloudinary URLs, extract the public_id
-    const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload\/[^\/]+\/(.+)/);
+    // If it's already a file path (not a URL), return it as is
+    if (!url.startsWith('http')) {
+      return url;
+    }
+    
+    // For Cloudinary URLs, extract the file path
+    // Example: https://res.cloudinary.com/dbri1xgl8/image/upload/v1744944024/evidence/67fa07ef67851723907a596b/ENE-OLC-01/20250418024022-d822e99194a3492ba2d910ed2507fbde.png.png
+    const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload\/[^\/]+\/(.+?)(?:\?.*)?$/);
     if (cloudinaryMatch && cloudinaryMatch[1]) {
-      // Remove any query parameters and transformations
-      const path = cloudinaryMatch[1].split('?')[0];
-      // Remove any file extensions that might be added by Cloudinary
-      return path.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+      // Remove any double extensions
+      let path = cloudinaryMatch[1];
+      const extensionMatch = path.match(/(\.[^.\/]+)\1$/);
+      if (extensionMatch) {
+        path = path.replace(extensionMatch[0], extensionMatch[1]);
+      }
+      return path;
     }
     
     // For Backblaze URLs, extract the path after the bucket name
-    const backblazeMatch = url.match(/backblazeb2\.com\/[^\/]+\/(.+)/);
-    if (backblazeMatch && backblazeMatch[1]) {
-      return backblazeMatch[1];
+    const backblazeMatch = url.match(/backblazeb2\.com\/[^\/]+\/([^\/]+)\/(.+)/);
+    if (backblazeMatch && backblazeMatch[2]) {
+      return backblazeMatch[2];
     }
     
-    // For our API URLs, extract the path part
+    // For API URLs, extract the path part
     const apiMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
     if (apiMatch && apiMatch[1]) {
       return apiMatch[1];

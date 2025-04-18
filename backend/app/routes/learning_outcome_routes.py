@@ -166,44 +166,54 @@ async def upload_evidence(
             logger.info(f"Extracted extension: {file_extension}")
 
             # Upload to Backblaze B2 with thumbnail generation
+            file_storage_service = request.app.file_storage_service
             upload_result = await file_storage_service.upload_file(
-                file,
-                file_path,
-                generate_thumbnail=True,
-                thumbnail_size=(200, 200)  # Default thumbnail size
+                file=file,
+                file_path=file_path,
+                generate_thumbnail=True
             )
-            file_url = upload_result["original_url"] # Use the correct key for the main file URL
-            thumbnail_url = upload_result.get("thumbnail_small_url") # Use one of the available thumbnail URLs
             
-            logger.info(f"File uploaded successfully to: {file_url}")
-            if thumbnail_url:
-                logger.info(f"Thumbnail generated at: {thumbnail_url}")
-            else:
-                logger.warning(f"No thumbnail was generated for {file.filename}")
-
+            # Extract URLs from the result
+            original_url = upload_result.get("original_url")
+            thumbnail_url = upload_result.get("thumbnail_small_url")
+            
+            # Log the URLs
+            logger.info(f"File uploaded successfully to: {original_url}")
+            logger.info(f"Thumbnail generated at: {thumbnail_url}")
+            
             # Store file reference in database
+            collection = request.app.mongodb["evidence"]
+            
+            # Create document for insertion
             evidence_doc = {
                 "student_id": ObjectId(student_id),
-                "learning_outcome_id": outcome_obj_id, # The resolved ObjectId
-                "learning_area_code": learning_area_code, # New field
+                "learning_outcome_id": learning_outcome_id,
                 "learning_outcome_code": outcome_code_to_use, # Store the code used
                 "location": location, # New field
-                "file_url": file_url,
-                "thumbnail_url": thumbnail_url,  # New field for thumbnail URL
-                "file_name": file.filename,
+                "file_path": file_path,
+                "file_type": file.content_type,
+                "file_size": file.size,
+                "original_filename": file.filename,
+                "thumbnail_path": file_path,
                 "title": title, # Title is now mandatory
                 "description": description,
                 "uploaded_at": datetime.now(),
                 "uploaded_by": ObjectId(current_user.id)
             }
-            insert_result = await db.student_evidence.insert_one(evidence_doc)
+            
+            # Insert the document
+            insert_result = await collection.insert_one(evidence_doc)
             logger.info(f"Evidence record created with ID: {insert_result.inserted_id} for file {file.filename}")
             
+            # Build response with file info
             uploaded_files_info.append({
+                "id": str(insert_result.inserted_id),
                 "filename": file.filename,
-                "file_url": file_url,
-                "thumbnail_url": thumbnail_url,
-                "evidence_id": str(insert_result.inserted_id)
+                "file_path": file_path,
+                "file_type": file.content_type,
+                "file_size": file.size,
+                "title": title,
+                "description": description
             })
 
         except Exception as e:

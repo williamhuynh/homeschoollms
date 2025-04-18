@@ -23,64 +23,32 @@ async def get_signed_url(
     current_user: UserInDB = Depends(get_current_user)
 ):
     """
-    Generate a signed URL for accessing a file in Backblaze B2 storage.
-    For images, also generates an optimized URL using Cloudinary.
+    Generate a Cloudinary URL for accessing a file with optional transformations.
     """
     try:
         # Get the file storage service from the app
         file_storage_service = request.app.file_storage_service
         
-        # Generate signed URL using the file storage service
-        signed_url = file_storage_service.generate_presigned_url(
+        # Generate URL using the file storage service
+        image_url = file_storage_service.generate_presigned_url(
             file_path=file_path,
             expiration=expiration,
-            content_disposition=content_disposition
+            content_disposition=content_disposition,
+            width=width,
+            height=height,
+            quality=quality
         )
         
-        response = {
-            "signed_url": signed_url,
+        logger.info(f"Successfully generated Cloudinary URL for file: {file_path}")
+        return {
+            "signed_url": image_url,
             "expiration": expiration
         }
-
-        # If image optimization is requested
-        if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            # Get Cloudinary cloud name from environment
-            cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
-            if not cloud_name:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Cloudinary cloud name not configured"
-                )
-            
-            # Construct Cloudinary fetch URL
-            cloudinary_url = f"https://res.cloudinary.com/{cloud_name}/image/fetch"
-            
-            # Add transformations if specified
-            if width or height or quality:
-                cloudinary_url += "/"
-                transformations = []
-                if width:
-                    transformations.append(f"w_{width}")
-                if height:
-                    transformations.append(f"h_{height}")
-                if quality:
-                    transformations.append(f"q_{quality}")
-                cloudinary_url += ",".join(transformations)
-            
-            # Add the signed URL as the source
-            cloudinary_url += f"/{urllib.parse.quote(signed_url, safe='')}"
-            
-            response["optimized_url"] = cloudinary_url
-            logger.info(f"Generated Cloudinary optimized image URL: {width}x{height}")
-
-        logger.info(f"Successfully generated signed URL for file: {file_path}")
-        return response
-        
     except Exception as e:
-        logger.error(f"Error generating signed URL: {str(e)}")
+        logger.error(f"Error generating URL: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate signed URL: {str(e)}"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Error generating URL: {str(e)}"
         )
 
 @router.get("/files/check-existence", summary="Check if file exists")

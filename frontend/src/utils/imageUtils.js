@@ -175,13 +175,17 @@ export const getSignedImageUrl = async (filePath, options = {}) => {
     
     const response = await axios.get(
       `${API_BASE_URL}/files/signed-url?file_path=${encodeURIComponent(filePath)}&${params.toString()}`,
-      { withCredentials: true }
+      { 
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        }
+      }
     );
     
-    // Return both the signed URL and optimized URL if available
+    // The API now just returns a single signed_url, so use that for both properties
     return {
       signedUrl: response.data.signed_url,
-      optimizedUrl: response.data.optimized_url || response.data.signed_url
+      optimizedUrl: response.data.signed_url
     };
   } catch (error) {
     console.error('Error getting signed image URL:', error);

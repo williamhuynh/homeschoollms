@@ -49,12 +49,26 @@ class FileStorageService:
             # Cloudinary will add the extension automatically
             file_path_without_ext = os.path.splitext(file_path)[0]
             
-            # Upload to Cloudinary
+            # Upload to Backblaze B2 for backup/storage (not used for serving)
+            try:
+                self.s3.put_object(
+                    Bucket=self.bucket_name,
+                    Key=file_path,
+                    Body=file_data,
+                    ContentType=file.content_type
+                )
+                logger.info(f"File uploaded to Backblaze B2 (backup storage): {file_path}")
+            except Exception as e:
+                logger.error(f"Error uploading to Backblaze B2: {str(e)}")
+                # Continue even if Backblaze upload fails - we'll still use Cloudinary
+            
+            # Upload to Cloudinary for delivery/serving
             upload_result = cloudinary.uploader.upload(
                 file_data,
                 public_id=file_path_without_ext,
                 resource_type="auto"
             )
+            logger.info(f"File uploaded to Cloudinary (primary serving): {upload_result['secure_url']}")
             
             # Generate thumbnail if requested
             thumbnail_url = None
@@ -84,22 +98,43 @@ class FileStorageService:
             logger.error(f"Error uploading file: {str(e)}")
             raise Exception(f"Failed to upload file: {str(e)}")
 
-    def generate_presigned_url(self, file_path: str, expiration=3600, content_disposition='inline'):
+    def generate_presigned_url(self, file_path: str, expiration=3600, content_disposition='inline', width=None, height=None, quality=80):
         import logging
         logger = logging.getLogger(__name__)
         
         try:
-            # Generate Cloudinary URL with transformations
-            url = cloudinary.utils.cloudinary_url(
-                file_path,
-                secure=True,
-                sign_url=True
-            )[0]
+            # Get Cloudinary cloud name
+            cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
+            if not cloud_name:
+                logger.error("Cloudinary cloud name not configured")
+                raise Exception("Cloudinary cloud name not configured")
             
-            return url
+            # Remove file extension (if any) since Cloudinary will add the correct one
+            file_path_without_ext = os.path.splitext(file_path)[0]
+            
+            # Base Cloudinary URL
+            cloudinary_url = f"https://res.cloudinary.com/{cloud_name}/image/upload"
+            
+            # Add transformations if specified
+            transformations = []
+            if width:
+                transformations.append(f"w_{width}")
+            if height:
+                transformations.append(f"h_{height}")
+            if quality != 80:
+                transformations.append(f"q_{quality}")
+            
+            if transformations:
+                cloudinary_url += "/" + ",".join(transformations)
+            
+            # Add the public ID (without extension)
+            cloudinary_url += f"/{file_path_without_ext}"
+            
+            logger.info(f"Generated Cloudinary URL: {cloudinary_url}")
+            return cloudinary_url
         except Exception as e:
-            logger.error(f"Error generating presigned URL: {str(e)}")
-            raise Exception(f"Failed to generate presigned URL: {str(e)}")
+            logger.error(f"Error generating URL: {str(e)}")
+            raise Exception(f"Failed to generate URL: {str(e)}")
 
     async def generate_and_upload_thumbnail(self, file: UploadFile, original_path: str, size=(200, 200)):
         """Generate a thumbnail using Cloudinary."""
@@ -147,12 +182,38 @@ class FileStorageService:
             logger.info(f"Checking if file exists: {file_path}")
             
             # Use head_object to check if the file exists without downloading it
-            self.s3.head_object(Bucket=self.bucket_name, Key=file_path)
-            logger.info(f"File exists: {file_path}")
-            return True
+            try:
+                self.s3.head_object(Bucket=self.bucket_name, Key=file_path)
+                logger.info(f"File exists: {file_path}")
+                return True
+            except Exception as e:
+                logger.info(f"File not found with original path, checking for double extension: {str(e)}")
+                
+                # Check if there might be a double extension issue
+                file_name, file_ext = os.path.splitext(file_path)
+                if file_ext:
+                    # Try with double extension
+                    double_ext_path = f"{file_path}{file_ext}"
+                    try:
+                        self.s3.head_object(Bucket=self.bucket_name, Key=double_ext_path)
+                        logger.info(f"File exists with double extension: {double_ext_path}")
+                        return True
+                    except Exception:
+                        pass
+                    
+                    # Try without extension
+                    try:
+                        self.s3.head_object(Bucket=self.bucket_name, Key=file_name)
+                        logger.info(f"File exists without extension: {file_name}")
+                        return True
+                    except Exception:
+                        pass
+                
+                logger.info(f"File does not exist: {file_path}")
+                return False
         except Exception as e:
-            # If we get an error (like 404), the file doesn't exist
-            logger.info(f"File does not exist or error: {file_path} - {str(e)}")
+            # If we get an error, the file doesn't exist
+            logger.error(f"Error checking if file exists: {str(e)}")
             return False
 
 file_storage_service = FileStorageService()
