@@ -254,14 +254,23 @@ async def delete_evidence(
     """
     Mark evidence as deleted without removing it from storage.
     """
+    logger = logging.getLogger(__name__)
+    logger.info(f"Deleting evidence: {evidence_id} for student: {student_id}, outcome: {learning_outcome_id}")
+    
     try:
         result = await LearningOutcomeService.mark_evidence_as_deleted(
             student_id, 
             learning_outcome_id, 
             evidence_id
         )
+        logger.info(f"Successfully deleted evidence: {evidence_id}")
         return {"message": "Evidence marked as deleted", "success": True}
+    except HTTPException as he:
+        # Pass through HTTP exceptions with their original status codes
+        logger.error(f"HTTP error when deleting evidence: {he.status_code} - {he.detail}")
+        raise he
     except Exception as e:
+        logger.error(f"Unexpected error when deleting evidence: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}/download")
@@ -274,6 +283,9 @@ async def download_evidence(
     """
     Generate a download URL for the evidence file.
     """
+    logger = logging.getLogger(__name__)
+    logger.info(f"Generating download URL for evidence: {evidence_id} for student: {student_id}, outcome: {learning_outcome_id}")
+    
     try:
         download_url = await LearningOutcomeService.generate_evidence_download_url(
             student_id, 
@@ -281,7 +293,12 @@ async def download_evidence(
             evidence_id
         )
         return {"download_url": download_url}
+    except HTTPException as he:
+        # Pass through HTTP exceptions with their original status codes
+        logger.error(f"HTTP error when generating download URL: {he.status_code} - {he.detail}")
+        raise he
     except Exception as e:
+        logger.error(f"Unexpected error when generating download URL: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}/share")
@@ -294,6 +311,9 @@ async def share_evidence(
     """
     Generate a shareable URL for the evidence file.
     """
+    logger = logging.getLogger(__name__)
+    logger.info(f"Generating share URL for evidence: {evidence_id} for student: {student_id}, outcome: {learning_outcome_id}")
+    
     try:
         share_url = await LearningOutcomeService.generate_evidence_share_url(
             student_id, 
@@ -301,5 +321,10 @@ async def share_evidence(
             evidence_id
         )
         return {"share_url": share_url}
+    except HTTPException as he:
+        # Pass through HTTP exceptions with their original status codes
+        logger.error(f"HTTP error when generating share URL: {he.status_code} - {he.detail}")
+        raise he
     except Exception as e:
+        logger.error(f"Unexpected error when generating share URL: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

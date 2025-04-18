@@ -301,31 +301,57 @@ class LearningOutcomeService:
         """
         try:
             db = Database.get_db()
+            logger = logging.getLogger(__name__)
             
             # Convert IDs to ObjectId
             student_obj_id = ObjectId(student_id)
             evidence_obj_id = ObjectId(evidence_id)
             
+            logger.info(f"Marking evidence as deleted: student_id={student_id}, learning_outcome_id={learning_outcome_id}, evidence_id={evidence_id}")
+            
             # Try to find outcome by ObjectId first
+            outcome_obj_id = None
             try:
                 outcome_obj_id = ObjectId(learning_outcome_id)
+                logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
             except:
+                outcome_obj_id = None
+                logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
+                
                 # If conversion fails, look up by code (case-insensitive)
                 import re
                 code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
                 outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
-                if not outcome:
-                    raise HTTPException(status_code=404, detail="Learning outcome not found")
-                outcome_obj_id = outcome["_id"]
+                if outcome:
+                    outcome_obj_id = outcome["_id"]
+                    logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
+                else:
+                    logger.info(f"No learning outcome found with code: {learning_outcome_id}")
             
-            # Find the evidence
-            evidence = await db.student_evidence.find_one({
+            # Build a query that will match evidence regardless of how it was stored
+            query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
-                "learning_outcome_id": outcome_obj_id
-            })
+            }
+            
+            # Add conditions to match either by ObjectId or by code string
+            id_conditions = []
+            if outcome_obj_id:
+                id_conditions.append({"learning_outcome_id": outcome_obj_id})
+                id_conditions.append({"outcome_obj_id": outcome_obj_id})
+            id_conditions.append({"learning_outcome_id": learning_outcome_id})
+            id_conditions.append({"learning_outcome_code": learning_outcome_id})
+            
+            if id_conditions:
+                query["$or"] = id_conditions
+                
+            logger.info(f"Querying evidence with: {query}")
+            
+            # Find the evidence
+            evidence = await db.student_evidence.find_one(query)
             
             if not evidence:
+                logger.error(f"Evidence not found: ID={evidence_id}, student={student_id}, outcome={learning_outcome_id}")
                 raise HTTPException(status_code=404, detail="Evidence not found")
             
             # Mark as deleted
@@ -335,12 +361,17 @@ class LearningOutcomeService:
             )
             
             if result.modified_count == 0:
+                logger.error(f"Failed to mark evidence {evidence_id} as deleted")
                 raise HTTPException(status_code=500, detail="Failed to mark evidence as deleted")
                 
+            logger.info(f"Successfully marked evidence {evidence_id} as deleted")
             return {"success": True}
+        except HTTPException as he:
+            logger.error(f"HTTP error marking evidence as deleted: {str(he)}")
+            raise he
         except Exception as e:
             logger.error(f"Error marking evidence as deleted: {str(e)}", exc_info=True)
-            raise Exception(f"Failed to mark evidence as deleted: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to mark evidence as deleted: {str(e)}")
     
     @staticmethod
     async def generate_evidence_download_url(student_id: str, learning_outcome_id: str, evidence_id: str):
@@ -349,36 +380,63 @@ class LearningOutcomeService:
         """
         try:
             db = Database.get_db()
+            logger = logging.getLogger(__name__)
             
             # Convert IDs to ObjectId
             student_obj_id = ObjectId(student_id)
             evidence_obj_id = ObjectId(evidence_id)
             
+            logger.info(f"Generating download URL: student_id={student_id}, learning_outcome_id={learning_outcome_id}, evidence_id={evidence_id}")
+            
             # Try to find outcome by ObjectId first
+            outcome_obj_id = None
             try:
                 outcome_obj_id = ObjectId(learning_outcome_id)
+                logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
             except:
+                outcome_obj_id = None
+                logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
+                
                 # If conversion fails, look up by code (case-insensitive)
                 import re
                 code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
                 outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
-                if not outcome:
-                    raise HTTPException(status_code=404, detail="Learning outcome not found")
-                outcome_obj_id = outcome["_id"]
+                if outcome:
+                    outcome_obj_id = outcome["_id"]
+                    logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
+                else:
+                    logger.info(f"No learning outcome found with code: {learning_outcome_id}")
             
-            # Find the evidence
-            evidence = await db.student_evidence.find_one({
+            # Build a query that will match evidence regardless of how it was stored
+            query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
-                "learning_outcome_id": outcome_obj_id
-            })
+            }
+            
+            # Add conditions to match either by ObjectId or by code string
+            id_conditions = []
+            if outcome_obj_id:
+                id_conditions.append({"learning_outcome_id": outcome_obj_id})
+                id_conditions.append({"outcome_obj_id": outcome_obj_id})
+            id_conditions.append({"learning_outcome_id": learning_outcome_id})
+            id_conditions.append({"learning_outcome_code": learning_outcome_id})
+            
+            if id_conditions:
+                query["$or"] = id_conditions
+                
+            logger.info(f"Querying evidence with: {query}")
+            
+            # Find the evidence
+            evidence = await db.student_evidence.find_one(query)
             
             if not evidence:
+                logger.error(f"Evidence not found: ID={evidence_id}, student={student_id}, outcome={learning_outcome_id}")
                 raise HTTPException(status_code=404, detail="Evidence not found")
             
             # Get the file URL
             file_url = evidence.get("file_url")
             if not file_url:
+                logger.error(f"File URL not found for evidence: {evidence_id}")
                 raise HTTPException(status_code=404, detail="File URL not found")
             
             # Generate a download URL with appropriate headers
@@ -397,15 +455,19 @@ class LearningOutcomeService:
                     expiration=86400,  # 24 hours
                     content_disposition=f'attachment; filename="{evidence.get("file_name", "download")}"'
                 )
+                logger.info(f"Generated download URL for evidence: {evidence_id}")
                 return download_url
             except Exception as e:
                 logger.error(f"Error generating download URL: {str(e)}")
                 # Fallback to direct URL if presigned URL generation fails
                 backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
                 return f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+        except HTTPException as he:
+            logger.error(f"HTTP error generating download URL: {str(he)}")
+            raise he
         except Exception as e:
             logger.error(f"Error generating download URL: {str(e)}", exc_info=True)
-            raise Exception(f"Failed to generate download URL: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate download URL: {str(e)}")
     
     @staticmethod
     async def generate_evidence_share_url(student_id: str, learning_outcome_id: str, evidence_id: str):
@@ -414,36 +476,63 @@ class LearningOutcomeService:
         """
         try:
             db = Database.get_db()
+            logger = logging.getLogger(__name__)
             
             # Convert IDs to ObjectId
             student_obj_id = ObjectId(student_id)
             evidence_obj_id = ObjectId(evidence_id)
             
+            logger.info(f"Generating share URL: student_id={student_id}, learning_outcome_id={learning_outcome_id}, evidence_id={evidence_id}")
+            
             # Try to find outcome by ObjectId first
+            outcome_obj_id = None
             try:
                 outcome_obj_id = ObjectId(learning_outcome_id)
+                logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
             except:
+                outcome_obj_id = None
+                logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
+                
                 # If conversion fails, look up by code (case-insensitive)
                 import re
                 code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
                 outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
-                if not outcome:
-                    raise HTTPException(status_code=404, detail="Learning outcome not found")
-                outcome_obj_id = outcome["_id"]
+                if outcome:
+                    outcome_obj_id = outcome["_id"]
+                    logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
+                else:
+                    logger.info(f"No learning outcome found with code: {learning_outcome_id}")
             
-            # Find the evidence
-            evidence = await db.student_evidence.find_one({
+            # Build a query that will match evidence regardless of how it was stored
+            query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
-                "learning_outcome_id": outcome_obj_id
-            })
+            }
+            
+            # Add conditions to match either by ObjectId or by code string
+            id_conditions = []
+            if outcome_obj_id:
+                id_conditions.append({"learning_outcome_id": outcome_obj_id})
+                id_conditions.append({"outcome_obj_id": outcome_obj_id})
+            id_conditions.append({"learning_outcome_id": learning_outcome_id})
+            id_conditions.append({"learning_outcome_code": learning_outcome_id})
+            
+            if id_conditions:
+                query["$or"] = id_conditions
+                
+            logger.info(f"Querying evidence with: {query}")
+            
+            # Find the evidence
+            evidence = await db.student_evidence.find_one(query)
             
             if not evidence:
+                logger.error(f"Evidence not found: ID={evidence_id}, student={student_id}, outcome={learning_outcome_id}")
                 raise HTTPException(status_code=404, detail="Evidence not found")
             
             # Get the file URL
             file_url = evidence.get("file_url")
             if not file_url:
+                logger.error(f"File URL not found for evidence: {evidence_id}")
                 raise HTTPException(status_code=404, detail="File URL not found")
             
             # Generate a shareable URL with appropriate headers
@@ -462,12 +551,16 @@ class LearningOutcomeService:
                     expiration=604800,  # 7 days
                     content_disposition='inline'
                 )
+                logger.info(f"Generated share URL for evidence: {evidence_id}")
                 return share_url
             except Exception as e:
                 logger.error(f"Error generating share URL: {str(e)}")
                 # Fallback to direct URL if presigned URL generation fails
                 backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
                 return f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+        except HTTPException as he:
+            logger.error(f"HTTP error generating share URL: {str(he)}")
+            raise he
         except Exception as e:
             logger.error(f"Error generating share URL: {str(e)}", exc_info=True)
-            raise Exception(f"Failed to generate share URL: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate share URL: {str(e)}")
