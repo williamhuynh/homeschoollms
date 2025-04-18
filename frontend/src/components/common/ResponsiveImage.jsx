@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { Box, Skeleton } from '@chakra-ui/react';
-import { getAppropriateImageSize, getThumbnailUrl, preloadImage, isWebPSupported } from '../../utils/imageUtils';
-import { getAuthenticatedImageUrl } from '../../services/imageService';
+import React, { useState, useEffect } from 'react';
+import { Box, Image, Skeleton } from '@chakra-ui/react';
+import { getSignedImageUrl } from '../../utils/imageUtils';
 
 /**
  * A responsive image component that uses thumbnails, lazy loading, and progressive loading
@@ -22,304 +21,117 @@ import { getAuthenticatedImageUrl } from '../../services/imageService';
  *   />
  * )
  */
-const ResponsiveImage = ({ 
-  image, 
-  alt = '', 
-  width = '100%', 
-  height = 'auto', 
+const ResponsiveImage = ({
+  image,
+  alt,
+  width = '100%',
+  height = 'auto',
   objectFit = 'cover',
   borderRadius = 'md',
-  fallbackSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-  isVisible = false, // Add isVisible prop
+  isVisible = true,
+  onLoad,
+  onError,
   ...props
 }) => {
-  const [loading, setLoading] = useState(true);
-  const [currentSrc, setCurrentSrc] = useState(null);
-  const [error, setError] = useState(false);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [supportsWebP, setSupportsWebP] = useState(false);
-  const containerRef = useRef(null);
-  const imgRef = useRef(null);
-  const observerRef = useRef(null);
+  const [imageUrl, setImageUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Function to load the image progressively
-  const loadImageProgressively = () => {
-    if (!image) {
-      console.log('No image provided to ResponsiveImage');
-      return;
-    }
-
-    // Handle blob URLs directly for local previews
-    if (image.original_url && image.original_url.startsWith('blob:')) {
-      console.log('ResponsiveImage: Handling blob URL directly:', image.original_url);
-      setCurrentSrc(image.original_url);
-      setLoading(false);
-      setError(false); // Ensure error state is reset
-      return; // Skip progressive loading for blobs
-    }
-
-    // Check for and fix any direct references to [...path].js
-    const fixedImage = { ...image };
-    const bucketName = 'homeschoollms'; // Your configured bucket name
-
-    // Fix any URLs that directly reference the edge function file
-    ['original_url', 'thumbnail_small_url', 'thumbnail_medium_url', 'thumbnail_large_url'].forEach(urlKey => {
-      if (fixedImage[urlKey] && fixedImage[urlKey].includes('[...path].js')) {
-        // Replace direct file reference with proper URL format
-        fixedImage[urlKey] = fixedImage[urlKey].replace(
-          /\/api\/images\/\[\.\.\.(path|params)\]\.js/i, 
-          `/api/images/${bucketName}`
-        );
-        console.log(`Fixed direct file access in ${urlKey}:`, fixedImage[urlKey]);
-      }
-    });
-
-    // Log the image object structure
-    console.log('ResponsiveImage received image:', {
-      image: fixedImage,
-      urls: {
-        original: fixedImage.original_url,
-        small: fixedImage.thumbnail_small_url,
-        medium: fixedImage.thumbnail_medium_url,
-        large: fixedImage.thumbnail_large_url
-      }
-    });
-
-    // Reset states
-    setError(false);
-    
-    // Start with small thumbnail (or fallback to original if no thumbnails)
-    const smallSrc = getThumbnailUrl(fixedImage, 'small');
-    console.log('Initial thumbnail URL:', {
-      image: fixedImage,
-      smallSrc,
-      thumbnails: {
-        small: fixedImage.thumbnail_small_url,
-        medium: fixedImage.thumbnail_medium_url,
-        large: fixedImage.thumbnail_large_url,
-        original: fixedImage.original_url
-      }
-    });
-    
-    // Get authenticated URL if needed
-    getAuthenticatedImageUrl(smallSrc)
-      .then(authenticatedUrl => {
-        console.log('Using authenticated URL:', authenticatedUrl);
-        setCurrentSrc(authenticatedUrl);
-      })
-      .catch(error => {
-        console.error('Error getting authenticated URL:', error);
-        setCurrentSrc(smallSrc);
-      });
-    
-    // Determine appropriate size based on container
-    const containerWidth = imgRef.current?.parentElement?.clientWidth || 0;
-    const containerHeight = imgRef.current?.parentElement?.clientHeight || 0;
-    
-    const size = getAppropriateImageSize({
-      containerWidth,
-      containerHeight,
-      displayType: 'thumbnail',
-      highDensityDisplay: window.devicePixelRatio > 1
-    });
-    
-    // Prepare transformation options
-    const transformOptions = {
-      width: containerWidth * (window.devicePixelRatio || 1),
-      height: containerHeight * (window.devicePixelRatio || 1),
-      format: supportsWebP ? 'webp' : undefined,
-      quality: 80
-    };
-    
-    // Prepare the next image to load based on size and transformations
-    const nextSrc = getThumbnailUrl(fixedImage, size, transformOptions);
-    console.log('Next image URL:', {
-      size,
-      transformOptions,
-      nextSrc
-    });
-    
-    // If we're already using the best size, no need to load another image
-    if (nextSrc === smallSrc) {
-      setLoading(false);
-      return;
-    }
-    
-    // Get authenticated URL for the next size
-    getAuthenticatedImageUrl(nextSrc)
-      .then(authenticatedNextSrc => {
-        // Preload the authenticated next size with transformations
-        return preloadImage(authenticatedNextSrc)
-          .then(() => authenticatedNextSrc);
-      })
-      .then((authenticatedNextSrc) => {
-        setCurrentSrc(authenticatedNextSrc);
-        
-        // If this isn't the original, preload the original for highest quality
-        if (nextSrc !== fixedImage.original_url && fixedImage.original_url) {
-          // For original, we might still want some transformations like format conversion
-          const originalWithTransforms = getThumbnailUrl(
-            { original_url: fixedImage.original_url },
-            'original',
-            { format: supportsWebP ? 'webp' : undefined }
-          );
-          
-          return getAuthenticatedImageUrl(originalWithTransforms)
-            .then(authenticatedOriginalUrl => {
-              return preloadImage(authenticatedOriginalUrl)
-                .then(() => {
-                  setCurrentSrc(authenticatedOriginalUrl);
-                  setLoading(false);
-                });
-            })
-            .catch(() => {
-              // If original fails, we still have a good thumbnail
-              setLoading(false);
-            });
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        // If next size fails, stay with small thumbnail
-        setLoading(false);
-      });
-  };
-
-  // Check WebP support on mount
   useEffect(() => {
-    isWebPSupported().then(supported => {
-      setSupportsWebP(supported);
-    });
-  }, []);
+    let mounted = true;
 
-  // Load image when component becomes visible
-  useEffect(() => {
-    if (isVisible && image) {
-      loadImageProgressively();
-    }
-    // We only want this to run when isVisible changes from false to true,
-    // or when the image prop itself changes while visible.
-  }, [isVisible, image]);
+    async function loadImage() {
+      if (!image || !isVisible) return;
 
-  // Handle window resize to potentially load different size
-  useEffect(() => {
-    const handleResize = () => {
-      if (imgRef.current && imgRef.current.complete) {
-        const containerWidth = imgRef.current?.parentElement?.clientWidth || 0;
-        const containerHeight = imgRef.current?.parentElement?.clientHeight || 0;
-        const newSize = getAppropriateImageSize({
-          containerWidth,
-          containerHeight,
-          displayType: 'thumbnail',
-          highDensityDisplay: window.devicePixelRatio > 1
-        });
-        
-        // Prepare transformation options for the new size
-        const transformOptions = {
-          width: containerWidth * (window.devicePixelRatio || 1),
-          height: containerHeight * (window.devicePixelRatio || 1),
-          format: supportsWebP ? 'webp' : undefined, // Use WebP if supported
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Get the appropriate image URL with optimization
+        const result = await getSignedImageUrl(image.original_url, {
+          width: width,
+          height: height,
           quality: 80
-        };
-        
-        // Determine current size from the URL
-        let currentSize;
-        if (currentSrc?.includes('_thumb_small')) currentSize = 'small';
-        else if (currentSrc?.includes('_thumb_medium')) currentSize = 'medium';
-        else if (currentSrc?.includes('_thumb_large')) currentSize = 'large';
-        else currentSize = 'original';
-        
-        // Only reload if we need a larger size than currently displayed
-        const sizeOrder = { small: 1, medium: 2, large: 3, original: 4 };
-        if (sizeOrder[newSize] > sizeOrder[currentSize]) {
-          loadImageProgressively();
+        });
+
+        if (mounted) {
+          setImageUrl(result.optimizedUrl);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err);
+          setIsLoading(false);
+          if (onError) onError(err);
         }
       }
+    }
+
+    loadImage();
+
+    return () => {
+      mounted = false;
     };
+  }, [image, width, height, isVisible, onError]);
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [currentSrc, image]);
+  if (!isVisible) return null;
 
-  // Handle image load error
-  const handleError = () => {
-    console.error('Image load error:', {
-      currentSrc,
-      image,
-      dimensions
-    });
-    setError(true);
-    setLoading(false);
-  };
-
-  // If no image data is provided
-  if (!image) {
-    return (
-      <Box 
-        width={width} 
-        height={height} 
-        bg="gray.100" 
-        borderRadius={borderRadius}
-        {...props}
-      />
-    );
-  }
-// Calculate and set initial dimensions
-useEffect(() => {
-  if (containerRef.current) {
-    const { clientWidth, clientHeight } = containerRef.current;
-    setDimensions({
-      width: clientWidth,
-      height: clientHeight
-    });
-  }
-}, [width, height]);
-
-return (
-  <Box
-    ref={containerRef}
-    position="relative"
-    width={width}
-    height={height}
-    overflow="hidden"
-    {...props}
-  >
-    {loading && (
-      <Skeleton
-        position="absolute"
-        top="0"
-        left="0"
-        width="100%"
-        height="100%"
-        borderRadius={borderRadius}
-        startColor="gray.100"
-        endColor="gray.300"
-        style={{
-          aspectRatio: dimensions.width ? dimensions.width / dimensions.height : 'auto'
-        }}
-      />
-    )}
+  return (
     <Box
-      as="img"
-      ref={imgRef}
-      src={currentSrc || (error ? fallbackSrc : null)}
-      alt={alt}
-      width="100%"
-      height="100%"
-      objectFit={objectFit}
+      position="relative"
+      width={width}
+      height={height}
       borderRadius={borderRadius}
-      opacity={loading ? 0.3 : 1}
-      transition="opacity 0.3s ease"
-      onError={handleError}
-      style={{
-        filter: loading ? 'blur(10px)' : 'none',
-        transition: 'filter 0.3s ease, opacity 0.3s ease',
-        aspectRatio: dimensions.width ? dimensions.width / dimensions.height : 'auto'
-      }}
-    />
-  </Box>
-);
+      overflow="hidden"
+      {...props}
+    >
+      {isLoading && (
+        <Skeleton
+          position="absolute"
+          top={0}
+          left={0}
+          width="100%"
+          height="100%"
+        />
+      )}
+      
+      {imageUrl && (
+        <Image
+          src={imageUrl}
+          alt={alt}
+          width="100%"
+          height="100%"
+          objectFit={objectFit}
+          onLoad={() => {
+            setIsLoading(false);
+            if (onLoad) onLoad();
+          }}
+          onError={(e) => {
+            setError(e);
+            setIsLoading(false);
+            if (onError) onError(e);
+          }}
+        />
+      )}
+      
+      {error && (
+        <Box
+          position="absolute"
+          top={0}
+          left={0}
+          width="100%"
+          height="100%"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          bg="gray.100"
+          color="gray.500"
+        >
+          Failed to load image
+        </Box>
+      )}
+    </Box>
+  );
 };
 
 export default ResponsiveImage;

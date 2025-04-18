@@ -4,14 +4,6 @@
     {
       "src": "/api/files/signed-url",
       "dest": "/api/files/signed-url.js"
-    },
-    {
-      "src": "/api/images/redirect",
-      "dest": "/api/images/redirect.js"
-    },
-    {
-      "src": "/api/images/(.*)",
-      "dest": "/api/images/[...path].js"
     }
   ],
   "env": {

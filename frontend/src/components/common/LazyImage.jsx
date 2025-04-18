@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { Box, Skeleton } from '@chakra-ui/react';
-import ResponsiveImage from './ResponsiveImage';
+import React, { useState, useEffect } from 'react';
+import { Box, Image, Skeleton } from '@chakra-ui/react';
+import { getSignedImageUrl } from '../../utils/imageUtils';
 
 /**
  * A lazy-loading wrapper for the ResponsiveImage component
@@ -23,82 +23,139 @@ import ResponsiveImage from './ResponsiveImage';
  *   />
  * )
  */
-const LazyImage = ({ 
-  image, 
-  alt = '', 
-  width = '100%', 
+const LazyImage = ({
+  image,
+  alt,
+  width = '100%',
   height = 'auto',
-  aspectRatio,
   objectFit = 'cover',
   borderRadius = 'md',
+  onLoad,
+  onError,
   ...props
 }) => {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const containerRef = useRef(null);
-  const observerRef = useRef(null);
 
-  // Calculate height based on aspect ratio if provided
-  const calculatedHeight = aspectRatio && width !== 'auto' ? 
-    typeof width === 'number' ? 
-      `${width / aspectRatio}px` : 
-      `calc(${width} / ${aspectRatio})` 
-    : height;
-
-  // Set up intersection observer for lazy loading
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    observerRef.current = new IntersectionObserver((entries) => {
-      const [entry] = entries;
-      if (entry.isIntersecting) {
-        setIsVisible(true);
-        // Unobserve after becoming visible
-        observerRef.current.unobserve(containerRef.current);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '50px',
+        threshold: 0.1
       }
-    }, {
-      rootMargin: '200px', // Start loading when image is 200px from viewport
-      threshold: 0.01,
-    });
+    );
 
-    observerRef.current.observe(containerRef.current);
+    const element = document.getElementById(`lazy-image-${image?.original_url}`);
+    if (element) {
+      observer.observe(element);
+    }
 
     return () => {
-      if (observerRef.current && containerRef.current) {
-        observerRef.current.unobserve(containerRef.current);
+      if (element) {
+        observer.unobserve(element);
       }
     };
-  }, [width, height, aspectRatio]);
+  }, [image]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadImage() {
+      if (!image || !isVisible) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Get the appropriate image URL with optimization
+        const result = await getSignedImageUrl(image.original_url, {
+          width: width,
+          height: height,
+          quality: 80
+        });
+
+        if (mounted) {
+          setImageUrl(result.optimizedUrl);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err);
+          setIsLoading(false);
+          if (onError) onError(err);
+        }
+      }
+    }
+
+    loadImage();
+
+    return () => {
+      mounted = false;
+    };
+  }, [image, width, height, isVisible, onError]);
 
   return (
-    <Box 
-      ref={containerRef}
+    <Box
+      id={`lazy-image-${image?.original_url}`}
       position="relative"
       width={width}
-      height={calculatedHeight}
-      className="lazy-image-container"
-      data-testid="lazy-image"
+      height={height}
+      borderRadius={borderRadius}
+      overflow="hidden"
       {...props}
     >
-      {isVisible ? (
-        <ResponsiveImage
-          image={image}
+      {isLoading && (
+        <Skeleton
+          position="absolute"
+          top={0}
+          left={0}
+          width="100%"
+          height="100%"
+        />
+      )}
+      
+      {imageUrl && (
+        <Image
+          src={imageUrl}
           alt={alt}
           width="100%"
           height="100%"
           objectFit={objectFit}
-          borderRadius={borderRadius}
-          onLoad={() => setIsLoaded(true)}
-          isVisible={isVisible} // Pass isVisible state down
+          onLoad={() => {
+            setIsLoading(false);
+            if (onLoad) onLoad();
+          }}
+          onError={(e) => {
+            setError(e);
+            setIsLoading(false);
+            if (onError) onError(e);
+          }}
         />
-      ) : (
-        <Skeleton
+      )}
+      
+      {error && (
+        <Box
+          position="absolute"
+          top={0}
+          left={0}
           width="100%"
           height="100%"
-          borderRadius={borderRadius}
-          startColor="gray.100"
-          endColor="gray.300"
-        />
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          bg="gray.100"
+          color="gray.500"
+        >
+          Failed to load image
+        </Box>
       )}
     </Box>
   );

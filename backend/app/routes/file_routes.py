@@ -23,78 +23,33 @@ async def get_signed_url(
     current_user: UserInDB = Depends(get_current_user)
 ):
     """
-    Generate a signed URL for accessing a file in storage.
-    
-    ## Parameters:
-    - **file_path**: Path to the file in storage (required)
-    - **width**: Optional width for image resize
-    - **height**: Optional height for image resize
-    - **quality**: Image quality (1-100), default is 80
-    - **expiration**: URL expiration time in seconds (default: 1 hour)
-    - **content_disposition**: How the file should be presented (inline or attachment)
-    
-    ## Returns:
-    A signed URL that can be used to access the file directly, and optionally 
-    a Vercel-optimized image URL if width/height parameters are provided.
-    
-    ## Notes:
-    - For images, you can optionally specify width, height, and quality parameters
-    - The system will automatically determine the appropriate content type based on file extension
-    - Authentication is required to generate signed URLs
+    Generate a signed URL for accessing a file in Backblaze B2 storage.
+    For images, also generates an optimized URL using Vercel's image optimization service.
     """
     try:
-        logger.info(f"Generating signed URL for file: {file_path}")
-        logger.info(f"Requested by user: {current_user.email}")
-        logger.info(f"Parameters - Width: {width}, Height: {height}, Quality: {quality}, Expiration: {expiration}s")
-        
-        if not file_path:
-            logger.error("Missing file path parameter")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="File path is required"
-            )
-        
-        # Generate the signed URL using the file storage service
-        signed_url = file_storage_service.generate_presigned_url(
-            file_path=file_path,
-            expiration=expiration,
-            content_disposition=content_disposition
+        # Generate signed URL with longer expiration
+        signed_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': bucket_name,
+                'Key': file_path,
+                'ResponseContentDisposition': content_disposition
+            },
+            ExpiresIn=expiration
         )
         
-        if not signed_url:
-            logger.error(f"Failed to generate signed URL for file: {file_path}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to generate signed URL"
-            )
-        
-        # Prepare the response
         response = {
-            "signed_url": signed_url, 
+            "signed_url": signed_url,
             "expiration": expiration
         }
-        
-        # If width or height parameters are provided, use Vercel's built-in image optimization
-        # Use a hardcoded production URL instead of relying on environment variable
-        vercel_url = "https://homeschool-lms.vercel.app"
+
+        # If image optimization is requested
         if (width or height) and file_path.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
-            # Instead of using our API route, construct a direct URL to Backblaze B2
-            # Format: https://<bucket_name>.s3.us-east-005.backblazeb2.com/<path>
-            bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
-            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
+            vercel_url = "https://homeschool-lms.vercel.app"
+            encoded_signed_url = urllib.parse.quote(signed_url, safe='')
             
-            # Remove https:// from the endpoint
-            backblaze_host = backblaze_endpoint.replace('https://', '')
-            
-            # Construct the direct Backblaze URL
-            direct_url = f"https://{bucket_name}.{backblaze_host}/{file_path}"
-            logger.info(f"Constructed direct Backblaze URL: {direct_url}")
-            
-            # URL encode the direct URL for Vercel's image optimization
-            encoded_direct_url = urllib.parse.quote(direct_url, safe='')
-            
-            # Format URL for Vercel's image optimization
-            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_direct_url}"
+            # Direct Vercel image optimization URL
+            optimized_url = f"{vercel_url}/_vercel/image?url={encoded_signed_url}"
             
             if width:
                 optimized_url += f"&w={width}"
@@ -104,8 +59,8 @@ async def get_signed_url(
                 optimized_url += f"&q={quality}"
                 
             response["optimized_url"] = optimized_url
-            logger.info(f"Generated optimized image URL using direct Backblaze URL: {width}x{height}")
-        
+            logger.info(f"Generated optimized image URL: {width}x{height}")
+
         logger.info(f"Successfully generated signed URL for file: {file_path}")
         return response
         
