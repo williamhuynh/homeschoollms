@@ -153,10 +153,10 @@ async def upload_evidence(
             unique_id = uuid.uuid4()
             # Get the file extension without the dot and ensure it's lowercase
             file_extension = os.path.splitext(file.filename)[1].lower()
-            # Remove any existing extension from the unique_id
-            unique_id_str = str(unique_id)
+            # Remove any existing extension from the unique_id and clean it
+            unique_id_str = str(unique_id).replace('-', '')  # Remove hyphens
             if '.' in unique_id_str:
-                unique_id_str = unique_id_str.split('.')[0]
+                unique_id_str = unique_id_str.split('.')[0]  # Remove any extension
             # Example path: evidence/student_id/outcome_id/20250410202100-uuid-guid.jpg
             file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}-{unique_id_str}{file_extension}"
             
