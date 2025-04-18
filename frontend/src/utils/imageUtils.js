@@ -166,6 +166,18 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export const getSignedImageUrl = async (filePath, options = {}) => {
   try {
+    // If it's a blob URL or starts with http and isn't a backend path, return it directly
+    if (!filePath) {
+      throw new Error("No file path provided");
+    }
+    
+    if (filePath.startsWith('blob:')) {
+      return {
+        signedUrl: filePath,
+        optimizedUrl: filePath
+      };
+    }
+    
     const { width, height, quality = 80 } = options;
     const params = new URLSearchParams();
     

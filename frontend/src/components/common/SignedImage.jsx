@@ -85,6 +85,13 @@ const SignedImage = ({
         setIsLoading(true);
         setError(null);
 
+        // If it's a blob URL, use it directly for preview
+        if (imagePath.startsWith('blob:')) {
+          setImageUrl(imagePath);
+          setIsLoading(false);
+          return;
+        }
+
         // Extract the actual file path
         const actualFilePath = extractFilePath(imagePath);
         

@@ -166,7 +166,6 @@ async def upload_evidence(
             logger.info(f"Extracted extension: {file_extension}")
 
             # Upload to Backblaze B2 with thumbnail generation
-            file_storage_service = request.app.file_storage_service
             upload_result = await file_storage_service.upload_file(
                 file=file,
                 file_path=file_path,
@@ -182,7 +181,7 @@ async def upload_evidence(
             logger.info(f"Thumbnail generated at: {thumbnail_url}")
             
             # Store file reference in database
-            collection = request.app.mongodb["evidence"]
+            collection = db["evidence"]
             
             # Create document for insertion
             evidence_doc = {
