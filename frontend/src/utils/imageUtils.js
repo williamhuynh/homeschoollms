@@ -178,9 +178,18 @@ export const getSignedImageUrl = async (filePath, options = {}) => {
       { withCredentials: true }
     );
     
-    return response.data.optimized_url || response.data.signed_url;
+    // Return both the signed URL and optimized URL if available
+    return {
+      signedUrl: response.data.signed_url,
+      optimizedUrl: response.data.optimized_url || response.data.signed_url
+    };
   } catch (error) {
     console.error('Error getting signed image URL:', error);
+    // If the error is a 404, it means the file doesn't exist or the path is invalid
+    if (error.response?.status === 404) {
+      throw new Error('Image not found or invalid file path');
+    }
+    // For other errors, throw the original error
     throw error;
   }
 };
@@ -197,8 +206,8 @@ export const getResponsiveSrcset = async (filePath, options = {}) => {
   const { sizes = [320, 640, 1024, 1600], quality = 80 } = options;
   
   const srcsetPromises = sizes.map(async (width) => {
-    const url = await getSignedImageUrl(filePath, { width, quality });
-    return `${url} ${width}w`;
+    const { optimizedUrl } = await getSignedImageUrl(filePath, { width, quality });
+    return `${optimizedUrl} ${width}w`;
   });
   
   const srcset = await Promise.all(srcsetPromises);

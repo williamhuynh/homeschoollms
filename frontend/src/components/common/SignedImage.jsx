@@ -29,6 +29,37 @@ const SignedImage = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Helper function to extract the actual file path from a URL
+  const extractFilePath = (url) => {
+    if (!url) return null;
+    
+    // If it's a blob URL, return null as we can't get a signed URL for it
+    if (url.startsWith('blob:')) {
+      return null;
+    }
+    
+    // For Cloudinary URLs, extract the public_id
+    const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload\/[^\/]+\/(.+)/);
+    if (cloudinaryMatch && cloudinaryMatch[1]) {
+      return cloudinaryMatch[1];
+    }
+    
+    // For Backblaze URLs, extract the path after the bucket name
+    const backblazeMatch = url.match(/backblazeb2\.com\/[^\/]+\/(.+)/);
+    if (backblazeMatch && backblazeMatch[1]) {
+      return backblazeMatch[1];
+    }
+    
+    // For our API URLs, extract the path part
+    const apiMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
+    if (apiMatch && apiMatch[1]) {
+      return apiMatch[1];
+    }
+    
+    // If we can't extract a path, return the full URL
+    return url;
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -42,6 +73,16 @@ const SignedImage = ({
         setIsLoading(true);
         setError(null);
 
+        // Extract the actual file path
+        const actualFilePath = extractFilePath(imagePath);
+        
+        if (!actualFilePath) {
+          // If we can't extract a valid file path, use the original URL
+          setImageUrl(imagePath);
+          setIsLoading(false);
+          return;
+        }
+
         // Convert percentage strings to numbers if possible
         const processedWidth = typeof width === 'string' && width.endsWith('%') 
           ? parseInt(width, 10) // Try to extract numeric value without '%'
@@ -51,7 +92,7 @@ const SignedImage = ({
           ? parseInt(height, 10) // Try to extract numeric value without '%'
           : height;
 
-        const { optimizedUrl } = await getSignedImageUrl(imagePath, {
+        const { optimizedUrl } = await getSignedImageUrl(actualFilePath, {
           width: processedWidth,
           height: processedHeight,
           quality,
