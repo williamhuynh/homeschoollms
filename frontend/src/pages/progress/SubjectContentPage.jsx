@@ -13,8 +13,8 @@ import placeholderImage from '../../assets/images/evidence-placeholder.svg'
 const USE_SIGNED_IMAGES = process.env.REACT_APP_USE_SIGNED_IMAGES === 'true' || true;
 
 // Image dimensions configuration
-const IMAGE_WIDTH = "650px";
-const IMAGE_HEIGHT = "867px"; // 3:4 aspect ratio
+const IMAGE_WIDTH = 650;
+const IMAGE_HEIGHT = 867; // 3:4 aspect ratio
 
 const SubjectContentPage = () => {
   const navigate = useNavigate()
