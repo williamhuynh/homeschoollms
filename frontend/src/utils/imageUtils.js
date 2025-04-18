@@ -171,7 +171,19 @@ export const getSignedImageUrl = async (filePath, options = {}) => {
       throw new Error("No file path provided");
     }
     
+    console.log('getSignedImageUrl input path:', filePath);
+    
+    // Handle blob URLs directly
     if (filePath.startsWith('blob:')) {
+      return {
+        signedUrl: filePath,
+        optimizedUrl: filePath
+      };
+    }
+    
+    // If it's already a fully formed Cloudinary URL, use it directly
+    if (filePath.includes('res.cloudinary.com')) {
+      console.log('Using direct Cloudinary URL:', filePath);
       return {
         signedUrl: filePath,
         optimizedUrl: filePath
@@ -185,27 +197,61 @@ export const getSignedImageUrl = async (filePath, options = {}) => {
     if (height) params.append('height', height);
     if (quality) params.append('quality', quality);
     
-    const response = await axios.get(
-      `${API_BASE_URL}/files/signed-url?file_path=${encodeURIComponent(filePath)}&${params.toString()}`,
-      { 
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`
+    // Try to get the signed URL from the backend
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/files/signed-url?file_path=${encodeURIComponent(filePath)}&${params.toString()}`,
+        { 
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('access_token')}`
+          }
         }
+      );
+      
+      console.log('Received signed URL response:', response.data);
+      
+      return {
+        signedUrl: response.data.signed_url,
+        optimizedUrl: response.data.signed_url
+      };
+    } catch (apiError) {
+      // If we get a 404, try to construct a direct Cloudinary URL
+      if (apiError.response?.status === 404) {
+        console.warn('File not found via API, trying direct Cloudinary URL');
+        
+        // Get the cloud name from environment or use a default
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dbri1xgl8';
+        
+        // Construct a direct Cloudinary URL
+        let cloudinaryUrl = `https://res.cloudinary.com/${cloudName}/image/upload`;
+        
+        // Add transformations if specified
+        const transformations = [];
+        if (width) transformations.push(`w_${width}`);
+        if (height) transformations.push(`h_${height}`);
+        if (quality !== 80) transformations.push(`q_${quality}`);
+        
+        if (transformations.length > 0) {
+          cloudinaryUrl += `/${transformations.join(',')}`;
+        }
+        
+        // Add the path (remove any leading slash)
+        const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+        cloudinaryUrl += `/${cleanPath}`;
+        
+        console.log('Generated direct Cloudinary URL:', cloudinaryUrl);
+        
+        return {
+          signedUrl: cloudinaryUrl,
+          optimizedUrl: cloudinaryUrl
+        };
       }
-    );
-    
-    // The API now just returns a single signed_url, so use that for both properties
-    return {
-      signedUrl: response.data.signed_url,
-      optimizedUrl: response.data.signed_url
-    };
+      
+      // Re-throw the error if it's not a 404 or the direct URL approach failed
+      throw apiError;
+    }
   } catch (error) {
     console.error('Error getting signed image URL:', error);
-    // If the error is a 404, it means the file doesn't exist or the path is invalid
-    if (error.response?.status === 404) {
-      throw new Error('Image not found or invalid file path');
-    }
-    // For other errors, throw the original error
     throw error;
   }
 };

@@ -109,8 +109,15 @@ class FileStorageService:
                 logger.error("Cloudinary cloud name not configured")
                 raise Exception("Cloudinary cloud name not configured")
             
+            logger.info(f"Generating Cloudinary URL for path: {file_path}")
+            
+            # Clean and prepare the file path
+            # Remove any leading/trailing slashes and spaces
+            clean_path = file_path.strip().strip('/')
+            
             # Remove file extension (if any) since Cloudinary will add the correct one
-            file_path_without_ext = os.path.splitext(file_path)[0]
+            file_name, file_ext = os.path.splitext(clean_path)
+            logger.info(f"File name: {file_name}, extension: {file_ext}")
             
             # Base Cloudinary URL
             cloudinary_url = f"https://res.cloudinary.com/{cloud_name}/image/upload"
@@ -127,8 +134,32 @@ class FileStorageService:
             if transformations:
                 cloudinary_url += "/" + ",".join(transformations)
             
-            # Add the public ID (without extension)
-            cloudinary_url += f"/{file_path_without_ext}"
+            # Add the public ID (with the version Cloudinary added during upload)
+            # Try to look up the file in Cloudinary to get the version
+            try:
+                # Search for the asset in Cloudinary
+                result = cloudinary.api.resources(
+                    type="upload",
+                    prefix=file_name,
+                    max_results=1
+                )
+                
+                if result and 'resources' in result and len(result['resources']) > 0:
+                    # Get the resource with version
+                    resource = result['resources'][0]
+                    version = resource.get('version')
+                    public_id = resource.get('public_id')
+                    
+                    if version and public_id:
+                        # Use the version and public_id directly
+                        cloudinary_url += f"/v{version}/{public_id}"
+                        logger.info(f"Found resource in Cloudinary. Using versioned URL: {cloudinary_url}")
+                        return cloudinary_url
+            except Exception as lookup_err:
+                logger.warning(f"Failed to look up resource in Cloudinary: {str(lookup_err)}")
+            
+            # Fallback to using the path without version if lookup failed
+            cloudinary_url += f"/{file_name}"
             
             logger.info(f"Generated Cloudinary URL: {cloudinary_url}")
             return cloudinary_url

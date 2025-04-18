@@ -186,7 +186,7 @@ async def upload_evidence(
             logger.info(f"Thumbnail generated at: {thumbnail_url}")
             
             # Store file reference in database
-            collection = db["evidence"]
+            collection = db["student_evidence"]
             
             # Create document for insertion
             evidence_doc = {
@@ -200,6 +200,8 @@ async def upload_evidence(
                 "file_size": file.size,
                 "original_filename": file.filename,
                 "thumbnail_path": file_path,
+                "file_url": original_url,  # Add the file_url field for consistency
+                "thumbnail_url": thumbnail_url,  # Add the thumbnail_url field for consistency
                 "title": title, # Title is now mandatory
                 "description": description,
                 "uploaded_at": datetime.now(),
@@ -218,7 +220,9 @@ async def upload_evidence(
                 "file_type": file.content_type,
                 "file_size": file.size,
                 "title": title,
-                "description": description
+                "description": description,
+                "fileUrl": original_url,  # Add the fileUrl field for frontend
+                "thumbnailUrl": thumbnail_url  # Add the thumbnailUrl field for frontend
             })
 
         except Exception as e:

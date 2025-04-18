@@ -43,15 +43,23 @@ const SignedImage = ({
       return url;
     }
     
-    // For Cloudinary URLs, extract the file path
-    // Example: https://res.cloudinary.com/dbri1xgl8/image/upload/v1744944024/evidence/67fa07ef67851723907a596b/ENE-OLC-01/20250418024022-d822e99194a3492ba2d910ed2507fbde.png.png
-    const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload\/[^\/]+\/(.+?)(?:\?.*)?$/);
+    console.log('Extracting file path from URL:', url);
+    
+    // For Cloudinary URLs, extract the file path without version number
+    // Format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/actual/path/to/image.ext
+    const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload(?:\/[^\/]+)?\/(.+?)(?:\?.*)?$/);
     if (cloudinaryMatch && cloudinaryMatch[1]) {
-      // Remove any double extensions
+      // Remove any double extensions (e.g., .png.png)
       let path = cloudinaryMatch[1];
+      
+      // Log the matched path for debugging
+      console.log('Matched Cloudinary path:', path);
+      
+      // Check for double extensions
       const extensionMatch = path.match(/(\.[^.\/]+)\1$/);
       if (extensionMatch) {
         path = path.replace(extensionMatch[0], extensionMatch[1]);
+        console.log('Fixed double extension, path is now:', path);
       }
       return path;
     }

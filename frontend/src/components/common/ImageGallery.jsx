@@ -92,14 +92,37 @@ const ImageGallery = ({
           const extractImagePath = (url) => {
             if (!url) return null;
             
-            // For URLs that use our API format, extract the path part
-            const apiPathMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
-            if (apiPathMatch && apiPathMatch[1]) {
-              return apiPathMatch[1];
+            console.log('ImageGallery extractImagePath:', url);
+            
+            // If the URL is a blob, use it directly
+            if (url.startsWith('blob:')) {
+              return url;
+            }
+            
+            // If it's already a file path (not a URL), return it as is
+            if (!url.startsWith('http')) {
+              return url;
+            }
+            
+            // For Cloudinary URLs, extract the path without version number
+            // Format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/actual/path/to/image.ext
+            const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload(?:\/[^\/]+)?\/(.+?)(?:\?.*)?$/);
+            if (cloudinaryMatch && cloudinaryMatch[1]) {
+              // Remove any double extensions
+              let path = cloudinaryMatch[1];
+              
+              // Check for double extensions
+              const extensionMatch = path.match(/(\.[^.\/]+)\1$/);
+              if (extensionMatch) {
+                path = path.replace(extensionMatch[0], extensionMatch[1]);
+              }
+              
+              console.log('ImageGallery extracted Cloudinary path:', path);
+              return path;
             }
             
             // For direct Backblaze URLs, extract the path after the domain
-            const backblazeMatch = url.match(/backblazeb2\.com\/(.+)/);
+            const backblazeMatch = url.match(/backblazeb2\.com\/[^\/]+\/(.+)/);
             if (backblazeMatch && backblazeMatch[1]) {
               return backblazeMatch[1];
             }
