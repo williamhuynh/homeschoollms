@@ -87,6 +87,8 @@ const ImageGallery = ({
       >
         {images
           .filter(image => !image.deleted) // Filter out deleted images
+          .slice() // Create a copy to avoid mutating the original array
+          .reverse() // Reverse the order to show latest images first
           .map((image) => {
           console.log('ImageGallery processing image:', {
             id: image.id || image._id,
