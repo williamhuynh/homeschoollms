@@ -151,9 +151,14 @@ async def upload_evidence(
             # Generate unique file path using UUID
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             unique_id = uuid.uuid4()
-            file_extension = os.path.splitext(file.filename)[1]
+            # Get the file extension without the dot
+            file_extension = os.path.splitext(file.filename)[1].lower()
+            # Remove any existing extension from the unique_id
+            unique_id_str = str(unique_id)
+            if '.' in unique_id_str:
+                unique_id_str = unique_id_str.split('.')[0]
             # Example path: evidence/student_id/outcome_id/20250410202100-uuid-guid.jpg
-            file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}-{unique_id}{file_extension}"
+            file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}-{unique_id_str}{file_extension}"
             
             logger.info(f"Generated file path: {file_path}")
 

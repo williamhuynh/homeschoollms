@@ -41,7 +41,10 @@ const SignedImage = ({
     // For Cloudinary URLs, extract the public_id
     const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload\/[^\/]+\/(.+)/);
     if (cloudinaryMatch && cloudinaryMatch[1]) {
-      return cloudinaryMatch[1];
+      // Remove any query parameters and transformations
+      const path = cloudinaryMatch[1].split('?')[0];
+      // Remove any file extensions that might be added by Cloudinary
+      return path.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
     }
     
     // For Backblaze URLs, extract the path after the bucket name
