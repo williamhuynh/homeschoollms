@@ -218,19 +218,18 @@ const SubjectContentPage = () => {
                       />
                     )
                   ) : (
-                    <LazyImage
-                      image={{
-                        original_url: placeholderImage,
-                        thumbnail_small_url: placeholderImage,
-                        thumbnail_medium_url: placeholderImage,
-                        thumbnail_large_url: placeholderImage
-                      }}
+                    <img
+                      src={placeholderImage}
                       alt="No Evidence Uploaded"
-                      width={IMAGE_WIDTH}
-                      height={IMAGE_HEIGHT}
-                      objectFit="contain"
-                      borderRadius="md"
-                      rootMargin="200px"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        borderRadius: '0.375rem',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
                     />
                   )}
                 </div>
