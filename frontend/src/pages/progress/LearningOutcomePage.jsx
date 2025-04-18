@@ -227,7 +227,7 @@ const LearningOutcomePage = () => {
               learningOutcomeId={learningOutcomeId} 
               onImageDeleted={handleImageDeleted}
               useSignedImages={USE_SIGNED_IMAGES}
-              columns={{ base: 1, sm: 2, md: 3 }}
+              columns={{ base: 3, sm: 3, md: 3 }}
               spacing={4}
               aspectRatio={0.75}
             />

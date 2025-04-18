@@ -516,8 +516,8 @@ export const uploadEvidence = async (studentId, learningOutcomeId, formData) => 
         ...file,
         original_url: file.file_url,
         thumbnail_small_url: file.thumbnail_url ? `${file.thumbnail_url}?width=150&height=150&quality=80` : null,
-        thumbnail_medium_url: file.thumbnail_url ? `${file.thumbnail_url}?width=400&height=300&quality=80` : null,
-        thumbnail_large_url: file.thumbnail_url ? `${file.thumbnail_url}?width=600&height=450&quality=80` : null
+        thumbnail_medium_url: file.thumbnail_url ? `${file.thumbnail_url}?width=600&height=450&quality=85` : null,
+        thumbnail_large_url: file.thumbnail_url ? `${file.thumbnail_url}?width=800&height=600&quality=85` : null
       }))
     };
     

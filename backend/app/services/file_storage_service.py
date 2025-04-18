@@ -91,8 +91,8 @@ class FileStorageService:
             return {
                 "original_url": upload_result['secure_url'],
                 "thumbnail_small_url": f"{upload_result['secure_url']}?width=150&height=150&quality=80",
-                "thumbnail_medium_url": f"{upload_result['secure_url']}?width=400&height=300&quality=80",
-                "thumbnail_large_url": f"{upload_result['secure_url']}?width=600&height=450&quality=80"
+                "thumbnail_medium_url": f"{upload_result['secure_url']}?width=600&height=450&quality=85",
+                "thumbnail_large_url": f"{upload_result['secure_url']}?width=800&height=600&quality=85"
             }
         except Exception as e:
             logger.error(f"Error uploading file: {str(e)}")
@@ -189,8 +189,8 @@ class FileStorageService:
             return {
                 "original_url": result['secure_url'],
                 "thumbnail_small_url": f"{result['secure_url']}?width=150&height=150&quality=80",
-                "thumbnail_medium_url": f"{result['secure_url']}?width=400&height=300&quality=80",
-                "thumbnail_large_url": f"{result['secure_url']}?width=600&height=450&quality=80"
+                "thumbnail_medium_url": f"{result['secure_url']}?width=600&height=450&quality=85",
+                "thumbnail_large_url": f"{result['secure_url']}?width=800&height=600&quality=85"
             }
         except Exception as e:
             logger.error(f"Error generating thumbnail: {str(e)}")
