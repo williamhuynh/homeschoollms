@@ -4,13 +4,13 @@ import {
   VStack, 
   Box,
   Button, 
-  Heading,
   Center,
   Avatar,
   Spinner,
   useToast,
   HStack,
-  Input
+  Input,
+  useBreakpointValue
 } from '@chakra-ui/react'
 import { ArrowLeft, Upload } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
@@ -24,6 +24,9 @@ const AvatarSettingsPage = () => {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
+  
+  // Responsive avatar size
+  const avatarSize = useBreakpointValue({ base: "90%", md: "400px" })
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -81,68 +84,72 @@ const AvatarSettingsPage = () => {
   }
 
   return (
-    <Container maxW="container.sm" py={8}>
-      <VStack spacing={8} align="stretch">
-        <Box>
-          <Button 
-            leftIcon={<ArrowLeft size={20} />}
-            variant="ghost" 
-            onClick={() => navigate('/profile')}
-            alignSelf="flex-start"
-          >
-            Back to Profile
-          </Button>
-          <Heading size="lg" mt={2} textAlign="center">User Avatar</Heading>
-        </Box>
+    <Container 
+      maxW="container.sm" 
+      py={8} 
+      display="flex" 
+      flexDirection="column" 
+      minHeight="80vh"
+    >
+      <Box>
+        <Button 
+          leftIcon={<ArrowLeft size={20} />}
+          variant="ghost" 
+          onClick={() => navigate('/profile')}
+          alignSelf="flex-start"
+        >
+          Back to Profile
+        </Button>
+      </Box>
 
-        {loading ? (
-          <Center py={10}>
-            <Spinner size="xl" />
-          </Center>
-        ) : (
-          <VStack spacing={6}>
-            <Center>
-              <Avatar 
-                size="2xl" 
-                name={user ? `${user.first_name} ${user.last_name}` : ''} 
-                src={user?.avatar_url}
-                boxSize="150px"
-              />
-            </Center>
-
-            <HStack spacing={4} justify="center" pt={4}>
-              <Button
-                leftIcon={<Upload size={18} />}
-                colorScheme="blue"
-                onClick={handleUploadClick}
-                isLoading={uploading}
-                loadingText="Uploading..."
-              >
-                Upload New Avatar
-              </Button>
-              
-              <Button
-                colorScheme="purple"
-                variant="outline"
-                isDisabled={true}
-                opacity={0.6}
-                onClick={handleAIAvatarClick}
-              >
-                Create AI Avatar
-              </Button>
-            </HStack>
-
-            {/* Hidden file input */}
-            <Input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              display="none"
-              onChange={handleFileSelect}
+      {loading ? (
+        <Center py={10} flexGrow={1}>
+          <Spinner size="xl" />
+        </Center>
+      ) : (
+        <VStack spacing={8} flexGrow={1} justify="center">
+          <Center width="100%" pt={8} pb={10}>
+            <Avatar 
+              size="full" 
+              name={user ? `${user.first_name} ${user.last_name}` : ''} 
+              src={user?.avatar_url}
+              width={avatarSize}
+              height={avatarSize}
             />
-          </VStack>
-        )}
-      </VStack>
+          </Center>
+
+          <HStack spacing={4} justify="center" pt={6}>
+            <Button
+              leftIcon={<Upload size={18} />}
+              colorScheme="blue"
+              onClick={handleUploadClick}
+              isLoading={uploading}
+              loadingText="Uploading..."
+            >
+              Upload New Avatar
+            </Button>
+            
+            <Button
+              colorScheme="purple"
+              variant="outline"
+              isDisabled={true}
+              opacity={0.6}
+              onClick={handleAIAvatarClick}
+            >
+              Create AI Avatar
+            </Button>
+          </HStack>
+
+          {/* Hidden file input */}
+          <Input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            display="none"
+            onChange={handleFileSelect}
+          />
+        </VStack>
+      )}
     </Container>
   )
 }
