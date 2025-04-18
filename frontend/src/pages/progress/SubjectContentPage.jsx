@@ -86,6 +86,7 @@ const SubjectContentPage = () => {
   }, [studentId, student, curriculum, subjectData])
   
   // Fetch latest evidence for all outcomes
+  // This uses a batch API endpoint for better performance when multiple outcomes exist
   useEffect(() => {
     const fetchEvidence = async () => {
       if (outcomes.length > 0 && student?._id) {
@@ -94,7 +95,7 @@ const SubjectContentPage = () => {
           // Get all outcome codes
           const outcomeCodes = outcomes.map(outcome => outcome.code)
           
-          // Fetch latest evidence for each outcome
+          // Fetch latest evidence for each outcome (uses batch API when possible)
           const evidence = await getLatestEvidenceForOutcomes(student._id, outcomeCodes)
           setEvidenceMap(evidence)
         } catch (err) {
@@ -165,6 +166,13 @@ const SubjectContentPage = () => {
       </Box>
 
       <Box mt="80px">
+        {evidenceLoading && (
+          <Center py={4}>
+            <Spinner size="md" color="blue.500" mr={2} />
+            <Text>Loading evidence...</Text>
+          </Center>
+        )}
+        
         <div className={styles.outcomeGrid}>
           {outcomes.map((outcome) => (
               <div 

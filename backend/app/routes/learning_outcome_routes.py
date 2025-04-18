@@ -80,6 +80,36 @@ async def get_evidence(
         # Return empty list instead of raising error to allow upload placeholder
         return []
 
+@router.get("/learning-outcomes/{student_id}/batch-evidence")
+async def get_batch_evidence(
+    student_id: str,
+    outcomes: str,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Get latest evidence for multiple learning outcomes in a single request.
+    Outcomes should be provided as a comma-separated list.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Parse the comma-separated list of outcome codes
+        outcome_codes = [code.strip() for code in outcomes.split(',') if code.strip()]
+        logger.info(f"Fetching batch evidence for student {student_id} and outcomes: {outcome_codes}")
+        
+        if not outcome_codes:
+            return {}
+            
+        # Call the service method to get evidence for multiple outcomes
+        evidence_map = await LearningOutcomeService.get_batch_evidence(student_id, outcome_codes)
+        logger.info(f"Found evidence for {len(evidence_map)} outcomes")
+        
+        return evidence_map
+    except Exception as e:
+        logger.error(f"Error fetching batch evidence: {str(e)}")
+        return {}
+
 # Configure logger
 logger = logging.getLogger(__name__)
 # Set level to INFO or DEBUG for more detailed logs if needed

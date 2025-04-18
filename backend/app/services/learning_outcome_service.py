@@ -295,6 +295,119 @@ class LearningOutcomeService:
             raise Exception(f"Failed to fetch evidence: {str(e)}")
             
     @staticmethod
+    async def get_batch_evidence(student_id: str, learning_outcome_codes: list):
+        """
+        Retrieve the latest evidence for multiple learning outcomes at once.
+        Returns a map of outcome_code -> latest evidence item.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Validate student_id
+            db = Database.get_db()
+            
+            try:
+                student_obj_id = ObjectId(student_id)
+            except:
+                # If conversion fails, try to find student by slug
+                student = await db.students.find_one({"slug": student_id})
+                if student:
+                    student_obj_id = student["_id"]
+                else:
+                    logger.error(f"Invalid student ID or slug: {student_id}")
+                    return {}
+            
+            logger.info(f"Fetching batch evidence for student {student_obj_id} and {len(learning_outcome_codes)} outcomes")
+            
+            # Convert all outcome codes to a list of possible ObjectIds and string codes
+            outcome_conditions = []
+            for outcome_code in learning_outcome_codes:
+                try:
+                    # Try to convert to ObjectId if it's a valid ObjectId
+                    outcome_obj_id = ObjectId(outcome_code)
+                    outcome_conditions.append({"learning_outcome_id": outcome_obj_id})
+                    outcome_conditions.append({"outcome_obj_id": outcome_obj_id})
+                except:
+                    # Otherwise, use it as a string code
+                    pass
+                
+                # Always add the string code conditions
+                outcome_conditions.append({"learning_outcome_id": outcome_code})
+                outcome_conditions.append({"learning_outcome_code": outcome_code})
+            
+            # Build query to find all evidence for this student and the requested outcomes
+            query = {
+                "student_id": student_obj_id,
+                "$or": outcome_conditions,
+                "$and": [
+                    {
+                        "$or": [
+                            {"deleted": {"$exists": False}},
+                            {"deleted": False}
+                        ]
+                    }
+                ]
+            }
+            
+            logger.info(f"Querying evidence with: {query}")
+            
+            # Fetch all evidence for the specified outcomes
+            evidence_items = await db.student_evidence.find(query).to_list(None)
+            
+            logger.info(f"Found {len(evidence_items)} total evidence records")
+            
+            # Group by outcome code and find the latest for each
+            outcome_to_evidence = {}
+            for evidence in evidence_items:
+                # Get the outcome code (prefer learning_outcome_code if available)
+                outcome_code = evidence.get("learning_outcome_code", evidence.get("learning_outcome_id"))
+                
+                # Skip if we can't determine the outcome code
+                if not outcome_code:
+                    continue
+                
+                # Convert ObjectId to string if needed
+                if isinstance(outcome_code, ObjectId):
+                    outcome_code = str(outcome_code)
+                
+                # Skip if this outcome wasn't in our request list
+                if outcome_code not in learning_outcome_codes:
+                    continue
+                
+                # Convert to serializable format
+                serialized_item = {}
+                for k, v in evidence.items():
+                    if isinstance(v, ObjectId):
+                        serialized_item[k] = str(v)
+                    elif isinstance(v, datetime):
+                        serialized_item[k] = v.isoformat()
+                    else:
+                        serialized_item[k] = v
+                
+                # Normalize field names
+                if "file_url" in serialized_item and "fileUrl" not in serialized_item:
+                    serialized_item["fileUrl"] = serialized_item["file_url"]
+                
+                if "thumbnail_url" in serialized_item and "thumbnailUrl" not in serialized_item:
+                    serialized_item["thumbnailUrl"] = serialized_item["thumbnail_url"]
+                
+                # Determine if this is the latest evidence for this outcome
+                current_timestamp = serialized_item.get("uploaded_at")
+                if not current_timestamp:
+                    continue
+                
+                # If we don't have an item for this outcome yet, or this one is newer
+                if (outcome_code not in outcome_to_evidence or 
+                    current_timestamp > outcome_to_evidence[outcome_code].get("uploaded_at", "")):
+                    outcome_to_evidence[outcome_code] = serialized_item
+            
+            return outcome_to_evidence
+        except Exception as e:
+            logger.error(f"Error in get_batch_evidence: {str(e)}", exc_info=True)
+            return {}
+    
+    @staticmethod
     async def mark_evidence_as_deleted(student_id: str, learning_outcome_id: str, evidence_id: str):
         """
         Mark evidence as deleted without removing it from storage.

@@ -325,7 +325,12 @@ export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
   try {
     console.log('Fetching latest evidence for outcomes:', { studentId, outcomeCodes });
     
-    // Create a map to store the latest evidence for each outcome
+    // Use batch endpoint if there are multiple outcomes (more efficient)
+    if (outcomeCodes.length > 1) {
+      return await getBatchEvidenceForOutcomes(studentId, outcomeCodes);
+    }
+    
+    // Fallback to individual requests for a single outcome or empty array
     const evidenceMap = {};
     
     // Fetch evidence for each outcome code
@@ -349,6 +354,31 @@ export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
   } catch (error) {
     console.error('Error getting latest evidence for outcomes:', error);
     return {};
+  }
+};
+
+// New function to get evidence for multiple outcomes in a single request
+export const getBatchEvidenceForOutcomes = async (studentId, outcomeCodes) => {
+  try {
+    // Combine all outcome codes into a comma-separated string
+    const outcomeCodesParam = outcomeCodes.join(',');
+    
+    console.log(`Fetching batch evidence for student ${studentId} with ${outcomeCodes.length} outcomes`);
+    
+    // Make a single API call to get all evidence at once
+    const response = await apiToUse.get(
+      `/api/learning-outcomes/${studentId}/batch-evidence?outcomes=${outcomeCodesParam}`
+    );
+    
+    console.log(`Received batch evidence response with ${Object.keys(response.data).length} items`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching batch evidence:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    return {}; // Return empty object on error
   }
 };
 
