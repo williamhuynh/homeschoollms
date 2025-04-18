@@ -28,6 +28,8 @@ const ImageViewerModal = ({
   studentId, 
   learningOutcomeId, 
   onImageDeleted,
+  width,
+  height,
   useSignedImages = false
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -248,6 +250,8 @@ const ImageViewerModal = ({
                 imagePath={imagePath}
                 alt={image.title || 'Evidence'}
                 quality={90}
+                width={width}
+                height={height}
                 imgProps={{
                   style: {
                     maxHeight: '85vh',
@@ -266,10 +270,13 @@ const ImageViewerModal = ({
                   thumbnail_large_url: image.thumbnail_large_url || image.fileUrl
                 }}
                 alt={image.title || 'Evidence'}
+                width={width}
+                height={height}
                 maxH="85vh"
                 maxW="90vw"
                 objectFit="contain"
                 borderRadius="md"
+                quality={90}
                 fallbackSrc="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
               />
             )}

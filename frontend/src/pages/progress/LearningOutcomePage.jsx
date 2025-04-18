@@ -12,6 +12,10 @@ import { getEvidenceForLearningOutcome } from '../../services/api'
 // Feature flag for enabling SignedImage
 const USE_SIGNED_IMAGES = process.env.REACT_APP_USE_SIGNED_IMAGES === 'true' || true;
 
+// Image dimensions configuration - 3:4 aspect ratio (portrait)
+const THUMBNAIL_WIDTH = 450;
+const THUMBNAIL_HEIGHT = 600;
+
 const LearningOutcomePage = () => {
   const { openModal } = useFileUploadModal()
   const navigate = useNavigate()
@@ -229,7 +233,8 @@ const LearningOutcomePage = () => {
               useSignedImages={USE_SIGNED_IMAGES}
               columns={{ base: 3, sm: 3, md: 3 }}
               spacing={4}
-              aspectRatio={0.75}
+              width={THUMBNAIL_WIDTH}
+              height={THUMBNAIL_HEIGHT}
             />
           )}
         </Box>

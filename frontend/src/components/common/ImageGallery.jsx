@@ -29,6 +29,8 @@ const USE_SIGNED_IMAGE = process.env.REACT_APP_USE_SIGNED_IMAGE === 'true' || tr
  *     studentId="123"
  *     learningOutcomeId="456"
  *     onImageDeleted={(imageId) => console.log('Image deleted:', imageId)}
+ *     width={450}
+ *     height={600}
  *   />
  * )
  */
@@ -40,6 +42,8 @@ const ImageGallery = ({
   columns = { base: 2, sm: 3, md: 4, lg: 5 },
   spacing = 4,
   aspectRatio = 1,
+  width,
+  height,
   borderRadius = 'md',
   useSignedImages = USE_SIGNED_IMAGE // Allow overriding the feature flag per instance
 }) => {
@@ -71,6 +75,9 @@ const ImageGallery = ({
   if (!images || images.length === 0) {
     return null;
   }
+  
+  // Calculate aspect ratio from width/height if provided
+  const effectiveAspectRatio = (width && height) ? width / height : aspectRatio;
   
   return (
     <>
@@ -156,7 +163,7 @@ const ImageGallery = ({
                 <Box // Image container with aspect ratio
                   position="relative"
                   width="100%"
-                  paddingBottom={`${100 / aspectRatio}%`} // Changed from * to / to make portrait (3:4) aspect ratio
+                  paddingBottom={`${100 / effectiveAspectRatio}%`} // Use portrait aspect ratio
                   borderRadius={borderRadius} // Apply border radius to image container too
                   overflow="hidden" // Ensure image corners are rounded
                 >
@@ -165,8 +172,8 @@ const ImageGallery = ({
                       // New approach using SignedImage
                       <SignedImage
                         imagePath={imagePath}
-                        width="100%"
-                        height="100%"
+                        width={width || "100%"}
+                        height={height || "100%"}
                         quality={80}
                         alt={image.title || image.file_name || 'Gallery image'}
                         imgProps={{
@@ -187,8 +194,8 @@ const ImageGallery = ({
                           thumbnail_large_url: image.thumbnail_url || image.thumbnailUrl || image.file_url || image.fileUrl
                         }}
                         alt={image.title || image.file_name || 'Gallery image'}
-                        width="100%"
-                        height="100%"
+                        width={width || "100%"}
+                        height={height || "100%"}
                         objectFit="cover"
                       />
                     )}
@@ -216,6 +223,8 @@ const ImageGallery = ({
           learningOutcomeId={learningOutcomeId}
           onImageDeleted={handleImageDeleted}
           useSignedImages={useSignedImages} // Pass the flag to the modal
+          width={width}
+          height={height}
         />
       )}
     </>
