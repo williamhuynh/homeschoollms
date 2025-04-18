@@ -11,6 +11,7 @@ import { Skeleton, Box, Text, Alert, AlertIcon } from '@chakra-ui/react';
  * @param {number|string} props.width Optional width for the image
  * @param {number|string} props.height Optional height for the image
  * @param {number} props.quality Optional quality for the image (1-100)
+ * @param {number} props.thumbnailWidth Optional width specifically for thumbnails
  * @param {string} props.alt Alt text for the image
  * @param {Object} props.imgProps Additional props to pass to the img element
  * @param {boolean} props.showPlaceholder Whether to show a placeholder while loading
@@ -20,6 +21,7 @@ const SignedImage = ({
   width,
   height,
   quality = 80,
+  thumbnailWidth,
   alt = 'Image',
   imgProps = {},
   showPlaceholder = true,
@@ -120,7 +122,8 @@ const SignedImage = ({
           : height;
 
         const { optimizedUrl } = await getSignedImageUrl(actualFilePath, {
-          width: processedWidth,
+          // Use thumbnailWidth if provided, otherwise use processedWidth
+          width: thumbnailWidth || processedWidth,
           height: processedHeight,
           quality,
         });
@@ -143,7 +146,7 @@ const SignedImage = ({
     return () => {
       isMounted = false;
     };
-  }, [imagePath, width, height, quality]);
+  }, [imagePath, width, height, quality, thumbnailWidth]);
 
   if (isLoading && showPlaceholder) {
     return (

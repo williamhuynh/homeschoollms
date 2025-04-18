@@ -248,6 +248,7 @@ const ImageViewerModal = ({
                 imagePath={imagePath}
                 alt={image.title || 'Evidence'}
                 quality={90}
+                thumbnailWidth={450}
                 imgProps={{
                   style: {
                     maxHeight: '85vh',
@@ -270,6 +271,8 @@ const ImageViewerModal = ({
                 maxW="90vw"
                 objectFit="contain"
                 borderRadius="md"
+                quality={90}
+                thumbnailWidth={450}
                 fallbackSrc="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
               />
             )}
