@@ -42,6 +42,19 @@ const LearningOutcomePage = () => {
     }
   }
 
+  const handleEvidenceUploaded = async () => {
+    // Refresh the evidence list after upload
+    try {
+      setEvidenceLoading(true)
+      const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+      setEvidence(updatedEvidence)
+    } catch (err) {
+      console.error('Error refreshing evidence after upload:', err)
+    } finally {
+      setEvidenceLoading(false)
+    }
+  }
+
   useEffect(() => {
     let isMounted = true
     
@@ -196,7 +209,8 @@ const LearningOutcomePage = () => {
               onClick={() => openModal({
                 studentId, 
                 learningOutcomeId,
-                initialLearningOutcomeCode: learningOutcome.code
+                initialLearningOutcomeCode: learningOutcome.code,
+                onSuccess: handleEvidenceUploaded
               })}
             >
               Add Evidence
@@ -217,7 +231,8 @@ const LearningOutcomePage = () => {
                   onClick={() => openModal({
                     studentId, 
                     learningOutcomeId,
-                    initialLearningOutcomeCode: learningOutcome.code
+                    initialLearningOutcomeCode: learningOutcome.code,
+                    onSuccess: handleEvidenceUploaded
                   })}
                 >
                   Add Evidence

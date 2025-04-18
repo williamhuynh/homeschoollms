@@ -15,7 +15,8 @@ export const FileUploadModalProvider = ({ children }) => {
     learningOutcomeId: null,
     learningOutcomeDescription: null,
     initialLearningAreaCode: null,
-    initialLearningOutcomeCode: null
+    initialLearningOutcomeCode: null,
+    onSuccess: null
   })
   
   // Get current student from context
@@ -44,7 +45,9 @@ export const FileUploadModalProvider = ({ children }) => {
       learningOutcomeId: props.learningOutcomeId || null,
       learningOutcomeDescription: props.learningOutcomeDescription || null,
       initialLearningAreaCode: props.initialLearningAreaCode || null,
-      initialLearningOutcomeCode: props.initialLearningOutcomeCode || null
+      initialLearningOutcomeCode: props.initialLearningOutcomeCode || null,
+      onSubmit: props.onSubmit || null,
+      onSuccess: props.onSuccess || null
     })
     
     setIsOpen(true)
@@ -62,10 +65,13 @@ export const FileUploadModalProvider = ({ children }) => {
       modalProps.onSubmit(result)
     }
     
+    // Call onSuccess callback if provided
+    if (modalProps.onSuccess) {
+      modalProps.onSuccess(result)
+    }
+    
     // Close the modal
     closeModal()
-    
-    // Optionally, we could trigger a refresh of data here
   }
   
   return (
