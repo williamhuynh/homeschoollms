@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from typing import Optional, List
 from ..utils.auth_utils import get_current_user
 from ..models.schemas.user import UserInDB
-from ..services.file_storage_service import file_storage_service
 import logging
 import os
 import urllib.parse
@@ -14,6 +13,7 @@ router = APIRouter()
 
 @router.get("/files/signed-url", summary="Generate a signed URL")
 async def get_signed_url(
+    request: Request,
     file_path: str,
     width: Optional[int] = Query(None, description="Optional width for image resize"),
     height: Optional[int] = Query(None, description="Optional height for image resize"),
@@ -27,15 +27,14 @@ async def get_signed_url(
     For images, also generates an optimized URL using Vercel's image optimization service.
     """
     try:
-        # Generate signed URL with longer expiration
-        signed_url = s3_client.generate_presigned_url(
-            'get_object',
-            Params={
-                'Bucket': bucket_name,
-                'Key': file_path,
-                'ResponseContentDisposition': content_disposition
-            },
-            ExpiresIn=expiration
+        # Get the file storage service from the app
+        file_storage_service = request.app.file_storage_service
+        
+        # Generate signed URL using the file storage service
+        signed_url = file_storage_service.generate_presigned_url(
+            file_path=file_path,
+            expiration=expiration,
+            content_disposition=content_disposition
         )
         
         response = {
@@ -73,6 +72,7 @@ async def get_signed_url(
 
 @router.get("/files/check-existence", summary="Check if file exists")
 async def check_file_existence(
+    request: Request,
     file_path: str,
     current_user: UserInDB = Depends(get_current_user)
 ):
@@ -99,6 +99,9 @@ async def check_file_existence(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File path is required"
             )
+            
+        # Get the file storage service from the app
+        file_storage_service = request.app.file_storage_service
             
         # Check if the file exists in the bucket
         exists = file_storage_service.check_file_exists(file_path)

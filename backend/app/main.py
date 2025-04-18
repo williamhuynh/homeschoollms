@@ -19,6 +19,7 @@ from .routes import (
 from bson.errors import InvalidId
 from .utils.error_handlers import http_error_handler, invalid_object_id_handler
 from .utils.database_utils import Database
+from .services.file_storage_service import file_storage_service  # Add import for file storage service
 import logging  # Import logging
 
 import os
@@ -72,6 +73,10 @@ async def startup_db_client():
     
     # Initialize the database connection for Database utility
     Database.initialize(app.mongodb)
+    
+    # Initialize the file storage service
+    app.file_storage_service = file_storage_service
+    logging.info("File storage service initialized")
 
 @app.get("/health")
 async def health_check():
