@@ -161,7 +161,8 @@ export const preloadImage = (src) => {
  * @returns {Promise<string>} - Returns the optimized image URL
  */
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export const getSignedImageUrl = async (filePath, options = {}) => {
   try {
