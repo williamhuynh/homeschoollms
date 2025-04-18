@@ -7,9 +7,14 @@ import { getStudentBySlug, getLatestEvidenceForOutcomes } from '../../services/a
 import { NSWCurriculum } from '../../services/curriculum'
 import LazyImage from '../../components/common/LazyImage'
 import SignedImage from '../../components/common/SignedImage'
+import placeholderImage from '../../assets/images/evidence-placeholder.svg'
 
 // Feature flag for enabling SignedImage
 const USE_SIGNED_IMAGES = process.env.REACT_APP_USE_SIGNED_IMAGES === 'true' || true;
+
+// Image dimensions configuration
+const IMAGE_WIDTH = "650px";
+const IMAGE_HEIGHT = "867px"; // 3:4 aspect ratio
 
 const SubjectContentPage = () => {
   const navigate = useNavigate()
@@ -182,8 +187,8 @@ const SubjectContentPage = () => {
                       <SignedImage
                         imagePath={extractImagePath(evidenceMap[outcome.code].fileUrl)}
                         alt={`Evidence for ${outcome.name}`}
-                        width="100%"
-                        height="100%"
+                        width={IMAGE_WIDTH}
+                        height={IMAGE_HEIGHT}
                         imgProps={{
                           style: {
                             objectFit: 'cover',
@@ -200,13 +205,13 @@ const SubjectContentPage = () => {
                       <LazyImage
                         image={{
                           original_url: evidenceMap[outcome.code].fileUrl,
-                          thumbnail_small_url: evidenceMap[outcome.code].thumbnail_small_url || evidenceMap[outcome.code].fileUrl,
-                          thumbnail_medium_url: evidenceMap[outcome.code].thumbnail_medium_url || evidenceMap[outcome.code].fileUrl,
+                          thumbnail_small_url: evidenceMap[outcome.code].thumbnail_large_url || evidenceMap[outcome.code].fileUrl,
+                          thumbnail_medium_url: evidenceMap[outcome.code].thumbnail_large_url || evidenceMap[outcome.code].fileUrl,
                           thumbnail_large_url: evidenceMap[outcome.code].thumbnail_large_url || evidenceMap[outcome.code].fileUrl
                         }}
                         alt={`Evidence for ${outcome.name}`}
-                        width="100%"
-                        height="100%"
+                        width={IMAGE_WIDTH}
+                        height={IMAGE_HEIGHT}
                         objectFit="cover"
                         borderRadius="md"
                         rootMargin="200px"
@@ -215,15 +220,15 @@ const SubjectContentPage = () => {
                   ) : (
                     <LazyImage
                       image={{
-                        original_url: outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome',
-                        thumbnail_small_url: outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome',
-                        thumbnail_medium_url: outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome',
-                        thumbnail_large_url: outcome.thumbnail || 'https://placehold.co/300x300/e2e8f0/1a202c?text=Learning+Outcome'
+                        original_url: placeholderImage,
+                        thumbnail_small_url: placeholderImage,
+                        thumbnail_medium_url: placeholderImage,
+                        thumbnail_large_url: placeholderImage
                       }}
-                      alt={outcome.name || 'Learning Outcome'}
-                      width="100%"
-                      height="100%"
-                      objectFit="cover"
+                      alt="No Evidence Uploaded"
+                      width={IMAGE_WIDTH}
+                      height={IMAGE_HEIGHT}
+                      objectFit="contain"
                       borderRadius="md"
                       rootMargin="200px"
                     />
