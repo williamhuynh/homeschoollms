@@ -15,9 +15,12 @@ export const FileUploadModalProvider = ({ children }) => {
     learningOutcomeId: null,
     learningOutcomeDescription: null,
     initialLearningAreaCode: null,
-    initialLearningOutcomeCode: null,
-    onSuccess: null
+    initialLearningOutcomeCode: null
   })
+  
+  // Store callbacks separately
+  const [onSuccessCallback, setOnSuccessCallback] = useState(null)
+  const [onSubmitCallback, setOnSubmitCallback] = useState(null)
   
   // Get current student from context
   const { students } = useStudents()
@@ -39,16 +42,19 @@ export const FileUploadModalProvider = ({ children }) => {
       }
     }
     
+    // Store modal props without callbacks
     setModalProps({
       studentId,
       studentGrade,
       learningOutcomeId: props.learningOutcomeId || null,
       learningOutcomeDescription: props.learningOutcomeDescription || null,
       initialLearningAreaCode: props.initialLearningAreaCode || null,
-      initialLearningOutcomeCode: props.initialLearningOutcomeCode || null,
-      onSubmit: props.onSubmit || null,
-      onSuccess: props.onSuccess || null
+      initialLearningOutcomeCode: props.initialLearningOutcomeCode || null
     })
+    
+    // Store callbacks separately
+    setOnSubmitCallback(props.onSubmit || null)
+    setOnSuccessCallback(props.onSuccess || null)
     
     setIsOpen(true)
   }
@@ -60,18 +66,20 @@ export const FileUploadModalProvider = ({ children }) => {
   
   // Handle submission
   const handleSubmit = (result) => {
-    // If there's a custom onSubmit handler in props, call it
-    if (modalProps.onSubmit) {
-      modalProps.onSubmit(result)
+    // If there's a custom onSubmit handler, call it
+    if (onSubmitCallback) {
+      onSubmitCallback(result)
     }
     
-    // Call onSuccess callback if provided
-    if (modalProps.onSuccess) {
-      modalProps.onSuccess(result)
-    }
-    
-    // Close the modal
+    // Close the modal first
     closeModal()
+    
+    // Call onSuccess callback after modal is closed if provided
+    if (onSuccessCallback) {
+      setTimeout(() => {
+        onSuccessCallback(result)
+      }, 0)
+    }
   }
   
   return (
