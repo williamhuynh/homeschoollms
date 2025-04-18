@@ -11,7 +11,7 @@ import {
     Box,
     IconButton
   } from '@chakra-ui/react'
-  import { CloseIcon } from '@chakra-ui/icons'
+  import { X } from 'react-feather'
   import { useState } from 'react'
   import { useNavigate } from 'react-router-dom'
   import { createStudent } from '../../services/api'
@@ -85,9 +85,10 @@ import {
       <Container maxW="container.sm" py={8} position="relative">
         <Box position="absolute" top={2} left={2}>
           <IconButton
-            icon={<CloseIcon />}
+            icon={<X size={16} />}
             size="sm"
             aria-label="Go back"
+            variant="ghost"
             onClick={() => navigate('/students')}
           />
         </Box>

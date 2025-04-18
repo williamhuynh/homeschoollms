@@ -209,6 +209,7 @@ const LearningOutcomePage = () => {
               onClick={() => openModal({
                 studentId, 
                 learningOutcomeId,
+                initialLearningAreaCode: location.state?.subject?.code,
                 initialLearningOutcomeCode: learningOutcome.code,
                 onSuccess: handleEvidenceUploaded
               })}
@@ -231,6 +232,7 @@ const LearningOutcomePage = () => {
                   onClick={() => openModal({
                     studentId, 
                     learningOutcomeId,
+                    initialLearningAreaCode: location.state?.subject?.code,
                     initialLearningOutcomeCode: learningOutcome.code,
                     onSuccess: handleEvidenceUploaded
                   })}
