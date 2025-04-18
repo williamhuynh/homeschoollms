@@ -151,7 +151,7 @@ async def upload_evidence(
             # Generate unique file path using UUID
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             unique_id = uuid.uuid4()
-            # Get the file extension without the dot
+            # Get the file extension without the dot and ensure it's lowercase
             file_extension = os.path.splitext(file.filename)[1].lower()
             # Remove any existing extension from the unique_id
             unique_id_str = str(unique_id)
@@ -160,7 +160,10 @@ async def upload_evidence(
             # Example path: evidence/student_id/outcome_id/20250410202100-uuid-guid.jpg
             file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}-{unique_id_str}{file_extension}"
             
+            # Log the generated file path for debugging
             logger.info(f"Generated file path: {file_path}")
+            logger.info(f"Original filename: {file.filename}")
+            logger.info(f"Extracted extension: {file_extension}")
 
             # Upload to Backblaze B2 with thumbnail generation
             upload_result = await file_storage_service.upload_file(
