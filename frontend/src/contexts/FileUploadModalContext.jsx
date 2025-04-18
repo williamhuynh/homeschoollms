@@ -53,8 +53,18 @@ export const FileUploadModalProvider = ({ children }) => {
     })
     
     // Store callbacks separately
-    setOnSubmitCallback(props.onSubmit || null)
-    setOnSuccessCallback(props.onSuccess || null)
+    if (props.onSuccess && typeof props.onSuccess === 'function') {
+      console.log('Setting onSuccess callback:', typeof props.onSuccess);
+      setOnSuccessCallback(() => props.onSuccess);
+    } else {
+      setOnSuccessCallback(null);
+    }
+    
+    if (props.onSubmit && typeof props.onSubmit === 'function') {
+      setOnSubmitCallback(() => props.onSubmit);
+    } else {
+      setOnSubmitCallback(null);
+    }
     
     setIsOpen(true)
   }
@@ -66,8 +76,12 @@ export const FileUploadModalProvider = ({ children }) => {
   
   // Handle submission
   const handleSubmit = (result) => {
+    console.log('handleSubmit called with result:', result);
+    console.log('onSubmitCallback type:', typeof onSubmitCallback);
+    console.log('onSuccessCallback type:', typeof onSuccessCallback);
+    
     // If there's a custom onSubmit handler, call it
-    if (onSubmitCallback) {
+    if (onSubmitCallback && typeof onSubmitCallback === 'function') {
       onSubmitCallback(result)
     }
     
@@ -75,10 +89,19 @@ export const FileUploadModalProvider = ({ children }) => {
     closeModal()
     
     // Call onSuccess callback after modal is closed if provided
-    if (onSuccessCallback) {
+    if (onSuccessCallback && typeof onSuccessCallback === 'function') {
+      // Store the callback in a local variable to ensure we're not accessing stale state
+      const successCallback = onSuccessCallback;
+      
+      // Use a small timeout to ensure the modal is closed first
       setTimeout(() => {
-        onSuccessCallback(result)
-      }, 0)
+        console.log('Calling onSuccess callback...');
+        try {
+          successCallback();  // Don't pass result, as handleEvidenceUploaded doesn't expect args
+        } catch (err) {
+          console.error('Error calling onSuccess callback:', err);
+        }
+      }, 100)
     }
   }
   
