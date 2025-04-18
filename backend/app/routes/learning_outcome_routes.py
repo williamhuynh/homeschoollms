@@ -80,7 +80,7 @@ async def get_evidence(
         # Return empty list instead of raising error to allow upload placeholder
         return []
 
-@router.get("/learning-outcomes/{student_id}/batch-evidence")
+@router.get("/learning-outcomes/batch/{student_id}/evidence")
 async def get_batch_evidence(
     student_id: str,
     outcomes: str,

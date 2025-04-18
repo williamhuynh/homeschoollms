@@ -367,7 +367,7 @@ export const getBatchEvidenceForOutcomes = async (studentId, outcomeCodes) => {
     
     // Make a single API call to get all evidence at once
     const response = await apiToUse.get(
-      `/api/learning-outcomes/${studentId}/batch-evidence?outcomes=${outcomeCodesParam}`
+      `/api/learning-outcomes/batch/${studentId}/evidence?outcomes=${outcomeCodesParam}`
     );
     
     console.log(`Received batch evidence response with ${Object.keys(response.data).length} items`);
