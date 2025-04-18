@@ -45,10 +45,14 @@ class FileStorageService:
             # Read the file content
             file_data = await file.read()
             
+            # Remove the extension from the file_path for Cloudinary upload
+            # Cloudinary will add the extension automatically
+            file_path_without_ext = os.path.splitext(file_path)[0]
+            
             # Upload to Cloudinary
             upload_result = cloudinary.uploader.upload(
                 file_data,
-                public_id=file_path,
+                public_id=file_path_without_ext,
                 resource_type="auto"
             )
             
@@ -59,7 +63,7 @@ class FileStorageService:
                     # Generate thumbnail using Cloudinary
                     thumbnail_result = cloudinary.uploader.upload(
                         file_data,
-                        public_id=f"{file_path}_thumb",
+                        public_id=f"{file_path_without_ext}_thumb",
                         width=thumbnail_size[0],
                         height=thumbnail_size[1],
                         crop="fill",
