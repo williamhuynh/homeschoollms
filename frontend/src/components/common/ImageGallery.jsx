@@ -78,7 +78,9 @@ const ImageGallery = ({
         templateColumns={`repeat(${columnCount}, 1fr)`} 
         gap={spacing}
       >
-        {images.map((image) => {
+        {images
+          .filter(image => !image.deleted) // Filter out deleted images
+          .map((image) => {
           console.log('ImageGallery processing image:', {
             id: image.id || image._id,
             fileUrl: image.fileUrl,
