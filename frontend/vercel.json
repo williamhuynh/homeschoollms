@@ -8,28 +8,30 @@
   ],
   "env": {
     "EDGE_DEBUG": "1",
-    "BACKBLAZE_ENDPOINT": "https://s3.us-east-005.backblazeb2.com",
-    "BACKBLAZE_BUCKET_NAME": "homeschoollms",
-    "BACKBLAZE_KEY_ID": "005a100336bc9300000000003",
-    "BACKBLAZE_APPLICATION_KEY": "K005qKlztkSMUFt8efzfCRjY2xnZEF4",
-    "BACKEND_API_URL": "https://homeschoollms-server.onrender.com"
+    "BACKBLAZE_ENDPOINT": "@backblaze-endpoint",
+    "BACKBLAZE_BUCKET_NAME": "@backblaze-bucket-name",
+    "BACKBLAZE_KEY_ID": "@backblaze-key-id",
+    "BACKBLAZE_APPLICATION_KEY": "@backblaze-application-key",
+    "BACKEND_API_URL": "https://homeschool-lms.onrender.com"
   },
   "rewrites": [
     {
       "source": "/api/files/signed-url",
       "destination": "https://homeschool-lms.onrender.com/api/files/signed-url"
+    },
+    {
+      "source": "/api/images/redirect",
+      "destination": "https://homeschool-lms.onrender.com/api/images/redirect"
+    },
+    {
+      "source": "/api/images/(.*)",
+      "destination": "/api/images/[...path]"
     }
   ],
   "images": {
-    "domains": ["s3.us-east-005.backblazeb2.com"],
+    "domains": ["homeschool-lms.vercel.app"],
     "minimumCacheTTL": 60,
     "formats": ["image/avif", "image/webp"],
-    "remotePatterns": [
-      {
-        "protocol": "https",
-        "hostname": "s3.us-east-005.backblazeb2.com",
-        "pathname": "/homeschoollms/**"
-      }
-    ]
+    "sizes": [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840]
   }
 }
