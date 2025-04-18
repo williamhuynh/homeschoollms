@@ -13,5 +13,11 @@
     "BACKBLAZE_KEY_ID": "005a100336bc9300000000003",
     "BACKBLAZE_APPLICATION_KEY": "K005qKlztkSMUFt8efzfCRjY2xnZEF4",
     "BACKEND_API_URL": "https://homeschoollms-server.onrender.com"
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/files/signed-url",
+      "destination": "https://homeschool-lms.onrender.com/api/files/signed-url"
+    }
+  ]
 }

@@ -47,7 +47,7 @@ async def get_signed_url(
             vercel_url = "https://homeschool-lms.vercel.app"
             encoded_signed_url = urllib.parse.quote(signed_url, safe='')
             
-            # Direct Vercel image optimization URL
+            # Use Vercel's image optimization service
             optimized_url = f"{vercel_url}/_vercel/image?url={encoded_signed_url}"
             
             if width:
