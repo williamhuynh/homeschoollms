@@ -26,7 +26,7 @@ const AvatarSettingsPage = () => {
   const [selectedFile, setSelectedFile] = useState(null)
   
   // Responsive avatar size
-  const avatarSize = useBreakpointValue({ base: "90%", md: "400px" })
+  const avatarSize = useBreakpointValue({ base: "90vw", md: "400px" })
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -109,13 +109,21 @@ const AvatarSettingsPage = () => {
       ) : (
         <VStack spacing={8} flexGrow={1} justify="center">
           <Center width="100%" pt={8} pb={10}>
-            <Avatar 
-              size="full" 
-              name={user ? `${user.first_name} ${user.last_name}` : ''} 
-              src={user?.avatar_url}
+            <Box
               width={avatarSize}
               height={avatarSize}
-            />
+              maxWidth="90%"
+              position="relative"
+            >
+              <Avatar 
+                name={user ? `${user.first_name} ${user.last_name}` : ''} 
+                src={user?.avatar_url}
+                width="100%"
+                height="100%"
+                fontSize="5xl"
+                borderRadius="50%"
+              />
+            </Box>
           </Center>
 
           <HStack spacing={4} justify="center" pt={6}>
