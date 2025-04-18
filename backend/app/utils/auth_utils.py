@@ -104,3 +104,24 @@ async def get_current_user_with_org(
             detail="User must be associated with an organization"
         )
     return current_user
+
+async def get_admin_user(
+    current_user: UserInDB = Depends(get_current_user)
+) -> UserInDB:
+    """
+    Dependency that ensures the current user is an admin.
+    Use this for routes that should only be accessible to admin users.
+    """
+    if current_user.role not in ["admin", "developer"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator access required for this operation"
+        )
+    return current_user
+
+def is_admin_user(user: UserInDB) -> bool:
+    """
+    Helper function to check if a user has admin privileges.
+    Returns True if the user's role is 'admin' or 'developer'.
+    """
+    return user.role in ["admin", "developer"]
