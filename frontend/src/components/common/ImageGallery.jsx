@@ -29,7 +29,6 @@ const USE_SIGNED_IMAGE = process.env.REACT_APP_USE_SIGNED_IMAGE === 'true' || tr
  *     studentId="123"
  *     learningOutcomeId="456"
  *     onImageDeleted={(imageId) => console.log('Image deleted:', imageId)}
- *     thumbnailWidth={450} // Optional prop for thumbnail resolution
  *   />
  * )
  */
@@ -42,8 +41,7 @@ const ImageGallery = ({
   spacing = 4,
   aspectRatio = 1,
   borderRadius = 'md',
-  useSignedImages = USE_SIGNED_IMAGE, // Allow overriding the feature flag per instance
-  thumbnailWidth = 200 // Default thumbnail width
+  useSignedImages = USE_SIGNED_IMAGE // Allow overriding the feature flag per instance
 }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -170,7 +168,6 @@ const ImageGallery = ({
                         width="100%"
                         height="100%"
                         quality={80}
-                        thumbnailWidth={thumbnailWidth}
                         alt={image.title || image.file_name || 'Gallery image'}
                         imgProps={{
                           style: {
@@ -193,8 +190,6 @@ const ImageGallery = ({
                         width="100%"
                         height="100%"
                         objectFit="cover"
-                        quality={80}
-                        thumbnailWidth={thumbnailWidth}
                       />
                     )}
                   </Box>

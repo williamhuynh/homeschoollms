@@ -25,15 +25,13 @@ import { getSignedImageUrl } from '../../utils/imageUtils';
  */
 const LazyImage = ({
   image,
-  alt = '',
+  alt,
   width = '100%',
   height = 'auto',
   objectFit = 'cover',
   borderRadius = 'md',
   onLoad,
   onError,
-  quality = 80,
-  thumbnailWidth,
   ...props
 }) => {
   const [imageUrl, setImageUrl] = useState(null);
@@ -81,8 +79,7 @@ const LazyImage = ({
         const result = await getSignedImageUrl(image.original_url, {
           width: width,
           height: height,
-          quality: quality,
-          thumbnailWidth: thumbnailWidth
+          quality: 80
         });
 
         if (mounted) {
@@ -103,7 +100,7 @@ const LazyImage = ({
     return () => {
       mounted = false;
     };
-  }, [image, width, height, isVisible, onError, quality, thumbnailWidth]);
+  }, [image, width, height, isVisible, onError]);
 
   return (
     <Box

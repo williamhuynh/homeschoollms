@@ -230,7 +230,6 @@ const LearningOutcomePage = () => {
               columns={{ base: 3, sm: 3, md: 3 }}
               spacing={4}
               aspectRatio={0.75}
-              thumbnailWidth={450}
             />
           )}
         </Box>
