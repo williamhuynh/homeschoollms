@@ -7,9 +7,19 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: true,
-    base: '/' // Add this line
+    base: '/',
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@chakra-ui/react', '@chakra-ui/icons', '@emotion/react', '@emotion/styled', 'framer-motion']
+        }
+      }
+    }
   },
   server: {
-    port: 3000  // Keep your local development port
+    port: 3000,
+    host: true
   }
 })
