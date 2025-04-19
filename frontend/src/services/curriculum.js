@@ -82,6 +82,7 @@ export class NSWCurriculum {
         if (stageData) {
           console.log(`Loaded ${stage} from IndexedDB`);
           this.data[stage] = stageData;
+          this.isLoading[stage] = false;
           return stageData;
         }
       }
@@ -89,10 +90,22 @@ export class NSWCurriculum {
       // If not in DB or DB not available, fetch from network
       console.log(`Fetching ${stage} from network`);
       const filePath = this.getFilePath(stage);
+      console.log(`Curriculum URL: ${new URL(filePath, window.location.origin).href}`);
+      
       const response = await fetch(filePath);
+      const contentType = response.headers.get('content-type');
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error ${response.status}. First 100 chars: ${errorText.substring(0, 100)}...`);
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Check if response is actually JSON
+      if (!contentType || !contentType.includes('application/json')) {
+        const errorText = await response.text();
+        console.error(`Expected JSON but got ${contentType}. First 100 chars: ${errorText.substring(0, 100)}...`);
+        throw new Error(`Invalid response format: expected JSON, got ${contentType || 'unknown type'}`);
       }
       
       stageData = await response.json();
@@ -108,8 +121,14 @@ export class NSWCurriculum {
       
       return stageData;
     } catch (err) {
-      console.error(`Failed to load curriculum for ${stage}:`, err.message);
-      throw new Error(`Failed to load curriculum for ${stage}: ${err.message}`);
+      // If network error and we're offline, provide clearer message
+      const isOffline = !navigator.onLine;
+      const errorMessage = isOffline && !err.message.includes('offline') 
+        ? 'You are offline and curriculum data is not available locally' 
+        : err.message;
+        
+      console.error(`Failed to load curriculum for ${stage}:`, errorMessage);
+      throw new Error(`Failed to load curriculum for ${stage}: ${errorMessage}`);
     } finally {
       this.isLoading[stage] = false;
     }
