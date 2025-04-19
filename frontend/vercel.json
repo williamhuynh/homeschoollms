@@ -9,6 +9,10 @@
       "destination": "https://homeschool-lms.onrender.com/api/files/signed-url"
     },
     {
+      "source": "/curriculum/:file*",
+      "destination": "/curriculum/:file*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
