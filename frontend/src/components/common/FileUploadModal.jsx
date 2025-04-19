@@ -143,7 +143,9 @@ const FileUploadModal = ({
           setCurriculumError(null)
           
           // Get student stage based on grade
+          console.log(`FileUploadModal: (Outcomes Effect) studentGrade prop value: ${studentGrade}`)
           const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
+          console.log(`FileUploadModal: (Outcomes Effect) Calculated stage: ${stage}`)
           
           // Get outcomes for this subject - now awaiting the async method
           const outcomes = await curriculumService.getOutcomes(stage, selectedLearningArea.value)
