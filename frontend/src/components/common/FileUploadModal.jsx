@@ -23,8 +23,10 @@ import {
   Spinner,
   InputGroup,
   InputLeftElement,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react'
-import { Upload, X as XIcon, MapPin } from 'react-feather'
+import { Upload, X as XIcon, MapPin, WifiOff } from 'react-feather'
 import ResponsiveImage from './ResponsiveImage'
 import Select from 'react-select'
 
@@ -56,9 +58,24 @@ const FileUploadModal = ({
   const [isLoadingAreas, setIsLoadingAreas] = useState(false)
   const [isLoadingOutcomes, setIsLoadingOutcomes] = useState(false)
   const [curriculumError, setCurriculumError] = useState(null)
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
   
   // Form validation
   const [titleError, setTitleError] = useState('')
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Load curriculum data when modal opens
   useEffect(() => {
@@ -68,14 +85,14 @@ const FileUploadModal = ({
           setIsLoadingAreas(true)
           setCurriculumError(null)
           
-          // Load curriculum data
-          await curriculumService.load()
-          
           // Get student stage based on grade
           const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
           
-          // Get subjects for this stage
-          const subjects = curriculumService.getSubjects(studentGrade || 'Year 1')
+          // Load curriculum data for this stage
+          await curriculumService.load(stage)
+          
+          // Get subjects for this stage - now awaiting the async method
+          const subjects = await curriculumService.getSubjects(studentGrade || 'Year 1')
           
           // Format for react-select
           const formattedSubjects = subjects.map(subject => ({
@@ -97,7 +114,10 @@ const FileUploadModal = ({
           }
         } catch (err) {
           console.error('Error loading curriculum:', err)
-          setCurriculumError('Failed to load curriculum data')
+          setCurriculumError(isOffline ? 
+            'Curriculum data not available offline' : 
+            'Failed to load curriculum data'
+          )
         } finally {
           setIsLoadingAreas(false)
         }
@@ -112,7 +132,7 @@ const FileUploadModal = ({
       setSelectedFiles([])
       setTitleError('')
     }
-  }, [isOpen, studentGrade, initialLearningAreaCode])
+  }, [isOpen, studentGrade, initialLearningAreaCode, isOffline])
   
   // Load outcomes when learning area changes
   useEffect(() => {
@@ -125,8 +145,8 @@ const FileUploadModal = ({
           // Get student stage based on grade
           const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
           
-          // Get outcomes for this subject
-          const outcomes = curriculumService.getOutcomes(stage, selectedLearningArea.value)
+          // Get outcomes for this subject - now awaiting the async method
+          const outcomes = await curriculumService.getOutcomes(stage, selectedLearningArea.value)
           
           // Format for react-select
           const formattedOutcomes = outcomes.map(outcome => ({
@@ -148,7 +168,10 @@ const FileUploadModal = ({
           }
         } catch (err) {
           console.error('Error loading outcomes:', err)
-          setCurriculumError('Failed to load learning outcomes')
+          setCurriculumError(isOffline ? 
+            'Learning outcomes not available offline' : 
+            'Failed to load learning outcomes'
+          )
         } finally {
           setIsLoadingOutcomes(false)
         }
@@ -160,7 +183,7 @@ const FileUploadModal = ({
       setLearningOutcomesList([])
       setSelectedLearningOutcome(null)
     }
-  }, [selectedLearningArea, studentGrade, initialLearningOutcomeCode, isOpen])
+  }, [selectedLearningArea, studentGrade, initialLearningOutcomeCode, isOpen, isOffline])
 
   const handleFileSelect = useCallback((event) => {
   const files = Array.from(event.target.files);
@@ -213,6 +236,11 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
       return
     }
     
+    if (isOffline) {
+      setGenerationError('AI description generation is not available offline')
+      return
+    }
+    
     setIsGenerating(true)
     setGenerationError(null)
     
@@ -234,6 +262,11 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
   }
 
   const handleSubmit = async () => {
+    if (isOffline) {
+      setError('Cannot upload files while offline')
+      return
+    }
+    
     if (!validateForm()) {
       return
     }
@@ -288,6 +321,16 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
         <ModalHeader>Upload Evidence</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
+          {isOffline && (
+            <Alert status="warning" mb={4}>
+              <AlertIcon />
+              <HStack>
+                <WifiOff size={16} />
+                <Text>You are offline. File uploads will not work until you reconnect.</Text>
+              </HStack>
+            </Alert>
+          )}
+          
           <VStack spacing={4}>
             <Box w="full">
               <input
@@ -297,6 +340,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                 onChange={handleFileSelect}
                 style={{ display: 'none' }}
                 id="file-upload"
+                disabled={isOffline}
               />
               <label htmlFor="file-upload">
                 <Button
@@ -305,7 +349,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                   w="full"
                   h="150px" // Reduced height
                   variant="outline"
-                  isDisabled={selectedFiles.length >= MAX_FILES}
+                  isDisabled={selectedFiles.length >= MAX_FILES || isOffline}
                 >
                   {selectedFiles.length > 0 ? `Add More Files (${selectedFiles.length}/${MAX_FILES})` : `Select Files (Max ${MAX_FILES})`}
                 </Button>
@@ -397,7 +441,13 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                   isSearchable
                   className="react-select-container"
                   classNamePrefix="react-select"
+                  isDisabled={isOffline && learningAreasList.length === 0}
                 />
+              )}
+              {curriculumError && learningAreasList.length === 0 && (
+                <Text color="red.500" fontSize="sm" mt={1}>
+                  {curriculumError}
+                </Text>
               )}
             </FormControl>
             
@@ -413,7 +463,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                   placeholder="Select a learning outcome..."
                   isClearable
                   isSearchable
-                  isDisabled={!selectedLearningArea}
+                  isDisabled={!selectedLearningArea || (isOffline && learningOutcomesList.length === 0)}
                   className="react-select-container"
                   classNamePrefix="react-select"
                 />
@@ -435,10 +485,10 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
               onClick={handleGenerateDescription}
               isLoading={isGenerating}
               loadingText="Generating..."
-              isDisabled={selectedFiles.length === 0 || isGenerating}
+              isDisabled={selectedFiles.length === 0 || isGenerating || isOffline}
               w="full"
             >
-              ✨ {/* Sparkles emoji */}
+              ✨ Generate Description with AI
             </Button>
             {generationError && (
               <Text color="red.500" fontSize="sm">
@@ -452,7 +502,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
             colorScheme="teal" 
             onClick={handleSubmit}
             isLoading={isLoading}
-            isDisabled={isLoading || selectedFiles.length === 0 || selectedFiles.length > MAX_FILES} // Disable if no files or too many
+            isDisabled={isLoading || selectedFiles.length === 0 || selectedFiles.length > MAX_FILES || isOffline}
           >
             {isLoading ? 'Uploading...' : `Upload ${selectedFiles.length} File(s)`}
           </Button>

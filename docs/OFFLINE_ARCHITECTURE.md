@@ -78,14 +78,20 @@ Different data types use different caching strategies:
 
 ## Implementation Roadmap
 
-### Phase 1: Enhanced Curriculum Service (Current)
+### Phase 1: Enhanced Curriculum Service (✓ COMPLETED)
 
 - ✅ Implement IndexedDB storage in curriculum service
 - ✅ Update curriculum service to work both online and offline
 - ✅ Modify components to properly handle async data loading
 - ✅ Add offline status indicators to UI
 
-### Phase 2: Service Worker Implementation
+### Components Updated:
+- ✅ StudentProgressPage
+- ✅ SubjectContentPage 
+- ✅ LearningOutcomePage
+- ✅ FileUploadModal
+
+### Phase 2: Service Worker Implementation (NEXT PHASE)
 
 - Install service worker for asset caching
 - Cache static assets (JS, CSS, images)
@@ -152,7 +158,69 @@ Different data types use different caching strategies:
 
 ## Current Status
 
-- Initial implementation of offline-enabled curriculum service complete
-- StudentProgressPage and SubjectContentPage updated to support offline mode
-- Working on offline status indicators and better error handling
-- Next: Implement service worker for static asset caching 
+- ✅ Initial implementation of offline-enabled curriculum service complete
+- ✅ All curriculum-dependent pages updated to support offline mode:
+  - StudentProgressPage.jsx
+  - SubjectContentPage.jsx
+  - LearningOutcomePage.jsx
+  - FileUploadModal.jsx
+- ✅ Working offline status indicators and better error handling
+- 🔜 Next: Implement service worker for static asset caching
+
+## Consistent Offline UI Patterns
+
+The following patterns have been implemented consistently across components:
+
+1. **Offline Status Detection**:
+   ```javascript
+   const [isOffline, setIsOffline] = useState(!navigator.onLine)
+   
+   useEffect(() => {
+     const handleOnline = () => setIsOffline(false);
+     const handleOffline = () => setIsOffline(true);
+     
+     window.addEventListener('online', handleOnline);
+     window.addEventListener('offline', handleOffline);
+     
+     return () => {
+       window.removeEventListener('online', handleOnline);
+       window.removeEventListener('offline', handleOffline);
+     };
+   }, []);
+   ```
+
+2. **Offline Banner**:
+   ```jsx
+   {isOffline && (
+     <Box position="fixed" top={0} w="full" zIndex={10} bg="orange.100" p={2} textAlign="center">
+       <Text fontSize="sm" fontWeight="medium">You are offline. Some content may not be available.</Text>
+     </Box>
+   )}
+   ```
+
+3. **Contextual Error Messages**:
+   ```javascript
+   setError(isOffline ? 
+     'You appear to be offline. Some data may not be available.' : 
+     'Failed to load data'
+   )
+   ```
+
+4. **Disabled Actions When Offline**:
+   ```jsx
+   <Button 
+     // ... other props
+     isDisabled={isOffline}
+   >
+     Action Text
+   </Button>
+   ```
+
+5. **Conditional Data Fetching**:
+   ```javascript
+   if (!isOffline) {
+     // Fetch data from network
+   } else {
+     // Use cached data or show offline state
+   }
+   ``` 
