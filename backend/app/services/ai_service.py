@@ -133,7 +133,7 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
         DO NOT make up any additional details, only describe what is shown in the photos and provided context.
         Do NOT output any preamble such as 'the following is the journal entry', just output the entry itself."""
 
-        logger.info(f"Prompt prepared for {len(prepared_images)} images. Sending to Gemini API...")
+        logger.info(f"Prompt prepared for {len(prepared_images)} images. Sending to Gemini API the following prompt: {prompt}")
         
         # Prepare the content parts (prompt followed by all images)
         content_parts = [prompt] + prepared_images
