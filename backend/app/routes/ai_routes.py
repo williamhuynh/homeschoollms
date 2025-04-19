@@ -19,24 +19,24 @@ router = APIRouter(
 async def generate_ai_description(
     request: Request,
     files: List[UploadFile] = File(...), # Changed to accept a list of files
-    learning_outcome: str = Form(...),
+    context_description: str = Form(...),
     # current_user: User = Depends(get_current_user) # Uncomment if endpoint is protected
 ):
     """
-    Receives one or more image files and learning outcome text, 
+    Receives one or more image files and context description text, 
     generates a description using AI based on all images.
     """
     logger.info(f"Received request to generate AI description for {len(files)} file(s).")
-    logger.info(f"Learning outcome: '{learning_outcome[:100]}...'")
+    logger.info(f"Context description: '{context_description[:100]}...'")
 
     image_data_list: List[Dict[str, Union[bytes, str]]] = []
 
-    # Validate learning outcome
-    if not learning_outcome or len(learning_outcome.strip()) == 0:
-        logger.error("Validation failed: Empty learning outcome provided.")
+    # Validate context description
+    if not context_description or len(context_description.strip()) == 0:
+        logger.error("Validation failed: Empty context description provided.")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Learning outcome cannot be empty."
+            detail="Context description cannot be empty."
         )
         
     if not files:
@@ -105,7 +105,7 @@ async def generate_ai_description(
         logger.info(f"Calling AI service with {len(image_data_list)} image(s).")
         generated_text = await ai_service.generate_description_from_images( # Note: function name changed
             images=image_data_list,
-            learning_outcome=learning_outcome
+            context_description=context_description
         )
         
         logger.info(f"Successfully generated description (length: {len(generated_text)}).")

@@ -46,13 +46,13 @@ except Exception as e:
     logger.error(f"ERROR initializing Gemini model '{model_name}': {e}", exc_info=True)
     # We'll let the endpoint handle this when it's called
 
-async def generate_description_from_images(images: List[Dict[str, Union[bytes, str]]], learning_outcome: str) -> str:
+async def generate_description_from_images(images: List[Dict[str, Union[bytes, str]]], context_description: str) -> str:
     """
-    Generates a four-sentence description for one or more images based on a learning outcome using Gemini.
+    Generates a four-sentence description for one or more images based on provided context.
 
     Args:
         images: A list of dictionaries, each containing 'bytes' and 'mime_type' for an image.
-        learning_outcome: The learning outcome text to potentially connect the image(s) to.
+        context_description: Contextual information to connect the image(s) to.
 
     Returns:
         A string containing the generated four-sentence description.
@@ -62,7 +62,7 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
                        input validation fails, or the generation fails.
     """
     logger.info(f"Generating description for {len(images)} image(s).")
-    logger.info(f"Learning outcome: {learning_outcome[:100]}{'...' if len(learning_outcome) > 100 else ''}")
+    logger.info(f"Context: {context_description[:100]}{'...' if len(context_description) > 100 else ''}")
     
     if not api_key:
         error_msg = "Google AI API key is not configured."
@@ -114,17 +114,18 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
         if not prepared_images:
             raise ValueError("No valid images could be processed.")
             
-        # Validate learning outcome
-        if not learning_outcome or len(learning_outcome.strip()) == 0:
-            raise ValueError("Learning outcome cannot be empty")
+        # Validate context description
+        if not context_description or len(context_description.strip()) == 0:
+            raise ValueError("Context description cannot be empty")
         
         # Construct the prompt for multiple images
         prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the images provided and write exactly four concise sentences summarizing the activity shown across all images:
 
 1. First, describe what your child is doing, drawing connections between the images if possible.
-2. Then, only if it clearly relates to the learning outcome below, explain how the activity connects, and reference the Learning Outcome.
+2. Then, if it clearly relates to the context provided below, explain how the activity connects.
 
-Learning outcome: "{learning_outcome}"
+Context Information:
+{context_description}
 
 If no clear connection exists, just describe the photos.
 Use a warm, reflective tone suited to early childhood learning.

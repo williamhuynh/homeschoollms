@@ -443,15 +443,15 @@ export const getEvidenceShareUrl = async (studentId, learningOutcomeId, evidence
 };
 
 // AI Description Generation
-export const generateAIDescription = async (files, learningOutcomeDescription) => { // Changed 'file' to 'files' (array)
+export const generateAIDescription = async (files, contextDescription) => {
   try {
     // Validate inputs
     if (!files || files.length === 0) { // Check if files array is empty
       throw new Error('No files provided');
     }
     
-    if (!learningOutcomeDescription) {
-      throw new Error('No learning outcome description provided');
+    if (!contextDescription) {
+      throw new Error('No context description provided');
     }
     
     // Log file details for debugging (log the first file for brevity)
@@ -471,7 +471,7 @@ export const generateAIDescription = async (files, learningOutcomeDescription) =
     files.forEach((file, index) => {
       formData.append('files', file); 
     });
-    formData.append('learning_outcome', learningOutcomeDescription); // Match backend Form field name
+    formData.append('context_description', contextDescription);
 
     // Log FormData contents for debugging
     console.log('--- FormData for AI Description ---');
