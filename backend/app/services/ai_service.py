@@ -119,18 +119,19 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
             raise ValueError("Context description cannot be empty")
         
         # Construct the prompt for multiple images
-        prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the images provided and write exactly four concise sentences summarizing the activity shown across all images:
+        prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the images and context provided and describe the activity shown:
 
-1. First, describe what your child is doing, drawing connections between the images if possible.
-2. Then, if it clearly relates to the context provided below, explain how the activity connects.
+        Context Information: {context_description}
 
-Context Information:
-{context_description}
+        1. First, describe what your child is doing, drawing connections between the images if there are more than one provided. Use any context details provided as input into the description.
+        2. Then, if it clearly relates to the particular learning area and learning outcome, explain how the activity is evidence of achieving the learning outcome.
 
-If no clear connection exists, just describe the photos.
-Use a warm, reflective tone suited to early childhood learning.
-Avoid emotive language as the purpose of this is factual evidence of learning activity. 
-Do not output any preamble such as 'the following is the journal entry', just output the entry itself."""
+        If no clear connection exists, omit the linkage to the learning outcome and just describe the photos.
+        Use a warm, reflective tone suited to early childhood learning.
+        Avoid emotive language as the purpose of this is factual evidence of learning activity.
+        Keep it to no more than 500 characters.
+        DO NOT make up any additional details, only describe what is shown in the photos and provided context.
+        Do NOT output any preamble such as 'the following is the journal entry', just output the entry itself."""
 
         logger.info(f"Prompt prepared for {len(prepared_images)} images. Sending to Gemini API...")
         
