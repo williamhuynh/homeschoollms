@@ -137,8 +137,8 @@ const FileUploadModal = ({
           
           setLearningOutcomesList(formattedOutcomes)
           
-          // If initialLearningOutcomeCode is provided and this is the first load, select it
-          if (initialLearningOutcomeCode && !selectedLearningOutcome) {
+          // If initialLearningOutcomeCode is provided, select it
+          if (initialLearningOutcomeCode) {
             const initialOutcome = formattedOutcomes.find(
               outcome => outcome.value.toLowerCase() === initialLearningOutcomeCode.toLowerCase()
             )
@@ -160,7 +160,7 @@ const FileUploadModal = ({
       setLearningOutcomesList([])
       setSelectedLearningOutcome(null)
     }
-  }, [selectedLearningArea, studentGrade, initialLearningOutcomeCode])
+  }, [selectedLearningArea, studentGrade, initialLearningOutcomeCode, isOpen])
 
   const handleFileSelect = useCallback((event) => {
   const files = Array.from(event.target.files);

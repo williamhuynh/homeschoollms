@@ -72,6 +72,12 @@ export const FileUploadModalProvider = ({ children }) => {
   // Close modal
   const closeModal = () => {
     setIsOpen(false)
+    // Reset the learning area and outcome codes to ensure fresh values on next open
+    setModalProps(prev => ({
+      ...prev,
+      initialLearningAreaCode: null,
+      initialLearningOutcomeCode: null
+    }))
   }
   
   // Handle submission
