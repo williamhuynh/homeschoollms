@@ -49,6 +49,7 @@ const FileUploadModal = ({
   const [location, setLocation] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationError, setGenerationError] = useState(null)
+  const [currentStage, setCurrentStage] = useState(null) // Add state for stage
   
   // Learning areas and outcomes state
   const [learningAreasList, setLearningAreasList] = useState([])
@@ -87,6 +88,15 @@ const FileUploadModal = ({
           
           // Get student stage based on grade
           const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
+          console.log(`FileUploadModal: (Initial Effect) Student grade: ${studentGrade} -> Stage: ${stage}`) // Log initial stage calculation
+          setCurrentStage(stage); // Set the stage state here
+
+          // If stage calculation failed, don't proceed
+          if (!stage) {
+            setCurriculumError('Could not determine student stage.');
+            setIsLoadingAreas(false);
+            return;
+          }
           
           // Load curriculum data for this stage
           await curriculumService.load(stage)
@@ -134,21 +144,18 @@ const FileUploadModal = ({
     }
   }, [isOpen, studentGrade, initialLearningAreaCode, isOffline])
   
-  // Load outcomes when learning area changes
+  // Load outcomes when learning area changes OR currentStage is set
   useEffect(() => {
-    if (selectedLearningArea) {
+    // Only run if an area is selected AND we have a valid stage stored
+    if (selectedLearningArea && currentStage) {
       const loadOutcomes = async () => {
         try {
           setIsLoadingOutcomes(true)
           setCurriculumError(null)
-          
-          // Get student stage based on grade
-          console.log(`FileUploadModal: (Outcomes Effect) studentGrade prop value: ${studentGrade}`)
-          const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
-          console.log(`FileUploadModal: (Outcomes Effect) Calculated stage: ${stage}`)
-          
-          // Get outcomes for this subject - now awaiting the async method
-          const outcomes = await curriculumService.getOutcomes(stage, selectedLearningArea.value)
+          console.log(`FileUploadModal: (Outcomes Effect) Using stored stage: ${currentStage} for area: ${selectedLearningArea.value}`) // Use stored stage
+
+          // Get outcomes using the stored stage
+          const outcomes = await curriculumService.getOutcomes(currentStage, selectedLearningArea.value)
           
           // Format for react-select
           const formattedOutcomes = outcomes.map(outcome => ({
@@ -181,11 +188,11 @@ const FileUploadModal = ({
       
       loadOutcomes()
     } else {
-      // Clear outcomes if no area is selected
+      // Clear outcomes if no area or stage
       setLearningOutcomesList([])
       setSelectedLearningOutcome(null)
     }
-  }, [selectedLearningArea, studentGrade, initialLearningOutcomeCode, isOpen, isOffline])
+  }, [selectedLearningArea, currentStage, initialLearningOutcomeCode, isOpen, isOffline])
 
   const handleFileSelect = useCallback((event) => {
   const files = Array.from(event.target.files);
