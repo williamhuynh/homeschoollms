@@ -81,14 +81,27 @@ const FileUploadModal = ({
   // Load curriculum data when modal opens
   useEffect(() => {
     if (isOpen) {
+      // Add guard: Only proceed if studentGrade is valid
+      if (!studentGrade) {
+        console.log('FileUploadModal: (Initial Effect) Waiting for valid studentGrade...');
+        // Clear potentially stale state
+        setLearningAreasList([]);
+        setSelectedLearningArea(null);
+        setCurrentStage(null);
+        setLearningOutcomesList([]);
+        setSelectedLearningOutcome(null);
+        setCurriculumError('Student grade not available yet.'); // Inform user
+        return; // Exit early
+      }
+
       const loadCurriculum = async () => {
         try {
           setIsLoadingAreas(true)
           setCurriculumError(null)
           
-          // Get student stage based on grade
-          const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
-          console.log(`FileUploadModal: (Initial Effect) Student grade: ${studentGrade} -> Stage: ${stage}`) // Log initial stage calculation
+          // Get student stage based on grade - No fallback needed now
+          const stage = curriculumService.getStageForGrade(studentGrade)
+          console.log(`FileUploadModal: (Initial Effect) Using valid studentGrade: ${studentGrade} -> Stage: ${stage}`)
           setCurrentStage(stage); // Set the stage state here
 
           // If stage calculation failed, don't proceed
