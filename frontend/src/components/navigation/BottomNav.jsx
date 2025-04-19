@@ -12,6 +12,9 @@ const BottomNav = () => {
   
   // Try to get studentId from location state or URL params
   const studentId = location.state?.student?.studentId || params.studentId
+  
+  // Check if we're on the student selector page
+  const isStudentSelectorPage = location.pathname === '/students'
 
   return (
     <Box 
@@ -39,14 +42,19 @@ const BottomNav = () => {
           }}
           aria-label="Home"
         />
-        <IconButton
-          icon={<Plus />}
-          colorScheme="teal"
-          rounded="full"
-          size="lg"
-          onClick={() => openModal({ studentId })}
-          aria-label="Upload Evidence"
-        />
+        
+        {/* Only show the upload button if we're not on the student selector page */}
+        {!isStudentSelectorPage && (
+          <IconButton
+            icon={<Plus />}
+            colorScheme="teal"
+            rounded="full"
+            size="lg"
+            onClick={() => openModal({ studentId })}
+            aria-label="Upload Evidence"
+          />
+        )}
+        
         <IconButton
           icon={<User />} // Changed icon
           variant="ghost"
