@@ -1,21 +1,20 @@
 # Signed Images Guide
 
-This guide explains how to use the new backend-generated signed URLs for images in the Homeschool LMS application.
+This guide explains how to use backend-generated signed URLs for images in the Homeschool LMS application.
 
 ## Overview
 
-We've implemented a new approach for serving images from Backblaze B2 storage:
+We've implemented a secure approach for serving images from Backblaze B2 storage:
 
-1. Instead of attempting complex AWS v4 signature generation in Vercel Edge Functions, we now use the backend to generate signed URLs
+1. The backend generates signed URLs with proper authentication for Backblaze B2
 2. The backend has direct access to the Backblaze credentials and can generate properly signed URLs
-3. These signed URLs can then be used directly or passed to Vercel's image optimization
+3. These signed URLs can then be used directly in the frontend
 
 ## Benefits
 
 - **Security**: Private Backblaze bucket remains secure
-- **Simplicity**: No complex authentication code in Edge Functions 
-- **Reliability**: Backend-generated signatures are more reliable than in Edge Functions
-- **Optimization**: Still leverages Vercel's image optimization for resizing and format conversion
+- **Simplicity**: Authentication is handled by the backend
+- **Reliability**: Backend-generated signatures are reliable
 - **Performance**: Eliminates authentication errors that were causing slow image loads
 
 ## Backend Implementation
@@ -40,7 +39,6 @@ GET /api/files/signed-url
 ```json
 {
   "signed_url": "https://backblaze-url-with-signature...",
-  "optimized_url": "https://your-site.vercel.app/_vercel/image?url=encoded-signed-url&w=500&h=300&q=80",
   "expiration": 3600
 }
 ```
@@ -77,12 +75,12 @@ import { getSignedImageUrl } from '../../utils/imageUtils';
 useEffect(() => {
   async function loadImage() {
     try {
-      const { optimizedUrl } = await getSignedImageUrl('evidence/student123/image.jpg', {
+      const { signedUrl } = await getSignedImageUrl('evidence/student123/image.jpg', {
         width: 500,
         height: 300,
         quality: 80
       });
-      setImageUrl(optimizedUrl);
+      setImageUrl(signedUrl);
     } catch (error) {
       console.error('Error loading image:', error);
     }
@@ -152,7 +150,7 @@ The frontend also logs detailed information when debugging is enabled:
 ```
 Getting signed URL for image: evidence/student123/image.jpg
 Calling API: /api/files/signed-url?file_path=evidence%2Fstudent123%2Fimage.jpg&width=500&height=300&quality=80
-Received signed URL response: {signed_url: "...", optimized_url: "...", expiration: 3600}
+Received signed URL response: {signed_url: "...", expiration: 3600}
 ```
 
 ## Migration Checklist
