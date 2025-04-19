@@ -3,11 +3,51 @@ let curriculumInstance = null;
 export class NSWCurriculum {
   constructor() {
     if (!curriculumInstance) {
-      this.data = {};  // Changed from null to an object to store multiple stages
+      this.data = {};  // Store loaded stages
       this.isLoading = {};  // Track loading status per stage
+      this.db = null;  // IndexedDB instance
+      this.dbReady = this.initializeDB();  // Promise for DB initialization
       curriculumInstance = this;
     }
     return curriculumInstance;
+  }
+
+  async initializeDB() {
+    if (!window.indexedDB) {
+      console.warn('IndexedDB not supported. Offline curriculum will not be available.');
+      return false;
+    }
+
+    try {
+      // Open (or create) the curriculum database
+      const dbPromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open('curriculum-db', 1);
+        
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains('stages')) {
+            // Create object store for curriculum stages
+            db.createObjectStore('stages', { keyPath: 'stage' });
+          }
+        };
+        
+        request.onsuccess = (event) => {
+          this.db = event.target.result;
+          console.log('Curriculum IndexedDB initialized');
+          resolve(true);
+        };
+        
+        request.onerror = (event) => {
+          console.error('Error initializing curriculum IndexedDB:', event.target.error);
+          reject(event.target.error);
+        };
+      });
+      
+      return await dbPromise;
+    } catch (err) {
+      console.error('Failed to initialize IndexedDB:', err);
+      return false;
+    }
   }
 
   getFilePath(stage) {
@@ -17,29 +57,100 @@ export class NSWCurriculum {
   }
 
   async load(stage) {
-    // If no stage provided, return
-    if (!stage) return;
+    // If no stage provided, load known stages for backward compatibility
+    if (!stage) {
+      return this.loadAll();
+    }
     
     // If data for this stage is already loaded or currently loading, return
-    if (this.data[stage] || this.isLoading[stage]) return;
+    if (this.data[stage] || this.isLoading[stage]) {
+      return this.data[stage];
+    }
     
     this.isLoading[stage] = true;
+    
     try {
+      // First try to get data from IndexedDB
+      let stageData = null;
+      
+      // Wait for DB to be ready
+      const dbInitialized = await this.dbReady;
+      
+      if (dbInitialized && this.db) {
+        stageData = await this.getFromDB(stage);
+        
+        if (stageData) {
+          console.log(`Loaded ${stage} from IndexedDB`);
+          this.data[stage] = stageData;
+          return stageData;
+        }
+      }
+      
+      // If not in DB or DB not available, fetch from network
+      console.log(`Fetching ${stage} from network`);
       const filePath = this.getFilePath(stage);
       const response = await fetch(filePath);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const stageData = await response.json();
+      
+      stageData = await response.json();
       
       // Store the stage data
       this.data[stage] = stageData;
+      
+      // Save to IndexedDB if available
+      if (dbInitialized && this.db) {
+        await this.saveToDB(stage, stageData);
+        console.log(`Saved ${stage} to IndexedDB`);
+      }
+      
+      return stageData;
     } catch (err) {
-      console.error(`Failed to load curriculum for ${stage}: ${err.message}`);
+      console.error(`Failed to load curriculum for ${stage}:`, err.message);
       throw new Error(`Failed to load curriculum for ${stage}: ${err.message}`);
     } finally {
       this.isLoading[stage] = false;
     }
+  }
+
+  async getFromDB(stage) {
+    return new Promise((resolve, reject) => {
+      try {
+        const transaction = this.db.transaction(['stages'], 'readonly');
+        const store = transaction.objectStore('stages');
+        const request = store.get(stage);
+        
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => {
+          console.error('Error reading from IndexedDB:', request.error);
+          resolve(null); // Resolve with null on error to allow fallback
+        };
+      } catch (err) {
+        console.error('Error accessing IndexedDB:', err);
+        resolve(null); // Resolve with null on error to allow fallback
+      }
+    });
+  }
+
+  async saveToDB(stage, data) {
+    return new Promise((resolve, reject) => {
+      try {
+        const transaction = this.db.transaction(['stages'], 'readwrite');
+        const store = transaction.objectStore('stages');
+        const request = store.put(data);
+        
+        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          console.error('Error writing to IndexedDB:', request.error);
+          resolve(); // Resolve anyway to prevent blocking
+        };
+      } catch (err) {
+        console.error('Error accessing IndexedDB for writing:', err);
+        resolve(); // Resolve anyway to prevent blocking
+      }
+    });
   }
 
   // Legacy method to support transition - loads all currently known stages
@@ -52,10 +163,13 @@ export class NSWCurriculum {
     for (const stage of knownStages) {
       await this.load(stage);
     }
+    
+    return Object.values(this.data);
   }
 
   getStages() {
-    const knownStages = [
+    // Return all known stages, not just loaded ones
+    return [
       'Early Stage 1',
       'Stage 1',
       'Stage 2',
@@ -64,9 +178,6 @@ export class NSWCurriculum {
       'Stage 5',
       'Stage 6'
     ];
-    
-    // Return all known stages, not just loaded ones
-    return knownStages;
   }
 
   getStageForGrade(grade) {
@@ -89,32 +200,77 @@ export class NSWCurriculum {
     return gradeMapping[grade] || null;
   }
 
+  // Hybrid implementation - works both synchronously (backward compatible) and asynchronously
   async getSubjects(grade) {
     const stage = this.getStageForGrade(grade);
     if (!stage) {
       return [];
     }
     
-    // Ensure stage data is loaded
-    await this.load(stage);
-    
-    if (!this.data[stage]) {
-      return [];
+    // If data is already loaded, return immediately
+    if (this.data[stage]) {
+      return this.data[stage].subjects || [];
     }
     
-    return this.data[stage].subjects || [];
+    // Try to load data
+    try {
+      const stageData = await this.load(stage);
+      return stageData.subjects || [];
+    } catch (err) {
+      console.error(`Error getting subjects for ${grade}:`, err);
+      return []; // Return empty array on error
+    }
   }
 
+  // Hybrid implementation - works both synchronously (backward compatible) and asynchronously
   async getOutcomes(stage, subjectCode) {
-    // Ensure stage data is loaded
-    await this.load(stage);
-    
-    if (!this.data[stage]) {
-      return [];
+    // If data is already loaded, return immediately
+    if (this.data[stage]) {
+      const subject = this.data[stage].subjects.find(s => s.code === subjectCode);
+      return subject ? subject.outcomes : [];
     }
     
-    const subject = this.data[stage].subjects.find(s => s.code === subjectCode);
-    return subject ? subject.outcomes : [];
+    // Try to load data
+    try {
+      const stageData = await this.load(stage);
+      const subject = stageData.subjects.find(s => s.code === subjectCode);
+      return subject ? subject.outcomes : [];
+    } catch (err) {
+      console.error(`Error getting outcomes for ${stage}/${subjectCode}:`, err);
+      return []; // Return empty array on error
+    }
+  }
+  
+  // Check if we're offline
+  isOffline() {
+    return !navigator.onLine;
+  }
+  
+  // Clear all cached data (useful for development/testing)
+  async clearCache() {
+    if (!this.db) return;
+    
+    return new Promise((resolve, reject) => {
+      try {
+        const transaction = this.db.transaction(['stages'], 'readwrite');
+        const store = transaction.objectStore('stages');
+        const request = store.clear();
+        
+        request.onsuccess = () => {
+          this.data = {}; // Clear memory cache too
+          console.log('Curriculum cache cleared');
+          resolve();
+        };
+        
+        request.onerror = () => {
+          console.error('Error clearing IndexedDB:', request.error);
+          reject(request.error);
+        };
+      } catch (err) {
+        console.error('Error accessing IndexedDB for clearing:', err);
+        reject(err);
+      }
+    });
   }
 }
 

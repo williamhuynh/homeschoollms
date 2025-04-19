@@ -4,7 +4,7 @@ import styles from '../../styles/LearningOutcomes.module.css'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getStudentBySlug, getLatestEvidenceForOutcomes } from '../../services/api'
-import { NSWCurriculum } from '../../services/curriculum'
+import { curriculumService } from '../../services/curriculum'
 import LazyImage from '../../components/common/LazyImage'
 import SignedImage from '../../components/common/SignedImage'
 import placeholderImage from '../../assets/images/placeholder-photo.jpg'
@@ -25,9 +25,23 @@ const SubjectContentPage = () => {
   const [loading, setLoading] = useState(!location.state?.student)
   const [error, setError] = useState(null)
   const [outcomes, setOutcomes] = useState([])
-  const [curriculum, setCurriculum] = useState(null)
   const [evidenceMap, setEvidenceMap] = useState({})
   const [evidenceLoading, setEvidenceLoading] = useState(false)
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Helper to extract file path from URL
   const extractImagePath = (url) => {
@@ -54,10 +68,6 @@ const SubjectContentPage = () => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // Load curriculum
-        const curriculum = new NSWCurriculum()
-        await curriculum.load()
-        
         // Fetch student data if needed
         if (!student && studentId) {
           const data = await getStudentBySlug(studentId)
@@ -66,24 +76,32 @@ const SubjectContentPage = () => {
         
         // Get outcomes for the selected subject
         if (student?.grade_level && subjectData) {
-          const stage = curriculum.getStageForGrade(student.grade_level)
-          const subjectOutcomes = curriculum.getOutcomes(
+          const stage = curriculumService.getStageForGrade(student.grade_level)
+          
+          // Load curriculum data for this stage
+          await curriculumService.load(stage)
+          
+          // Get outcomes for this subject
+          const subjectOutcomes = await curriculumService.getOutcomes(
             stage,
             subjectData.code
           )
+          
           setOutcomes(subjectOutcomes)
-          setCurriculum(curriculum)
         }
       } catch (err) {
         console.error('Error:', err)
-        setError('Failed to load data')
+        setError(isOffline ? 
+          'You appear to be offline. Some data may not be available.' : 
+          'Failed to load data'
+        )
       } finally {
         setLoading(false)
       }
     }
     
     fetchData()
-  }, [studentId, student, curriculum, subjectData])
+  }, [studentId, student, subjectData, isOffline])
   
   // Fetch latest evidence for all outcomes
   // This uses a batch API endpoint for better performance when multiple outcomes exist
@@ -100,14 +118,21 @@ const SubjectContentPage = () => {
           setEvidenceMap(evidence)
         } catch (err) {
           console.error('Error fetching evidence:', err)
+          // Don't show an error message for evidence loading failures when offline
+          // The UI will show placeholders instead
         } finally {
           setEvidenceLoading(false)
         }
       }
     }
     
-    fetchEvidence()
-  }, [outcomes, student])
+    // Only fetch evidence if we're online
+    if (!isOffline) {
+      fetchEvidence()
+    } else {
+      setEvidenceLoading(false)
+    }
+  }, [outcomes, student, isOffline])
 
   if (loading) {
     return (
@@ -130,7 +155,7 @@ const SubjectContentPage = () => {
     )
   }
 
-  if (error || !student) {
+  if (error && !student) {
     return (
       <Container maxW="container.sm" p={0}>
         <Box position="fixed" top={0} w="full" zIndex={10} bg="white" p={4} borderBottom="1px" borderColor="gray.200">
@@ -145,7 +170,7 @@ const SubjectContentPage = () => {
           </Text>
         </Box>
         <Center mt="80px">
-          <Text color="red.500">{error || 'Student not found'}</Text>
+          <Text color="red.500">{error}</Text>
         </Center>
       </Container>
     )
@@ -153,7 +178,13 @@ const SubjectContentPage = () => {
 
   return (
     <Container maxW="container.sm" p={0}>
-      <Box position="fixed" top={0} w="full" zIndex={10} bg="white" p={4} borderBottom="1px" borderColor="gray.200">
+      {isOffline && (
+        <Box position="fixed" top={0} w="full" zIndex={10} bg="orange.100" p={2} textAlign="center">
+          <Text fontSize="sm" fontWeight="medium">You are offline. Some content may not be available.</Text>
+        </Box>
+      )}
+      
+      <Box position="fixed" top={isOffline ? "30px" : 0} w="full" zIndex={10} bg="white" p={4} borderBottom="1px" borderColor="gray.200">
         <IconButton
           icon={<ArrowLeft />}
           onClick={() => navigate(-1)}
@@ -161,11 +192,11 @@ const SubjectContentPage = () => {
           aria-label="Back"
         />
         <Text fontSize="xl" fontWeight="bold" ml={2} display="inline-block">
-          {student.first_name} {student.last_name}'s {subjectData?.name}
+          {student?.first_name} {student?.last_name}'s {subjectData?.name}
         </Text>
       </Box>
 
-      <Box mt="80px">
+      <Box mt={isOffline ? "110px" : "80px"}>
         {evidenceLoading && (
           <Center py={4}>
             <Spinner size="md" color="blue.500" mr={2} />
@@ -173,14 +204,21 @@ const SubjectContentPage = () => {
           </Center>
         )}
         
+        {error && (
+          <Box mx={4} mb={4} p={3} bg="orange.100" borderRadius="md">
+            <Text color="orange.800">{error}</Text>
+          </Box>
+        )}
+        
         <div className={styles.outcomeGrid}>
-          {outcomes.map((outcome) => (
+          {outcomes.length > 0 ? (
+            outcomes.map((outcome) => (
               <div 
                 key={outcome.code} 
                 className={styles.outcomeCard}
                 onClick={() => navigate(`/students/${student._id}/learning-outcomes/${outcome.code}`, {
                   state: {
-                    stage: curriculum.getStageForGrade(student.grade_level),
+                    stage: curriculumService.getStageForGrade(student.grade_level),
                     subject: subjectData
                   }
                 })}
@@ -246,7 +284,12 @@ const SubjectContentPage = () => {
                   <p className={styles.description}>{outcome.description}</p>
                 </div>
               </div>
-          ))}
+            ))
+          ) : (
+            <Center p={4}>
+              <Text color="gray.500">No learning outcomes available for this subject.</Text>
+            </Center>
+          )}
         </div>
       </Box>
     </Container>
