@@ -349,6 +349,10 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
       if (selectedLearningArea) formData.append('learning_area_code', selectedLearningArea.value)
       if (selectedLearningOutcome) formData.append('learning_outcome_code', selectedLearningOutcome.value)
       
+      // Add student grade and outcome description for better context
+      if (studentGrade) formData.append('student_grade', studentGrade)
+      if (learningOutcomeDescription) formData.append('learning_outcome_description', learningOutcomeDescription)
+      
       // Use the API service instead of direct fetch
       const result = await uploadEvidence(studentId, learningOutcomeId, formData)
       

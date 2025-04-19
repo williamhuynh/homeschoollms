@@ -125,10 +125,13 @@ async def upload_evidence(
     location: Optional[str] = Form(None), # New optional field
     learning_area_code: Optional[str] = Form(None), # New optional field
     learning_outcome_code: Optional[str] = Form(None), # New optional field
+    student_grade: Optional[str] = Form(None), # Added student grade
+    learning_outcome_description: Optional[str] = Form(None), # Added learning outcome description
     current_user: UserInDB = Depends(get_current_user)
 ):
     logger.info(f"Received {len(files)} file(s) for student {student_id}, path outcome {learning_outcome_id}")
     logger.info(f"Form data - Title: '{title}', Desc: '{description}', Loc: '{location}', Area: '{learning_area_code}', Outcome: '{learning_outcome_code}'")
+    logger.info(f"Additional context - Grade: '{student_grade}', Outcome Desc: '{learning_outcome_description}'")
 
     uploaded_files_info = []
     db = Database.get_db()
@@ -155,9 +158,71 @@ async def upload_evidence(
         outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
         
         if not outcome:
-            logger.warning(f"No learning outcome found with code: '{outcome_code_to_use}'. Cannot auto-create without more context.")
-            # We won't auto-create here anymore, rely on the dropdowns providing valid codes
-            raise HTTPException(status_code=404, detail=f"Learning outcome '{outcome_code_to_use}' not found.")
+            logger.warning(f"No learning outcome found with code: '{outcome_code_to_use}'. Attempting to auto-create.")
+            
+            # Auto-create the learning outcome with available context
+            try:
+                # Prepare learning outcome document
+                new_outcome = {
+                    "code": outcome_code_to_use,
+                    "name": f"Auto-created: {outcome_code_to_use}",
+                    "description": learning_outcome_description or "Automatically created learning outcome for evidence upload",
+                    "subject_id": None,  # We don't have subject_id here
+                    "grade_level": student_grade,  # Use provided grade level
+                    "is_standard": True,
+                    "created_at": datetime.now()
+                }
+                
+                # Determine stage from grade if available
+                if student_grade:
+                    # Logic to map grade to stage
+                    stage_mapping = {
+                        "Kindergarten": "Early Stage 1",
+                        "Year 1": "Stage 1", 
+                        "Year 2": "Stage 1",
+                        "Year 3": "Stage 2", 
+                        "Year 4": "Stage 2",
+                        "Year 5": "Stage 3", 
+                        "Year 6": "Stage 3",
+                        # Add more mappings as needed
+                    }
+                    stage = stage_mapping.get(student_grade)
+                    if stage:
+                        new_outcome["stage"] = stage
+                        logger.info(f"Mapped grade '{student_grade}' to stage '{stage}'")
+                
+                # If learning_area_code is provided, add it to context
+                if learning_area_code:
+                    new_outcome["learning_area_code"] = learning_area_code
+                
+                # Insert the new learning outcome
+                insert_result = await db.learning_outcomes.insert_one(new_outcome)
+                outcome_obj_id = insert_result.inserted_id
+                logger.info(f"Auto-created learning outcome with ID: {outcome_obj_id} for code {outcome_code_to_use}")
+                
+                # Add a log entry to track auto-creations for admin review
+                try:
+                    await db.system_logs.insert_one({
+                        "type": "learning_outcome_auto_created",
+                        "outcome_code": outcome_code_to_use,
+                        "outcome_id": outcome_obj_id,
+                        "created_at": datetime.now(),
+                        "created_by": ObjectId(current_user.id) if current_user else None,
+                        "context": {
+                            "student_id": student_id,
+                            "learning_area_code": learning_area_code,
+                            "title": title,
+                            "student_grade": student_grade,
+                            "stage": new_outcome.get("stage"),
+                            "from_evidence_upload": True
+                        }
+                    })
+                except Exception as log_err:
+                    # Don't fail the main operation if logging fails
+                    logger.warning(f"Failed to create auto-creation log: {str(log_err)}")
+            except Exception as e:
+                logger.error(f"Failed to auto-create learning outcome: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Failed to auto-create learning outcome: {str(e)}")
         else:
             outcome_obj_id = outcome["_id"]
             logger.info(f"Found existing learning outcome with ID: {outcome_obj_id} for code {outcome_code_to_use}")

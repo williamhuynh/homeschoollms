@@ -121,7 +121,7 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
         # Construct the prompt for multiple images
         prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the images and context provided and describe the activity shown:
 
-        Context Information: {context_description}
+        <Context Information> {context_description} </Context Information>
 
         1. First, describe what your child is doing, drawing connections between the images if there are more than one provided. Use any context details provided as input into the description.
         2. Then, if it clearly relates to the particular learning area and learning outcome, explain how the activity is evidence of achieving the learning outcome.
