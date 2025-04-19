@@ -227,6 +227,17 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
       setTitleError('')
     }
     
+    // Also validate file selection
+    if (selectedFiles.length === 0) {
+      setError('Please select at least one file')
+      isValid = false
+    } else if (selectedFiles.length > MAX_FILES) {
+      setError(`You can only upload a maximum of ${MAX_FILES} files. Please remove some.`)
+      isValid = false
+    } else {
+      setError(null)
+    }
+    
     return isValid
   }
   
@@ -245,9 +256,45 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
     setGenerationError(null)
     
     try {
-      // Pass the array of actual File objects
-      const fileObjects = selectedFiles.map(f => f.file);
-      const result = await generateAIDescription(fileObjects, learningOutcomeDescription)
+      // Build a comprehensive context using all available information
+      let contextParts = []
+      
+      // Add the learning outcome description if available
+      if (selectedLearningOutcome?.outcome?.description) {
+        contextParts.push(`Learning Outcome: ${selectedLearningOutcome.outcome.description}`)
+      } else if (learningOutcomeDescription) {
+        contextParts.push(`Learning Outcome: ${learningOutcomeDescription}`)
+      }
+      
+      // Add the learning outcome code if available
+      if (selectedLearningOutcome?.outcome?.code || selectedLearningOutcome?.value) {
+        contextParts.push(`Learning Outcome Code: ${selectedLearningOutcome?.outcome?.code || selectedLearningOutcome?.value}`)
+      }
+      
+      // Add the learning area if available
+      if (selectedLearningArea?.label) {
+        contextParts.push(`Learning Area: ${selectedLearningArea.label}`)
+      }
+      
+      // Add the title if available
+      if (title) {
+        contextParts.push(`Title: ${title}`)
+      }
+      
+      // Add any existing description content if available
+      if (description && description.trim()) {
+        contextParts.push(`Initial Description: ${description}`)
+      }
+      
+      // Combine all parts or use a default if nothing is available
+      const contextDescription = contextParts.length > 0 
+        ? contextParts.join('\n') 
+        : 'Please describe the uploaded content'
+      
+      // Pass the array of actual File objects with the comprehensive context
+      const fileObjects = selectedFiles.map(f => f.file)
+      const result = await generateAIDescription(fileObjects, contextDescription)
+      
       if (result && result.description) {
         setDescription(result.description)
       } else {
