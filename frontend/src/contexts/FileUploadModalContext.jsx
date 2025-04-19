@@ -40,13 +40,27 @@ export const FileUploadModalProvider = ({ children }) => {
     // Log before attempting to find grade
     console.log(`FileUploadModalProvider: Checking conditions to find grade. Has studentId: ${!!studentId}, Has studentGrade prop: ${!!props.studentGrade}, Has students context: ${!!students}`);
     if (studentId && !studentGrade && students) { // <-- Needs a valid studentId AND no explicit grade prop AND students context
-      // Find student by SLUG now, as studentId from URL is the slug
-      const student = students.find(s => s.slug === studentId)
+      
+      let student = null;
+      // Basic check for ObjectId format (24 hex chars)
+      const isObjectIdFormat = /^[0-9a-fA-F]{24}$/.test(studentId);
+      
+      if (isObjectIdFormat) {
+        console.log(`FileUploadModalProvider: Attempting to find student by _id: ${studentId}`);
+        student = students.find(s => s._id === studentId);
+      }
+      
+      // If not found by _id or if it's not ObjectId format, try finding by slug
+      if (!student) {
+        console.log(`FileUploadModalProvider: Attempting to find student by slug: ${studentId}`);
+        student = students.find(s => s.slug === studentId);
+      }
+      
       if (student) {
         studentGrade = student.grade_level // <-- Derives grade if student found
-        console.log(`FileUploadModalProvider: Found student by slug ${studentId}, setting grade: ${studentGrade}`); // Modify Log
+        console.log(`FileUploadModalProvider: Found student by ${isObjectIdFormat && student ? '_id' : 'slug'} (${studentId}), setting grade: ${studentGrade}`); // Modify Log
       } else {
-        console.warn(`FileUploadModalProvider: Student not found in context for ID: ${studentId}`); // Add Log
+        console.warn(`FileUploadModalProvider: Student not found in context for ID or slug: ${studentId}`); // Modify Log
       }
     } else if (studentGrade) {
       console.log(`FileUploadModalProvider: Using provided studentGrade prop: ${studentGrade}`);
