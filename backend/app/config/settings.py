@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     # CORS settings
     allowed_origins: List[str] = [
         "http://localhost:5173",
-        "https://homeschoollms.vercel.app",
-        "https://homeschool-lms.vercel.app"  # Production frontend
+        "https://homeschool-lms.vercel.app",  # Production frontend
+        "http://localhost:4173" # Local frontend
     ]
     
     class Config:
