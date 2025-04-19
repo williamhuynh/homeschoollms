@@ -30,16 +30,27 @@ export const FileUploadModalProvider = ({ children }) => {
   
   // Open modal with context
   const openModal = (props = {}) => {
-    // Try to get studentId from props or route params
-    const studentId = props.studentId || params.studentId
-    
-    // If we have a studentId, try to get the student's grade
+    // Try to get studentId from props or route params (at Provider level)
+    const receivedStudentIdProp = props.studentId;
+    const paramsStudentId = params.studentId; // Params at Provider level
+    const studentId = receivedStudentIdProp || paramsStudentId // Determine the ID to use
+    console.log(`FileUploadModalProvider: openModal called. Received prop studentId: ${receivedStudentIdProp}, Params studentId: ${paramsStudentId}, Determined studentId: ${studentId}`); // Log details
+
     let studentGrade = props.studentGrade
-    if (studentId && !studentGrade && students) {
+    // Log before attempting to find grade
+    console.log(`FileUploadModalProvider: Checking conditions to find grade. Has studentId: ${!!studentId}, Has studentGrade prop: ${!!props.studentGrade}, Has students context: ${!!students}`);
+    if (studentId && !studentGrade && students) { // <-- Needs a valid studentId AND no explicit grade prop AND students context
       const student = students.find(s => s._id === studentId)
       if (student) {
-        studentGrade = student.grade_level
+        studentGrade = student.grade_level // <-- Derives grade if student found
+        console.log(`FileUploadModalProvider: Found student ${studentId}, setting grade: ${studentGrade}`); // Add Log
+      } else {
+        console.warn(`FileUploadModalProvider: Student not found in context for ID: ${studentId}`); // Add Log
       }
+    } else if (studentGrade) {
+      console.log(`FileUploadModalProvider: Using provided studentGrade prop: ${studentGrade}`);
+    } else {
+      console.log(`FileUploadModalProvider: Did not derive grade (conditions not met or studentGrade prop already present).`);
     }
     
     // Store modal props without callbacks

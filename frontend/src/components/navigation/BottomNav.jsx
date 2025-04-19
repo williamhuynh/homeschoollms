@@ -1,7 +1,7 @@
 // src/components/navigation/BottomNav.jsx
 import { Box, Flex, IconButton } from '@chakra-ui/react'
 import { Home, Plus, User } from 'react-feather' // Changed Settings to User
-import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import { useNavigate, useLocation, useParams, useMatch } from 'react-router-dom'
 import { useFileUploadModal } from '../../contexts/FileUploadModalContext'
 
 const BottomNav = () => {
@@ -10,11 +10,25 @@ const BottomNav = () => {
   const params = useParams()
   const { openModal } = useFileUploadModal()
   
-  // Try to get studentId from location state or URL params
-  const studentId = location.state?.student?.studentId || params.studentId
+  // Use useMatch to reliably get studentId from the current path
+  const studentMatch = useMatch('/students/:studentId/*');
+  const studentId = studentMatch?.params?.studentId;
   
   // Check if we're on the student selector page
   const isStudentSelectorPage = location.pathname === '/students'
+
+  const handleOpenGlobalModal = () => {
+    if (studentId) { // Only open if we have a student context
+       console.log(`BottomNav: Opening global modal with studentId: ${studentId}`) // Log
+       openModal({
+         studentId: studentId,
+         // Let the provider derive the grade
+       });
+    } else {
+      console.warn("BottomNav: Cannot open file upload: No active student ID found in URL.");
+      // Optionally show a message to the user (e.g., using a Toast)
+    }
+  }
 
   return (
     <Box 
@@ -50,7 +64,7 @@ const BottomNav = () => {
             colorScheme="teal"
             rounded="full"
             size="lg"
-            onClick={() => openModal({ studentId })}
+            onClick={handleOpenGlobalModal}
             aria-label="Upload Evidence"
           />
         )}
