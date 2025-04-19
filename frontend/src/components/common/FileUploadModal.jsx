@@ -87,12 +87,14 @@ const FileUploadModal = ({
           
           // Get student stage based on grade
           const stage = curriculumService.getStageForGrade(studentGrade || 'Year 1')
+          console.log(`Student grade level: ${studentGrade} Stage: ${stage}`)
           
           // Load curriculum data for this stage
           await curriculumService.load(stage)
           
-          // Get subjects for this stage - now awaiting the async method
-          const subjects = await curriculumService.getSubjects(studentGrade || 'Year 1')
+          // Get subjects for this stage using the same stage variable
+          const subjects = await curriculumService.getSubjects(stage)
+          console.log(`Found subjects:`, subjects)
           
           // Format for react-select
           const formattedSubjects = subjects.map(subject => ({
