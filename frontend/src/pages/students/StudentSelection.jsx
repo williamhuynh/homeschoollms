@@ -144,38 +144,6 @@ const StudentSelection = () => {
             >
               Retry Loading Students
             </Button>
-            <Button 
-              colorScheme="purple" 
-              onClick={async () => {
-                try {
-                  console.log('Attempting auto-login with test credentials');
-                  // Import login function
-                  const { login } = await import('../../services/api');
-                  
-                  // Use test credentials
-                  const response = await login({
-                    username: 'test@example.com',
-                    password: 'password'
-                  });
-                  
-                  console.log('Auto-login response:', response);
-                  
-                  // Refresh students after login
-                  fetchStudents();
-                } catch (error) {
-                  console.error('Auto-login failed:', error);
-                  toast({
-                    title: 'Auto-login failed',
-                    description: error.message,
-                    status: 'error',
-                    duration: 5000,
-                    isClosable: true,
-                  });
-                }
-              }}
-            >
-              Auto-Login with Test Credentials
-            </Button>
           </VStack>
         ) : (
           <StudentList 
