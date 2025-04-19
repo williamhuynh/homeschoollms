@@ -267,22 +267,30 @@ export class NSWCurriculum {
   
   // Clear all cached data (useful for development/testing)
   async clearCache() {
-    if (!this.db) return;
-    
+    if (!this.dbReady) {
+      console.warn('IndexedDB not ready, cannot clear cache.');
+      return;
+    }
+    const dbInitialized = await this.dbReady;
+    if (!dbInitialized || !this.db) {
+      console.warn('IndexedDB not available, cannot clear cache.');
+      return;
+    }
+
     return new Promise((resolve, reject) => {
       try {
         const transaction = this.db.transaction(['stages'], 'readwrite');
         const store = transaction.objectStore('stages');
-        const request = store.clear();
-        
+        const request = store.clear(); // Clear all entries in the store
+
         request.onsuccess = () => {
-          this.data = {}; // Clear memory cache too
-          console.log('Curriculum cache cleared');
+          console.log('Curriculum IndexedDB cache cleared.');
+          // Also clear the in-memory cache
+          this.data = {};
           resolve();
         };
-        
         request.onerror = () => {
-          console.error('Error clearing IndexedDB:', request.error);
+          console.error('Error clearing IndexedDB cache:', request.error);
           reject(request.error);
         };
       } catch (err) {
