@@ -28,3 +28,8 @@ lerna-debug.log*
 
 # Vercel
 .vercel
+
+# Curriculum files
+# Add specific files below that shouldn't be tracked
+public/curriculum/README.md
+# public/curriculum/test-*.json
