@@ -1,0 +1,483 @@
+{
+  "stage": "Stage 3",
+  "subjects": [
+    {
+      "name": "Aboriginal Languages",
+      "code": "ABL",
+      "description": "Learning area for Aboriginal Languages",
+      "outcomes": [
+        {
+          "code": "AL3-INT-01",
+          "name": "Interacting",
+          "description": "uses the target language to exchange information and ideas",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "AL3-RES-01",
+          "name": "Responding",
+          "description": "identifies and responds to information in texts",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "AL3-COM-01",
+          "name": "Composing",
+          "description": "composes texts in the target language using a series of sentences",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "AL3-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "makes connections between cultural practices and language use",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "AL3-LAB-01",
+          "name": "Language awareness and building",
+          "description": "identifies challenges to maintaining, reviving and strengthening Aboriginal Languages",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "Auslan",
+      "code": "AUS",
+      "description": "Learning area for Auslan",
+      "outcomes": [
+        {
+          "code": "AU3-INT-01",
+          "name": "Interacting in Auslan",
+          "description": "exchanges information and opinions using familiar language and protocols for known audiences",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "AU3-UND-01",
+          "name": "Understanding texts in Auslan",
+          "description": "identifies information, opinions and ideas in texts and responds in Auslan and/or English",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "AU3-CRE-01",
+          "name": "Creating texts in Auslan",
+          "description": "creates informative and imaginative texts for different audiences using a range of familiar language",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "AU3-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "describes connections between language, culture and identity",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "Classical Languages",
+      "code": "CLA",
+      "description": "Learning area for Classical Languages",
+      "outcomes": [
+        {
+          "code": "CL3-UND-01",
+          "name": "Understanding texts",
+          "description": "identifies and responds to information to demonstrate understanding of texts with basic grammar and sentence structure",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "CL3-UND-02",
+          "name": "Understanding texts",
+          "description": "translates simple texts into English",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "CL3-ICU-01",
+          "name": "Intercultural understanding",
+          "description": "identifies connections between contemporary and target languages, culture(s) and identity",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "Creative Arts",
+      "code": "CRA",
+      "description": "Learning area for Creative Arts",
+      "outcomes": [
+        {
+          "code": "CA3-DAN-01",
+          "name": "Dance",
+          "description": "composes and performs dance to communicate ideas and intent using the elements of dance, and explains how ideas are conveyed to audiences and ways contexts influence dance",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "CA3-DRA-01",
+          "name": "Drama",
+          "description": "makes and performs drama to shape meaning using the dramatic elements, and explains how meaning is conveyed to audiences and ways contexts influence drama",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "CA3-MUS-01",
+          "name": "Music",
+          "description": "performs, uses listening skills and composes to communicate musical ideas using the elements of music, and explains how musical ideas are conveyed and ways contexts influence music",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "CA3-VIS-01",
+          "name": "Visual Arts",
+          "description": "makes artworks in intentional ways to represent ideas about their world, and explains ways artists are influenced by contexts and how artworks are interpreted by audiences",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "CA3-CWT-01",
+          "name": "Creating written texts in Creative Arts",
+          "description": "creates written texts to communicate ideas and understanding in Dance, Drama, Music and Visual Arts",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "English",
+      "code": "ENG",
+      "description": "Learning area for English",
+      "outcomes": [
+        {
+          "code": "EN3-OLC-01",
+          "name": "Oral language and communication",
+          "description": "communicates to wide audiences with social and cultural awareness, by interacting and presenting, and by analysing and evaluating for understanding",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "EN3-VOCAB-01",
+          "name": "Vocabulary",
+          "description": "extends Tier 2 and Tier 3 vocabulary through interacting, wide reading and writing, morphological analysis and generating precise definitions for specific contexts",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "EN3-RECOM-01",
+          "name": "Reading comprehension",
+          "description": "fluently reads and comprehends texts for wide purposes, analysing text structures and language, and by monitoring comprehension",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "EN3-CWT-01",
+          "name": "Creating written texts",
+          "description": "plans, creates and revises written texts for multiple purposes and audiences through selection of text features, sentence-level grammar, punctuation and word-level language",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "EN3-SPELL-01",
+          "name": "Spelling",
+          "description": "automatically applies taught phonological, orthographic and morphological generalisations and strategies when spelling in a range of contexts, and justifies spelling strategies used to spell unfamiliar words",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "EN3-HANDW-01",
+          "name": "Handwriting",
+          "description": "sustains a legible, fluent and automatic handwriting style",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "EN3-HANDW-02",
+          "name": "Digital transcription",
+          "description": "selects digital technologies to suit audience and purpose to create texts",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "EN3-UARL-01",
+          "name": "Understanding and responding to literature",
+          "description": "analyses representations of ideas in literature through narrative, character, imagery, symbol and connotation, and adapts these representations when creating texts",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "EN3-UARL-02",
+          "name": "Understanding and responding to literature",
+          "description": "analyses representations of ideas in literature through genre and theme that reflect perspective and context, argument and authority, and adapts these representations when creating texts",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "Human Society and its Environment",
+      "code": "HSIE",
+      "description": "Learning area for Human Society and its Environment",
+      "outcomes": [
+        {
+          "code": "HS3-ACH-01",
+          "name": "Aboriginal and Torres Strait Islander histories and cultures",
+          "description": "describes Aboriginal Knowledges and Practices that care for Country and the importance of Aboriginal Languages revival",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "HS3-GEO-01",
+          "name": "Geography",
+          "description": "examines global citizenship and how people organise, protect and sustainably use the environment, using geographical information",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "HS3-HIS-01",
+          "name": "History",
+          "description": "examines and describes the development of Australian colonies and Australia as a nation, using sources as evidence",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "HS3-DEM-01",
+          "name": "Democracy and civics",
+          "description": "describes the origins and features of Australia's democratic system of government and laws",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "HS3-CWT-01",
+          "name": "Creating written texts",
+          "description": "creates written texts to communicate ideas and understanding about people, places and events of the past and the present",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "Mathematics",
+      "code": "MAT",
+      "description": "Learning area for Mathematics",
+      "outcomes": [
+        {
+          "code": "MAO-WM-01",
+          "name": "Working mathematically",
+          "description": "develops understanding and fluency in mathematics through exploring and connecting mathematical concepts, choosing and applying mathematical techniques to solve problems, and communicating their thinking and reasoning coherently and clearly",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-RN-01",
+          "name": "Representing numbers",
+          "description": "applies an understanding of place value and the role of zero to represent the properties of numbers",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-RN-02",
+          "name": "Representing numbers",
+          "description": "compares and orders decimals up to 3 decimal places",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-RN-03",
+          "name": "Representing numbers",
+          "description": "determines percentages of quantities, and finds equivalent fractions and decimals for benchmark percentage values",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-AR-01",
+          "name": "Additive relations",
+          "description": "selects and applies appropriate strategies to solve addition and subtraction problems",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-MR-01",
+          "name": "Multiplicative relations",
+          "description": "selects and applies appropriate strategies to solve multiplication and division problems",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-MR-02",
+          "name": "Multiplicative relations",
+          "description": "constructs and completes number sentences involving multiplicative relations, applying the order of operations to calculations",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-RQF-01",
+          "name": "Fractions",
+          "description": "compares and orders fractions with denominators of 2, 3, 4, 5, 6, 8 and 10",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-RQF-02",
+          "name": "Fractions",
+          "description": "determines simple fractions of measures and quantities",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-GM-01",
+          "name": "Geometric measure",
+          "description": "locates and describes points on a coordinate plane",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-GM-02",
+          "name": "Geometric measure",
+          "description": "selects and uses the appropriate unit and device to measure lengths and distances including perimeters",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-GM-03",
+          "name": "Geometric measure",
+          "description": "measures and constructs angles, and identifies the relationships between angles on a straight line and angles at a point",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-2DS-01",
+          "name": "Two-dimensional spatial structure",
+          "description": "investigates and classifies two-dimensional shapes, including triangles and quadrilaterals based on their properties",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-2DS-02",
+          "name": "Two-dimensional spatial structure",
+          "description": "selects and uses the appropriate unit to calculate areas, including areas of rectangles",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-2DS-03",
+          "name": "Two-dimensional spatial structure",
+          "description": "combines, splits and rearranges shapes to determine the area of parallelograms and triangles",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-3DS-01",
+          "name": "Three-dimensional spatial structure",
+          "description": "visualises, sketches and constructs three-dimensional objects, including prisms and pyramids, making connections to two-dimensional representations",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-3DS-02",
+          "name": "Three-dimensional spatial structure",
+          "description": "selects and uses the appropriate unit to estimate, measure and calculate volumes and capacities",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-NSM-01",
+          "name": "Non-spatial measure",
+          "description": "selects and uses the appropriate unit and device to measure the masses of objects",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-NSM-02",
+          "name": "Non-spatial measure",
+          "description": "measures and compares duration, using 12- and 24-hour time and am and pm notation",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-DATA-01",
+          "name": "Data",
+          "description": "constructs graphs using many-to-one scales",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-DATA-02",
+          "name": "Data",
+          "description": "interprets data displays, including timelines and line graphs",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "MA3-CHAN-01",
+          "name": "Chance",
+          "description": "conducts chance experiments and quantifies the probability",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "Modern Languages",
+      "code": "MOD",
+      "description": "Learning area for Modern Languages",
+      "outcomes": [
+        {
+          "code": "ML3-INT-01",
+          "name": "Interacting",
+          "description": "exchanges information and opinions in familiar contexts by using culturally appropriate rehearsed language",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "ML3-UND-01",
+          "name": "Understanding texts",
+          "description": "identifies and responds to information and opinions in texts to demonstrate understanding",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "ML3-CRT-01",
+          "name": "Creating texts",
+          "description": "creates a range of texts for familiar communicative purposes by using culturally appropriate rehearsed language",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "Personal Development, Health and Physical Education",
+      "code": "PDH",
+      "description": "Learning area for Personal Development, Health and Physical Education",
+      "outcomes": [
+        {
+          "code": "PH3-MSP-01",
+          "name": "Movement skill and physical activity",
+          "description": "refines and applies movement skills, strategies and collaboration in physical activities",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "PH3-RRS-01",
+          "name": "Respectful relationships and safety",
+          "description": "explains and applies skills and strategies to manage respectful relationships",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "PH3-RRS-02",
+          "name": "Respectful relationships and safety",
+          "description": "explains and applies skills and strategies to interact safely in offline and online contexts",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "PH3-IHW-01",
+          "name": "Identity, health and wellbeing",
+          "description": "examines and explains factors that influence identity, health and wellbeing of individuals and groups",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "PH3-SMI-01",
+          "name": "Self-management and interpersonal skills",
+          "description": "evaluates and applies self-management and interpersonal skills in a range of contexts",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "PH3-CWT-01",
+          "name": "Creating written texts in PDHPE",
+          "description": "creates written texts to communicate understanding of health, safety and wellbeing",
+          "grade_level": "Stage 3"
+        }
+      ]
+    },
+    {
+      "name": "Science and Technology",
+      "code": "SCI",
+      "description": "Learning area for Science and Technology",
+      "outcomes": [
+        {
+          "code": "ST3-SCI-01",
+          "name": "Science",
+          "description": "uses evidence to explain how scientific knowledge can be used to develop sustainable practices",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "ST3-PQU-01",
+          "name": "Planning and conducting investigations",
+          "description": "poses questions to identify variables and conducts fair tests to gather data",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "ST3-DAT-01",
+          "name": "Data",
+          "description": "interprets data to support explanations and arguments",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "ST3-DDT-01",
+          "name": "Design and digital technologies",
+          "description": "uses design processes to create, evaluate and modify designed solutions",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "ST3-DDT-02",
+          "name": "Design and digital technologies",
+          "description": "creates, evaluates and modifies algorithms to code or control digital devices and systems",
+          "grade_level": "Stage 3"
+        },
+        {
+          "code": "ST3-CWT-01",
+          "name": "Creating written texts in Science and Technology",
+          "description": "creates written texts to communicate understanding of scientific and technological concepts and processes",
+          "grade_level": "Stage 3"
+        }
+      ]
+    }
+  ]
+}

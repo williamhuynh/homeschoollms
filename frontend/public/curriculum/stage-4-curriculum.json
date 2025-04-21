@@ -1,0 +1,275 @@
+{
+  "stage": "Stage 4",
+  "subjects": [
+    {
+      "name": "Aboriginal Languages",
+      "code": "ABL",
+      "description": "Learning area for Aboriginal Languages",
+      "outcomes": [
+        {
+          "code": "AL4-INT-01",
+          "name": "Interacting",
+          "description": "uses the target language to exchange information, ideas and opinions",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "AL4-RES-01",
+          "name": "Responding",
+          "description": "responds to information and ideas in a range of texts",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "AL4-COM-01",
+          "name": "Composing",
+          "description": "composes texts in the target language, using a range of linguistic structures for different audiences",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "AL4-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "identifies how language use reflects cultural ideas, values and beliefs",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "AL4-LAB-01",
+          "name": "Language awareness and building",
+          "description": "identifies protocols, programs and techniques to maintain and build Aboriginal Languages",
+          "grade_level": "Stage 4"
+        }
+      ]
+    },
+    {
+      "name": "Auslan",
+      "code": "AUS",
+      "description": "Learning area for Auslan",
+      "outcomes": [
+        {
+          "code": "AU4-INT-01",
+          "name": "Interacting in Auslan",
+          "description": "exchanges information, opinions and ideas using a range of linguistic structures and protocols appropriate for different audiences",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "AU4-UND-01",
+          "name": "Understanding texts in Auslan",
+          "description": "explains how texts represent information, opinions and/or ideas and responds in Auslan and/or English",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "AU4-CRE-01",
+          "name": "Creating texts in Auslan",
+          "description": "creates informative and imaginative texts for different contexts and audiences using a range of linguistic structures",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "AU4-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "explains the relationship between language, culture and identity",
+          "grade_level": "Stage 4"
+        }
+      ]
+    },
+    {
+      "name": "Classical Languages",
+      "code": "CLA",
+      "description": "Learning area for Classical Languages",
+      "outcomes": [
+        {
+          "code": "CL4-UND-01",
+          "name": "Understanding texts",
+          "description": "interprets and responds to information to demonstrate understanding of a range of predictable texts",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "CL4-UND-02",
+          "name": "Understanding texts",
+          "description": "translates a range of predictable texts into English",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "CL4-ICU-01",
+          "name": "Intercultural understanding",
+          "description": "describes the relationship between contemporary and target languages, culture(s) and identity",
+          "grade_level": "Stage 4"
+        }
+      ]
+    },
+    {
+      "name": "English",
+      "code": "ENG",
+      "description": "Learning area for English",
+      "outcomes": [
+        {
+          "code": "EN4-RVL-01",
+          "name": "Reading, viewing and listening to texts",
+          "description": "uses a range of personal, creative and critical strategies to read texts that are complex in their ideas and construction",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "EN4-URA-01",
+          "name": "Understanding and responding to texts A",
+          "description": "analyses how meaning is created through the use of and response to language forms, features and structures",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "EN4-URB-01",
+          "name": "Understanding and responding to texts B",
+          "description": "examines and explains how texts represent ideas, experiences and values",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "EN4-URC-01",
+          "name": "Understanding and responding to texts C",
+          "description": "identifies and explains ways of valuing texts and the connections between them",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "EN4-ECA-01",
+          "name": "Expressing ideas and composing texts A",
+          "description": "creates personal, creative and critical texts for a range of audiences by using linguistic and stylistic conventions of language to express ideas",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "EN4-ECB-01",
+          "name": "Expressing ideas and composing texts B",
+          "description": "uses processes of planning, monitoring, revising and reflecting to support and develop composition of texts",
+          "grade_level": "Stage 4"
+        }
+      ]
+    },
+    {
+      "name": "Mathematics",
+      "code": "MAT",
+      "description": "Learning area for Mathematics",
+      "outcomes": [
+        {
+          "code": "MAO-WM-01",
+          "name": "Working mathematically",
+          "description": "develops understanding and fluency in mathematics through exploring and connecting mathematical concepts, choosing and applying mathematical techniques to solve problems, and communicating their thinking and reasoning coherently and clearly",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-INT-C-01",
+          "name": "Computation with integers",
+          "description": "compares, orders and calculates with integers to solve problems",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-FRC-C-01",
+          "name": "Fractions, decimals and percentages",
+          "description": "represents and operates with fractions, decimals and percentages to solve problems",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-RAT-C-01",
+          "name": "Ratios and rates",
+          "description": "solves problems involving ratios and rates, and analyses distance–time graphs",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-ALG-C-01",
+          "name": "Algebraic techniques",
+          "description": "generalises number properties to operate with algebraic expressions including expansion and factorisation",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-IND-C-01",
+          "name": "Indices",
+          "description": "operates with primes and roots, positive‑integer and zero indices involving numerical bases and establishes the relevant index laws",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-EQU-C-01",
+          "name": "Equations",
+          "description": "solves linear equations of up to 2 steps and quadratic equations of the form x² = k",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-LIN-C-01",
+          "name": "Linear relationships",
+          "description": "creates and displays number patterns and finds graphical solutions to problems involving linear relationships",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-LEN-C-01",
+          "name": "Length",
+          "description": "applies knowledge of the perimeter of plane shapes and the circumference of circles to solve problems",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-PYT-C-01",
+          "name": "Pythagoras’ theorem",
+          "description": "applies Pythagoras’ theorem to solve problems in various contexts",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-ARE-C-01",
+          "name": "Area",
+          "description": "applies knowledge of area and composite area involving triangles, quadrilaterals and circles to solve problems",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-VOL-C-01",
+          "name": "Volume",
+          "description": "applies knowledge of volume and capacity to solve problems involving right prisms and cylinders",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-ANG-C-01",
+          "name": "Angle relationships",
+          "description": "applies angle relationships to solve problems, including those related to transversals on sets of parallel lines",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-GEO-C-01",
+          "name": "Properties of geometrical figures",
+          "description": "identifies and applies the properties of triangles and quadrilaterals to solve problems",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-DAT-C-01",
+          "name": "Data classification and visualisation",
+          "description": "classifies and displays data using a variety of graphical representations",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-DAT-C-02",
+          "name": "Data analysis",
+          "description": "analyses simple datasets using measures of centre, range and shape of the data",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "MA4-PRO-C-01",
+          "name": "Probability",
+          "description": "solves problems involving the probabilities of simple chance experiments",
+          "grade_level": "Stage 4"
+        }
+      ]
+    },
+    {
+      "name": "Modern Languages",
+      "code": "MOD",
+      "description": "Learning area for Modern Languages",
+      "outcomes": [
+        {
+          "code": "ML4-INT-01",
+          "name": "Interacting",
+          "description": "exchanges information and opinions in a range of familiar contexts by using culturally appropriate language",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "ML4-UND-01",
+          "name": "Understanding texts",
+          "description": "interprets and responds to information, opinions and ideas in texts to demonstrate understanding",
+          "grade_level": "Stage 4"
+        },
+        {
+          "code": "ML4-CRT-01",
+          "name": "Creating texts",
+          "description": "creates a range of texts for familiar communicative purposes by using culturally appropriate language",
+          "grade_level": "Stage 4"
+        }
+      ]
+    }
+  ]
+}
