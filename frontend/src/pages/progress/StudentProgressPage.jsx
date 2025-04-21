@@ -87,7 +87,7 @@ const StudentProgressPage = () => {
 
   if (loading) {
     return (
-      <Container maxW="container.sm" py={8}>
+      <Container maxW="container.sm" py={8} pb="64px">
         <Center p={8}>
           <Spinner size="xl" color="blue.500" />
         </Center>
@@ -97,7 +97,7 @@ const StudentProgressPage = () => {
 
   if (error && !student) {
     return (
-      <Container maxW="container.sm" py={8}>
+      <Container maxW="container.sm" py={8} pb="64px">
         <VStack spacing={4}>
           <Text color="red.500">{error}</Text>
           <Button onClick={handleBack}>Back to Students</Button>
@@ -107,7 +107,7 @@ const StudentProgressPage = () => {
   }
 
   return (
-    <Container maxW="container.sm" py={8}>
+    <Container maxW="container.sm" py={8} pb="64px">
       {isOffline && (
         <Box mb={4} p={3} bg="orange.100" borderRadius="md">
           <Text fontWeight="medium">You are currently offline. Some data may not be available.</Text>
