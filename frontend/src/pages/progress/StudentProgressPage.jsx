@@ -107,7 +107,7 @@ const StudentProgressPage = () => {
   }
 
   return (
-    <Container maxW="container.sm" py={8} pb="64px">
+    <Container maxW="container.sm" py={8} pb="80px">
       {isOffline && (
         <Box mb={4} p={3} bg="orange.100" borderRadius="md">
           <Text fontWeight="medium">You are currently offline. Some data may not be available.</Text>
