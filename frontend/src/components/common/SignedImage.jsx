@@ -132,7 +132,8 @@ const SignedImage = ({
       } catch (err) {
         console.error('Error loading image:', err);
         if (isMounted) {
-          setError(err.message || 'Failed to load image');
+          // Fallback: use the original imagePath (e.g., Cloudinary public URL)
+          setImageUrl(imagePath);
           setIsLoading(false);
         }
       }
@@ -159,6 +160,7 @@ const SignedImage = ({
   }
 
   if (error) {
+    // Only show error if both signed URL and original imagePath fail
     return (
       <Alert status="error" borderRadius="md" {...rest}>
         <AlertIcon />

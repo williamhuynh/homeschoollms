@@ -146,9 +146,6 @@ const ImageGallery = ({
           const originalUrl = image.file_url || image.fileUrl;
           const imagePath = extractImagePath(originalUrl);
           
-          // Minimal fix: Only use SignedImage for non-Cloudinary images
-          const isCloudinaryUrl = (url) => url && url.includes('res.cloudinary.com');
-
           return (
             <Box // Outer Box (Card)
               key={image.id || image._id}
@@ -173,7 +170,7 @@ const ImageGallery = ({
                   overflow="hidden" // Ensure image corners are rounded
                 >
                   <Box position="absolute" top="0" left="0" width="100%" height="100%">
-                    {useSignedImages && imagePath && !isCloudinaryUrl(originalUrl) ? (
+                    {useSignedImages && imagePath ? (
                       // New approach using SignedImage
                       <SignedImage
                         imagePath={imagePath}
