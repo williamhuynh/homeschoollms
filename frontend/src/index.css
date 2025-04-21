@@ -11,6 +11,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --bottom-nav-height: 64px;
 }
 
 a {
@@ -81,4 +83,8 @@ body {
 #root {
   width: 100%;
   min-height: 100vh;
+}
+
+.with-bottom-nav-padding {
+  padding-bottom: var(--bottom-nav-height);
 }

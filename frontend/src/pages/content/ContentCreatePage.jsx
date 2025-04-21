@@ -37,7 +37,7 @@ const ContentCreatePage = () => {
   }
 
   return (
-    <Container maxW="container.sm" p={0}>
+    <Container maxW="container.sm" p={0} className="with-bottom-nav-padding">
       <Box position="fixed" top={0} w="full" zIndex={10} bg="white" p={4} borderBottom="1px" borderColor="gray.200">
         <IconButton
           icon={<ArrowLeft />}
