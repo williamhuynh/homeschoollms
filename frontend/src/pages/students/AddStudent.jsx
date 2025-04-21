@@ -139,8 +139,6 @@ import {
                   <option value="3">3rd Grade</option>
                   <option value="4">4th Grade</option>
                   <option value="5">5th Grade</option>
-
-                  // <option value="6">6th Grade</option>
                 </Select>
               </FormControl>
 
