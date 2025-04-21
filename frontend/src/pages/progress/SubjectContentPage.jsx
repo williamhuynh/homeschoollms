@@ -177,7 +177,7 @@ const SubjectContentPage = () => {
   }
 
   return (
-    <Container maxW="container.sm" p={0} className="with-bottom-nav-padding">
+    <Container maxW="container.sm" p={0} pb="64px">
       {isOffline && (
         <Box position="fixed" top={0} w="full" zIndex={10} bg="orange.100" p={2} textAlign="center">
           <Text fontSize="sm" fontWeight="medium">You are offline. Some content may not be available.</Text>

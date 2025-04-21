@@ -84,7 +84,3 @@ body {
   width: 100%;
   min-height: 100vh;
 }
-
-.with-bottom-nav-padding {
-  padding-bottom: var(--bottom-nav-height);
-}
