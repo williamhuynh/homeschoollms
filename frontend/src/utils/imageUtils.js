@@ -217,7 +217,7 @@ export const getSignedImageUrl = async (filePath, options = {}) => {
     } catch (apiError) {
       // If we get a 404, try to construct a direct Cloudinary URL
       if (apiError.response?.status === 404) {
-        console.warn('File not found via API, trying direct Cloudinary URL');
+        // console.warn('File not found via API, trying direct Cloudinary URL');
         
         // Get the cloud name from environment or use a default
         const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dbri1xgl8';
