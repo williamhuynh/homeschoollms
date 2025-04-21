@@ -214,7 +214,19 @@ export class NSWCurriculum {
       'Year 9': 'Stage 5',
       'Year 10': 'Stage 5',
       'Year 11': 'Stage 6',
-      'Year 12': 'Stage 6'
+      'Year 12': 'Stage 6',
+      '1': 'Stage 1',
+      '2': 'Stage 1',
+      '3': 'Stage 2',
+      '4': 'Stage 2',
+      '5': 'Stage 3',
+      '6': 'Stage 3',
+      '7': 'Stage 4',
+      '8': 'Stage 4',
+      '9': 'Stage 5',
+      '10': 'Stage 5',
+      '11': 'Stage 6',
+      '12': 'Stage 6'
     };
     return gradeMapping[grade] || null;
   }
