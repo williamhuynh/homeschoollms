@@ -715,4 +715,17 @@ class LearningOutcomeService:
         updated = await db.student_evidence.find_one({"_id": ObjectId(evidence_id)})
         if updated:
             updated["id"] = str(updated["_id"])
-        return updated
+        return serialize_mongo_document(updated)
+
+def serialize_mongo_document(obj):
+    """
+    Recursively convert ObjectId fields in a dict, list, or primitive to strings for JSON serialization.
+    """
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: serialize_mongo_document(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [serialize_mongo_document(item) for item in obj]
+    else:
+        return obj
