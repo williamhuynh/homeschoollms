@@ -64,6 +64,8 @@ const ImageViewerModal = ({
   const [isSaving, setIsSaving] = useState(false);
   const [areasLoaded, setAreasLoaded] = useState(false);
   const [outcomesLoaded, setOutcomesLoaded] = useState(false);
+  const [selectedLearningArea, setSelectedLearningArea] = useState(null);
+  const [selectedLearningOutcome, setSelectedLearningOutcome] = useState(null);
 
   const extractImagePath = (url) => {
     if (!url) return null;
@@ -269,48 +271,58 @@ const ImageViewerModal = ({
   };
 
   useEffect(() => {
-    if (isEditing && studentGrade) {
-      const stage = curriculumService.getStageForGrade(studentGrade);
-      setCurrentStage(stage);
-      if (!stage) return;
-      setIsLoadingAreas(true);
-      curriculumService.getSubjects(studentGrade).then(subjects => {
-        const formatted = subjects.map(subject => ({
-          value: subject.code,
-          label: `${subject.name} (${subject.code})`,
-          subject
-        }));
-        setLearningAreasList(formatted);
-        if (image.learningArea) {
-          const found = formatted.find(a => a.value === image.learningArea);
-          setEditLearningArea(found || null);
-        }
-        setIsLoadingAreas(false);
-      });
-    }
-  }, [isEditing, studentGrade, image.learningArea]);
-
-  useEffect(() => {
-    if (isEditing && currentStage && editLearningArea) {
-      setIsLoadingOutcomes(true);
-      curriculumService.getOutcomes(currentStage, editLearningArea.value).then(outcomes => {
-        const formatted = outcomes.map(outcome => ({
-          value: outcome.code,
-          label: `${outcome.code}: ${outcome.name}`,
-          outcome
-        }));
-        setLearningOutcomesList(formatted);
-        if (image.learningOutcome) {
-          const found = formatted.find(o => o.value === image.learningOutcome);
-          setEditLearningOutcome(found || null);
-        }
+    if (isOpen && studentGrade && image) {
+      const loadAreasAndOutcomes = async () => {
+        setIsLoadingAreas(true);
+        setLearningAreasList([]);
+        setSelectedLearningArea(null);
+        setLearningOutcomesList([]);
+        setSelectedLearningOutcome(null);
         setIsLoadingOutcomes(false);
-      });
-    } else {
+        setCurrentStage(null);
+
+        const stage = curriculumService.getStageForGrade(studentGrade);
+        setCurrentStage(stage);
+        if (stage) {
+          const subjects = await curriculumService.getSubjects(studentGrade);
+          const formattedAreas = subjects.map(subject => ({
+            value: subject.code,
+            label: `${subject.name} (${subject.code})`,
+            subject
+          }));
+          setLearningAreasList(formattedAreas);
+          setIsLoadingAreas(false);
+
+          const currentArea = image.learningArea || image.learning_area_code || image.learning_area;
+          const areaOption = formattedAreas.find(a => a.value === currentArea) || null;
+          setSelectedLearningArea(areaOption);
+
+          if (areaOption) {
+            setIsLoadingOutcomes(true);
+            const outcomes = await curriculumService.getOutcomes(stage, areaOption.value);
+            const formattedOutcomes = outcomes.map(outcome => ({
+              value: outcome.code,
+              label: `${outcome.code}: ${outcome.name}`,
+              outcome
+            }));
+            setLearningOutcomesList(formattedOutcomes);
+            setIsLoadingOutcomes(false);
+
+            const currentOutcome = image.learningOutcome || image.learning_outcome_code || image.learning_outcome;
+            const outcomeOption = formattedOutcomes.find(o => o.value === currentOutcome) || null;
+            setSelectedLearningOutcome(outcomeOption);
+          }
+        }
+      };
+      loadAreasAndOutcomes();
+    } else if (!isOpen) {
+      setLearningAreasList([]);
       setLearningOutcomesList([]);
-      setEditLearningOutcome(null);
+      setSelectedLearningArea(null);
+      setSelectedLearningOutcome(null);
+      setCurrentStage(null);
     }
-  }, [isEditing, currentStage, editLearningArea, image.learningOutcome]);
+  }, [isOpen, studentGrade, image]);
 
   const findAreaOption = (code, list) => list.find(a => a.value === code) || null;
   const findOutcomeOption = (code, list) => list.find(o => o.value === code) || null;
@@ -322,48 +334,8 @@ const ImageViewerModal = ({
     setEditErrors({});
     setIsSaving(false);
 
-    setIsLoadingAreas(true);
-    setAreasLoaded(false);
-    setLearningAreasList([]);
-    setEditLearningArea(null);
-    setLearningOutcomesList([]);
-    setEditLearningOutcome(null);
-
-    const stage = curriculumService.getStageForGrade(studentGrade);
-    setCurrentStage(stage);
-    if (stage) {
-      const subjects = await curriculumService.getSubjects(studentGrade);
-      const formattedAreas = subjects.map(subject => ({
-        value: subject.code,
-        label: `${subject.name} (${subject.code})`,
-        subject
-      }));
-      setLearningAreasList(formattedAreas);
-      setIsLoadingAreas(false);
-      setAreasLoaded(true);
-
-      const currentArea = image.learningArea || image.learning_area_code || image.learning_area;
-      const areaOption = findAreaOption(currentArea, formattedAreas);
-      setEditLearningArea(areaOption);
-
-      if (areaOption) {
-        setIsLoadingOutcomes(true);
-        setOutcomesLoaded(false);
-        const outcomes = await curriculumService.getOutcomes(stage, areaOption.value);
-        const formattedOutcomes = outcomes.map(outcome => ({
-          value: outcome.code,
-          label: `${outcome.code}: ${outcome.name}`,
-          outcome
-        }));
-        setLearningOutcomesList(formattedOutcomes);
-        setIsLoadingOutcomes(false);
-        setOutcomesLoaded(true);
-
-        const currentOutcome = image.learningOutcome || image.learning_outcome_code || image.learning_outcome;
-        const outcomeOption = findOutcomeOption(currentOutcome, formattedOutcomes);
-        setEditLearningOutcome(outcomeOption);
-      }
-    }
+    setEditLearningArea(selectedLearningArea);
+    setEditLearningOutcome(selectedLearningOutcome);
   };
 
   const cancelEdit = () => {
@@ -422,32 +394,6 @@ const ImageViewerModal = ({
       setIsSaving(false);
     }
   };
-
-  useEffect(() => {
-    if (isEditing && currentStage && editLearningArea) {
-      setIsLoadingOutcomes(true);
-      setOutcomesLoaded(false);
-      curriculumService.getOutcomes(currentStage, editLearningArea.value).then(outcomes => {
-        const formatted = outcomes.map(outcome => ({
-          value: outcome.code,
-          label: `${outcome.code}: ${outcome.name}`,
-          outcome
-        }));
-        setLearningOutcomesList(formatted);
-        setIsLoadingOutcomes(false);
-        setOutcomesLoaded(true);
-
-        const currentOutcome = image.learningOutcome || image.learning_outcome_code || image.learning_outcome;
-        const outcomeOption = findOutcomeOption(currentOutcome, formatted);
-        setEditLearningOutcome(outcomeOption);
-      });
-    } else if (isEditing) {
-      setLearningOutcomesList([]);
-      setEditLearningOutcome(null);
-      setOutcomesLoaded(false);
-    }
-    // eslint-disable-next-line
-  }, [isEditing, currentStage, editLearningArea]);
 
   if (!image) {
     return null;
@@ -585,7 +531,7 @@ const ImageViewerModal = ({
                     {editErrors.learningArea && <FormErrorMessage>{editErrors.learningArea}</FormErrorMessage>}
                   </FormControl>
                 ) : (
-                  <Text fontSize="md" mt={1}><b>Learning Area:</b> {image.learningArea || '-'}</Text>
+                  <Text fontSize="md" mt={1}><b>Learning Area:</b> {selectedLearningArea?.label || '-'}</Text>
                 )}
               </Box>
               <Box mt={3}>
@@ -606,7 +552,7 @@ const ImageViewerModal = ({
                     {editErrors.learningOutcome && <FormErrorMessage>{editErrors.learningOutcome}</FormErrorMessage>}
                   </FormControl>
                 ) : (
-                  <Text fontSize="md" mt={1}><b>Learning Outcome:</b> {image.learningOutcome || '-'}</Text>
+                  <Text fontSize="md" mt={1}><b>Learning Outcome:</b> {selectedLearningOutcome?.label || '-'}</Text>
                 )}
               </Box>
               {isEditing && (
