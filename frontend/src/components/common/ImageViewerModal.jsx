@@ -293,8 +293,16 @@ const ImageViewerModal = ({
           setLearningAreasList(formattedAreas);
           setIsLoadingAreas(false);
 
+          console.log('Loaded learning areas:', formattedAreas);
+          console.log('Image area fields:', {
+            learningArea: image.learningArea,
+            learning_area_code: image.learning_area_code,
+            learning_area: image.learning_area
+          });
+
           const currentArea = image.learningArea || image.learning_area_code || image.learning_area;
           const areaOption = formattedAreas.find(a => a.value === currentArea) || null;
+          console.log('Matched area option:', areaOption);
           setSelectedLearningArea(areaOption);
 
           if (areaOption) {
@@ -308,8 +316,16 @@ const ImageViewerModal = ({
             setLearningOutcomesList(formattedOutcomes);
             setIsLoadingOutcomes(false);
 
+            console.log('Loaded learning outcomes:', formattedOutcomes);
+            console.log('Image outcome fields:', {
+              learningOutcome: image.learningOutcome,
+              learning_outcome_code: image.learning_outcome_code,
+              learning_outcome: image.learning_outcome
+            });
+
             const currentOutcome = image.learningOutcome || image.learning_outcome_code || image.learning_outcome;
             const outcomeOption = formattedOutcomes.find(o => o.value === currentOutcome) || null;
+            console.log('Matched outcome option:', outcomeOption);
             setSelectedLearningOutcome(outcomeOption);
           }
         }
