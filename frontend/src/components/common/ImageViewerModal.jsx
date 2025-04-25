@@ -32,6 +32,7 @@ import { Download, Trash2, Share2, X } from 'react-feather';
 import { curriculumService } from '../../services/curriculum';
 import Select from 'react-select';
 import { updateEvidence } from '../../services/api';
+import { FiMoreVertical } from 'react-icons/fi';
 
 const ImageViewerModal = ({ 
   isOpen, 
@@ -61,6 +62,8 @@ const ImageViewerModal = ({
   const [editErrors, setEditErrors] = useState({});
   const [currentStage, setCurrentStage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [areasLoaded, setAreasLoaded] = useState(false);
+  const [outcomesLoaded, setOutcomesLoaded] = useState(false);
 
   const extractImagePath = (url) => {
     if (!url) return null;
@@ -309,13 +312,58 @@ const ImageViewerModal = ({
     }
   }, [isEditing, currentStage, editLearningArea, image.learningOutcome]);
 
-  const startEdit = () => {
+  const findAreaOption = (code, list) => list.find(a => a.value === code) || null;
+  const findOutcomeOption = (code, list) => list.find(o => o.value === code) || null;
+
+  const startEdit = async () => {
+    setIsEditing(true);
     setEditTitle(image.title || image.file_name || '');
     setEditDescription(image.description || '');
-    setEditLearningArea(null);
-    setEditLearningOutcome(null);
     setEditErrors({});
-    setIsEditing(true);
+    setIsSaving(false);
+
+    setIsLoadingAreas(true);
+    setAreasLoaded(false);
+    setLearningAreasList([]);
+    setEditLearningArea(null);
+    setLearningOutcomesList([]);
+    setEditLearningOutcome(null);
+
+    const stage = curriculumService.getStageForGrade(studentGrade);
+    setCurrentStage(stage);
+    if (stage) {
+      const subjects = await curriculumService.getSubjects(studentGrade);
+      const formattedAreas = subjects.map(subject => ({
+        value: subject.code,
+        label: `${subject.name} (${subject.code})`,
+        subject
+      }));
+      setLearningAreasList(formattedAreas);
+      setIsLoadingAreas(false);
+      setAreasLoaded(true);
+
+      const currentArea = image.learningArea || image.learning_area_code || image.learning_area;
+      const areaOption = findAreaOption(currentArea, formattedAreas);
+      setEditLearningArea(areaOption);
+
+      if (areaOption) {
+        setIsLoadingOutcomes(true);
+        setOutcomesLoaded(false);
+        const outcomes = await curriculumService.getOutcomes(stage, areaOption.value);
+        const formattedOutcomes = outcomes.map(outcome => ({
+          value: outcome.code,
+          label: `${outcome.code}: ${outcome.name}`,
+          outcome
+        }));
+        setLearningOutcomesList(formattedOutcomes);
+        setIsLoadingOutcomes(false);
+        setOutcomesLoaded(true);
+
+        const currentOutcome = image.learningOutcome || image.learning_outcome_code || image.learning_outcome;
+        const outcomeOption = findOutcomeOption(currentOutcome, formattedOutcomes);
+        setEditLearningOutcome(outcomeOption);
+      }
+    }
   };
 
   const cancelEdit = () => {
@@ -374,6 +422,32 @@ const ImageViewerModal = ({
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (isEditing && currentStage && editLearningArea) {
+      setIsLoadingOutcomes(true);
+      setOutcomesLoaded(false);
+      curriculumService.getOutcomes(currentStage, editLearningArea.value).then(outcomes => {
+        const formatted = outcomes.map(outcome => ({
+          value: outcome.code,
+          label: `${outcome.code}: ${outcome.name}`,
+          outcome
+        }));
+        setLearningOutcomesList(formatted);
+        setIsLoadingOutcomes(false);
+        setOutcomesLoaded(true);
+
+        const currentOutcome = image.learningOutcome || image.learning_outcome_code || image.learning_outcome;
+        const outcomeOption = findOutcomeOption(currentOutcome, formatted);
+        setEditLearningOutcome(outcomeOption);
+      });
+    } else if (isEditing) {
+      setLearningOutcomesList([]);
+      setEditLearningOutcome(null);
+      setOutcomesLoaded(false);
+    }
+    // eslint-disable-next-line
+  }, [isEditing, currentStage, editLearningArea]);
 
   if (!image) {
     return null;
@@ -460,8 +534,15 @@ const ImageViewerModal = ({
                 )}
                 <Box>
                   <Menu>
-                    <MenuButton as={IconButton} icon={<Box as="svg" viewBox="0 0 24 24" width="24" height="24"><circle cx="5" cy="12" r="2" fill="currentColor" /><circle cx="12" cy="12" r="2" fill="currentColor" /><circle cx="19" cy="12" r="2" fill="currentColor" /></Box>} variant="ghost" colorScheme="whiteAlpha" color="white" aria-label="Actions" />
-                    <MenuList>
+                    <MenuButton
+                      as={IconButton}
+                      icon={<FiMoreVertical />}
+                      variant="ghost"
+                      colorScheme="gray"
+                      aria-label="Actions"
+                      size="sm"
+                    />
+                    <MenuList bg="white" color="black">
                       <MenuItem icon={<Download />} onClick={handleDownload}>Download</MenuItem>
                       <MenuItem icon={<Share2 />} onClick={handleShare}>Share</MenuItem>
                       <MenuItem icon={<Trash2 />} onClick={() => setIsDeleteAlertOpen(true)}>Delete</MenuItem>
@@ -493,7 +574,7 @@ const ImageViewerModal = ({
                       <Select
                         options={learningAreasList}
                         value={editLearningArea}
-                        onChange={setEditLearningArea}
+                        onChange={option => setEditLearningArea(option)}
                         placeholder="Select a learning area..."
                         isClearable
                         isSearchable
@@ -514,7 +595,7 @@ const ImageViewerModal = ({
                       <Select
                         options={learningOutcomesList}
                         value={editLearningOutcome}
-                        onChange={setEditLearningOutcome}
+                        onChange={option => setEditLearningOutcome(option)}
                         placeholder="Select a learning outcome..."
                         isClearable
                         isSearchable
