@@ -586,5 +586,17 @@ export const uploadEvidence = async (studentId, learningOutcomeId, formData) => 
   }
 };
 
+export const updateEvidence = async (studentId, learningOutcomeId, evidenceId, data) => {
+  try {
+    const response = await apiToUse.patch(
+      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error updating evidence:', error);
+    throw error;
+  }
+};
 
 export default apiToUse;

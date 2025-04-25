@@ -677,3 +677,34 @@ class LearningOutcomeService:
         except Exception as e:
             logger.error(f"Error generating share URL: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Failed to generate share URL: {str(e)}")
+
+    @staticmethod
+    async def update_evidence(student_id: str, learning_outcome_id: str, evidence_id: str, update_data: dict):
+        db = Database.get_db()
+        from bson import ObjectId
+
+        # If learning_outcome_code is being updated, look up the new outcome
+        if 'learning_outcome_code' in update_data:
+            new_code = update_data['learning_outcome_code']
+            import re
+            code_pattern = re.compile(f"^{re.escape(new_code)}$", re.IGNORECASE)
+            outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+            if not outcome:
+                raise HTTPException(status_code=400, detail="Learning outcome code not found")
+            update_data['learning_outcome_id'] = new_code  # Keep both fields in sync
+            update_data['outcome_obj_id'] = outcome['_id']
+
+        # Build the query to match the evidence
+        query = {
+            "_id": ObjectId(evidence_id),
+            "student_id": ObjectId(student_id),
+            "learning_outcome_id": learning_outcome_id
+        }
+        # Only update provided fields
+        result = await db.student_evidence.update_one(query, {"$set": update_data})
+        if result.modified_count == 0:
+            return None
+        updated = await db.student_evidence.find_one({"_id": ObjectId(evidence_id)})
+        if updated:
+            updated["id"] = str(updated["_id"])
+        return updated

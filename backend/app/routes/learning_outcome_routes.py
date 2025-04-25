@@ -12,6 +12,7 @@ import os
 import uuid # Added for unique filenames
 import logging # Added for better logging control
 import re # Added for outcome code lookup
+from ..models.schemas.evidence import EvidenceUpdate
 
 router = APIRouter()
 
@@ -438,3 +439,20 @@ async def share_evidence(
     except Exception as e:
         logger.error(f"Unexpected error when generating share URL: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}")
+async def update_evidence(
+    student_id: str,
+    learning_outcome_id: str,
+    evidence_id: str,
+    update: EvidenceUpdate,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    db = Database.get_db()
+    resolved_student_id = await resolve_student_id(student_id, db)
+    updated = await LearningOutcomeService.update_evidence(
+        resolved_student_id, learning_outcome_id, evidence_id, update.dict(exclude_unset=True)
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Evidence not found or not updated")
+    return updated

@@ -31,6 +31,7 @@ import SignedImage from './SignedImage';
 import { Download, Trash2, Share2, X } from 'react-feather';
 import { curriculumService } from '../../services/curriculum';
 import Select from 'react-select';
+import { updateEvidence } from '../../services/api';
 
 const ImageViewerModal = ({ 
   isOpen, 
@@ -59,6 +60,7 @@ const ImageViewerModal = ({
   const [isLoadingOutcomes, setIsLoadingOutcomes] = useState(false);
   const [editErrors, setEditErrors] = useState({});
   const [currentStage, setCurrentStage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const extractImagePath = (url) => {
     if (!url) return null;
@@ -332,13 +334,45 @@ const ImageViewerModal = ({
 
   const saveEdit = async () => {
     if (!validateEdit()) return;
-    setIsEditing(false);
-    toast({
-      title: 'Changes saved (not persisted)',
-      status: 'info',
-      duration: 2000,
-      isClosable: true,
-    });
+    setIsSaving(true);
+    try {
+      const payload = {
+        title: editTitle,
+        description: editDescription,
+        learning_area_code: editLearningArea?.value,
+        learning_outcome_code: editLearningOutcome?.value,
+      };
+      const updated = await updateEvidence(
+        studentId,
+        learningOutcomeId,
+        image._id,
+        payload
+      );
+      // Update local UI (shallow update)
+      if (updated) {
+        image.title = updated.title;
+        image.description = updated.description;
+        image.learningArea = updated.learning_area_code;
+        image.learningOutcome = updated.learning_outcome_code;
+      }
+      setIsEditing(false);
+      toast({
+        title: 'Evidence updated',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to update evidence',
+        description: error?.response?.data?.detail || error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!image) {
@@ -497,7 +531,7 @@ const ImageViewerModal = ({
               {isEditing && (
                 <Flex mt={4} gap={3} justify="flex-end">
                   <Button onClick={cancelEdit} variant="ghost" colorScheme="gray">Cancel</Button>
-                  <Button onClick={saveEdit} colorScheme="blue">Save</Button>
+                  <Button onClick={saveEdit} colorScheme="blue" isLoading={isSaving}>Save</Button>
                 </Flex>
               )}
             </Box>
