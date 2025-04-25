@@ -54,7 +54,9 @@ async def get_student_learning_outcome(
     learning_outcome_id: str,
     current_user: UserInDB = Depends(get_current_user)
 ):
-    return await LearningOutcomeService.get_student_learning_outcome(student_id, learning_outcome_id)
+    db = Database.get_db()
+    resolved_student_id = await resolve_student_id(student_id, db)
+    return await LearningOutcomeService.get_student_learning_outcome(resolved_student_id, learning_outcome_id)
 
 @router.get("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
 async def get_evidence(
@@ -64,20 +66,17 @@ async def get_evidence(
 ):
     import logging
     logger = logging.getLogger(__name__)
-    
+    db = Database.get_db()
+    resolved_student_id = await resolve_student_id(student_id, db)
     try:
-        logger.info(f"Fetching evidence for student {student_id} and outcome {learning_outcome_id}")
-        evidence = await LearningOutcomeService.get_evidence(student_id, learning_outcome_id)
+        logger.info(f"Fetching evidence for student {resolved_student_id} and outcome {learning_outcome_id}")
+        evidence = await LearningOutcomeService.get_evidence(resolved_student_id, learning_outcome_id)
         logger.info(f"Found {len(evidence)} evidence records")
-        
-        # Log the first few evidence items for debugging
         if evidence and len(evidence) > 0:
             logger.info(f"First evidence item: {evidence[0].get('title', 'No title')} - {evidence[0].get('fileUrl', 'No URL')}")
-        
         return evidence
     except Exception as e:
         logger.error(f"Error fetching evidence: {str(e)}")
-        # Return empty list instead of raising error to allow upload placeholder
         return []
 
 @router.get("/evidence/batch/student/{student_id}")
@@ -86,25 +85,17 @@ async def get_batch_evidence(
     outcomes: str,
     current_user: UserInDB = Depends(get_current_user)
 ):
-    """
-    Get latest evidence for multiple learning outcomes in a single request.
-    Outcomes should be provided as a comma-separated list.
-    """
     import logging
     logger = logging.getLogger(__name__)
-    
+    db = Database.get_db()
+    resolved_student_id = await resolve_student_id(student_id, db)
     try:
-        # Parse the comma-separated list of outcome codes
         outcome_codes = [code.strip() for code in outcomes.split(',') if code.strip()]
-        logger.info(f"Fetching batch evidence for student {student_id} and outcomes: {outcome_codes}")
-        
+        logger.info(f"Fetching batch evidence for student {resolved_student_id} and outcomes: {outcome_codes}")
         if not outcome_codes:
             return {}
-            
-        # Call the service method to get evidence for multiple outcomes
-        evidence_map = await LearningOutcomeService.get_batch_evidence(student_id, outcome_codes)
+        evidence_map = await LearningOutcomeService.get_batch_evidence(resolved_student_id, outcome_codes)
         logger.info(f"Found evidence for {len(evidence_map)} outcomes")
-        
         return evidence_map
     except Exception as e:
         logger.error(f"Error fetching batch evidence: {str(e)}")
@@ -368,11 +359,13 @@ async def delete_evidence(
     Mark evidence as deleted without removing it from storage.
     """
     logger = logging.getLogger(__name__)
-    logger.info(f"Deleting evidence: {evidence_id} for student: {student_id}, outcome: {learning_outcome_id}")
+    db = Database.get_db()
+    resolved_student_id = await resolve_student_id(student_id, db)
+    logger.info(f"Deleting evidence: {evidence_id} for student: {resolved_student_id}, outcome: {learning_outcome_id}")
     
     try:
         result = await LearningOutcomeService.mark_evidence_as_deleted(
-            student_id, 
+            resolved_student_id, 
             learning_outcome_id, 
             evidence_id
         )
@@ -397,11 +390,13 @@ async def download_evidence(
     Generate a download URL for the evidence file.
     """
     logger = logging.getLogger(__name__)
-    logger.info(f"Generating download URL for evidence: {evidence_id} for student: {student_id}, outcome: {learning_outcome_id}")
+    db = Database.get_db()
+    resolved_student_id = await resolve_student_id(student_id, db)
+    logger.info(f"Generating download URL for evidence: {evidence_id} for student: {resolved_student_id}, outcome: {learning_outcome_id}")
     
     try:
         download_url = await LearningOutcomeService.generate_evidence_download_url(
-            student_id, 
+            resolved_student_id, 
             learning_outcome_id, 
             evidence_id
         )
@@ -425,11 +420,13 @@ async def share_evidence(
     Generate a shareable URL for the evidence file.
     """
     logger = logging.getLogger(__name__)
-    logger.info(f"Generating share URL for evidence: {evidence_id} for student: {student_id}, outcome: {learning_outcome_id}")
+    db = Database.get_db()
+    resolved_student_id = await resolve_student_id(student_id, db)
+    logger.info(f"Generating share URL for evidence: {evidence_id} for student: {resolved_student_id}, outcome: {learning_outcome_id}")
     
     try:
         share_url = await LearningOutcomeService.generate_evidence_share_url(
-            student_id, 
+            resolved_student_id, 
             learning_outcome_id, 
             evidence_id
         )
