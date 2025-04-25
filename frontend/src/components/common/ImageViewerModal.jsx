@@ -67,6 +67,9 @@ const ImageViewerModal = ({
   const [selectedLearningArea, setSelectedLearningArea] = useState(null);
   const [selectedLearningOutcome, setSelectedLearningOutcome] = useState(null);
 
+  // Diagnostic log to confirm component mount
+  console.log('ImageViewerModal mounted');
+
   const extractImagePath = (url) => {
     if (!url) return null;
     
@@ -271,6 +274,7 @@ const ImageViewerModal = ({
   };
 
   useEffect(() => {
+    console.log('useEffect triggered', { isOpen, studentGrade, image });
     if (isOpen && studentGrade && image) {
       const loadAreasAndOutcomes = async () => {
         setIsLoadingAreas(true);
