@@ -124,6 +124,9 @@ class FileStorageService:
             
             # Add transformations if specified
             transformations = []
+            if width and height:
+                transformations.append("c_fill")
+                transformations.append("g_auto")  # Smart crop focus
             if width:
                 transformations.append(f"w_{width}")
             if height:
