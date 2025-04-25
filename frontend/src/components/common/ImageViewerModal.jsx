@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -16,10 +16,21 @@ import {
   IconButton,
   Box,
   Text,
+  FormControl,
+  FormErrorMessage,
+  Input,
+  Textarea,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Spinner,
 } from '@chakra-ui/react';
 import ResponsiveImage from './ResponsiveImage';
 import SignedImage from './SignedImage';
 import { Download, Trash2, Share2, X } from 'react-feather';
+import { curriculumService } from '../../services/curriculum';
+import Select from 'react-select';
 
 const ImageViewerModal = ({ 
   isOpen, 
@@ -30,12 +41,24 @@ const ImageViewerModal = ({
   onImageDeleted,
   width,
   height,
-  useSignedImages = false
+  useSignedImages = false,
+  studentGrade
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editLearningArea, setEditLearningArea] = useState(null);
+  const [editLearningOutcome, setEditLearningOutcome] = useState(null);
+  const [learningAreasList, setLearningAreasList] = useState([]);
+  const [learningOutcomesList, setLearningOutcomesList] = useState([]);
+  const [isLoadingAreas, setIsLoadingAreas] = useState(false);
+  const [isLoadingOutcomes, setIsLoadingOutcomes] = useState(false);
+  const [editErrors, setEditErrors] = useState({});
+  const [currentStage, setCurrentStage] = useState(null);
 
   const extractImagePath = (url) => {
     if (!url) return null;
@@ -240,6 +263,84 @@ const ImageViewerModal = ({
     }
   };
 
+  useEffect(() => {
+    if (isEditing && studentGrade) {
+      const stage = curriculumService.getStageForGrade(studentGrade);
+      setCurrentStage(stage);
+      if (!stage) return;
+      setIsLoadingAreas(true);
+      curriculumService.getSubjects(studentGrade).then(subjects => {
+        const formatted = subjects.map(subject => ({
+          value: subject.code,
+          label: `${subject.name} (${subject.code})`,
+          subject
+        }));
+        setLearningAreasList(formatted);
+        if (image.learningArea) {
+          const found = formatted.find(a => a.value === image.learningArea);
+          setEditLearningArea(found || null);
+        }
+        setIsLoadingAreas(false);
+      });
+    }
+  }, [isEditing, studentGrade, image.learningArea]);
+
+  useEffect(() => {
+    if (isEditing && currentStage && editLearningArea) {
+      setIsLoadingOutcomes(true);
+      curriculumService.getOutcomes(currentStage, editLearningArea.value).then(outcomes => {
+        const formatted = outcomes.map(outcome => ({
+          value: outcome.code,
+          label: `${outcome.code}: ${outcome.name}`,
+          outcome
+        }));
+        setLearningOutcomesList(formatted);
+        if (image.learningOutcome) {
+          const found = formatted.find(o => o.value === image.learningOutcome);
+          setEditLearningOutcome(found || null);
+        }
+        setIsLoadingOutcomes(false);
+      });
+    } else {
+      setLearningOutcomesList([]);
+      setEditLearningOutcome(null);
+    }
+  }, [isEditing, currentStage, editLearningArea, image.learningOutcome]);
+
+  const startEdit = () => {
+    setEditTitle(image.title || image.file_name || '');
+    setEditDescription(image.description || '');
+    setEditLearningArea(null);
+    setEditLearningOutcome(null);
+    setEditErrors({});
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditErrors({});
+  };
+
+  const validateEdit = () => {
+    const errors = {};
+    if (!editTitle.trim()) errors.title = 'Title is required';
+    if (!editLearningArea) errors.learningArea = 'Learning Area is required';
+    if (!editLearningOutcome) errors.learningOutcome = 'Learning Outcome is required';
+    setEditErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const saveEdit = async () => {
+    if (!validateEdit()) return;
+    setIsEditing(false);
+    toast({
+      title: 'Changes saved (not persisted)',
+      status: 'info',
+      duration: 2000,
+      isClosable: true,
+    });
+  };
+
   if (!image) {
     return null;
   }
@@ -264,7 +365,7 @@ const ImageViewerModal = ({
           
           <Flex 
             direction="column" 
-            justify="center" 
+            justify="flex-start" 
             align="center" 
             h="100vh" 
             w="100vw"
@@ -279,7 +380,7 @@ const ImageViewerModal = ({
                 height={height}
                 imgProps={{
                   style: {
-                    maxHeight: '85vh',
+                    maxHeight: '60vh',
                     maxWidth: '90vw',
                     objectFit: 'contain',
                     borderRadius: '0.375rem',
@@ -297,7 +398,7 @@ const ImageViewerModal = ({
                 alt={image.title || 'Evidence'}
                 width={width}
                 height={height}
-                maxH="85vh"
+                maxH="60vh"
                 maxW="90vw"
                 objectFit="contain"
                 borderRadius="md"
@@ -306,44 +407,99 @@ const ImageViewerModal = ({
               />
             )}
             
-            <Box mt={4} bg="blackAlpha.600" p={3} borderRadius="md" color="white">
-              <Text fontWeight="bold" fontSize="lg">{image.title || image.file_name || 'Evidence'}</Text>
-              {image.description && (
-                <Text fontSize="md" mt={1}>{image.description}</Text>
-              )}
-            
-              <Flex mt={3} justify="center" gap={4}>
-                <Button
-                  leftIcon={<Download />}
-                  onClick={handleDownload}
-                  isLoading={isLoading}
-                  loadingText="Downloading"
-                  colorScheme="blue"
-                  variant="solid"
-                >
-                  Download
-                </Button>
-                
-                <Button
-                  leftIcon={<Share2 />}
-                  onClick={handleShare}
-                  isLoading={isLoading}
-                  loadingText="Sharing"
-                  colorScheme="green"
-                  variant="solid"
-                >
-                  Share
-                </Button>
-                
-                <Button
-                  leftIcon={<Trash2 />}
-                  onClick={() => setIsDeleteAlertOpen(true)}
-                  colorScheme="red"
-                  variant="solid"
-                >
-                  Delete
-                </Button>
+            <Box mt={6} bg="blackAlpha.600" p={5} borderRadius="md" color="white" minW="340px" maxW="lg" w="90vw">
+              <Flex align="center" justify="space-between">
+                {isEditing ? (
+                  <FormControl isInvalid={!!editErrors.title} isRequired w="70%">
+                    <Input
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      placeholder="Title"
+                      size="md"
+                      bg="white"
+                      color="black"
+                    />
+                    {editErrors.title && <FormErrorMessage>{editErrors.title}</FormErrorMessage>}
+                  </FormControl>
+                ) : (
+                  <Text fontWeight="bold" fontSize="xl" noOfLines={2}>{image.title || image.file_name || 'Evidence'}</Text>
+                )}
+                <Box>
+                  <Menu>
+                    <MenuButton as={IconButton} icon={<Box as="svg" viewBox="0 0 24 24" width="24" height="24"><circle cx="5" cy="12" r="2" fill="currentColor" /><circle cx="12" cy="12" r="2" fill="currentColor" /><circle cx="19" cy="12" r="2" fill="currentColor" /></Box>} variant="ghost" colorScheme="whiteAlpha" color="white" aria-label="Actions" />
+                    <MenuList>
+                      <MenuItem icon={<Download />} onClick={handleDownload}>Download</MenuItem>
+                      <MenuItem icon={<Share2 />} onClick={handleShare}>Share</MenuItem>
+                      <MenuItem icon={<Trash2 />} onClick={() => setIsDeleteAlertOpen(true)}>Delete</MenuItem>
+                      <MenuItem icon={<Box as="svg" viewBox="0 0 24 24" width="20" height="20"><path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Box>} onClick={startEdit}>Edit</MenuItem>
+                    </MenuList>
+                  </Menu>
+                </Box>
               </Flex>
+              <Box mt={3}>
+                {isEditing ? (
+                  <FormControl>
+                    <Textarea
+                      value={editDescription}
+                      onChange={e => setEditDescription(e.target.value)}
+                      placeholder="Description (optional)"
+                      size="sm"
+                      bg="white"
+                      color="black"
+                    />
+                  </FormControl>
+                ) : (
+                  image.description && <Text fontSize="md" mt={1}>{image.description}</Text>
+                )}
+              </Box>
+              <Box mt={3}>
+                {isEditing ? (
+                  <FormControl isInvalid={!!editErrors.learningArea} isRequired>
+                    {isLoadingAreas ? <Spinner size="sm" /> : (
+                      <Select
+                        options={learningAreasList}
+                        value={editLearningArea}
+                        onChange={setEditLearningArea}
+                        placeholder="Select a learning area..."
+                        isClearable
+                        isSearchable
+                        classNamePrefix="react-select"
+                        styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
+                      />
+                    )}
+                    {editErrors.learningArea && <FormErrorMessage>{editErrors.learningArea}</FormErrorMessage>}
+                  </FormControl>
+                ) : (
+                  <Text fontSize="md" mt={1}><b>Learning Area:</b> {image.learningArea || '-'}</Text>
+                )}
+              </Box>
+              <Box mt={3}>
+                {isEditing ? (
+                  <FormControl isInvalid={!!editErrors.learningOutcome} isRequired>
+                    {isLoadingOutcomes ? <Spinner size="sm" /> : (
+                      <Select
+                        options={learningOutcomesList}
+                        value={editLearningOutcome}
+                        onChange={setEditLearningOutcome}
+                        placeholder="Select a learning outcome..."
+                        isClearable
+                        isSearchable
+                        classNamePrefix="react-select"
+                        styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
+                      />
+                    )}
+                    {editErrors.learningOutcome && <FormErrorMessage>{editErrors.learningOutcome}</FormErrorMessage>}
+                  </FormControl>
+                ) : (
+                  <Text fontSize="md" mt={1}><b>Learning Outcome:</b> {image.learningOutcome || '-'}</Text>
+                )}
+              </Box>
+              {isEditing && (
+                <Flex mt={4} gap={3} justify="flex-end">
+                  <Button onClick={cancelEdit} variant="ghost" colorScheme="gray">Cancel</Button>
+                  <Button onClick={saveEdit} colorScheme="blue">Save</Button>
+                </Flex>
+              )}
             </Box>
           </Flex>
         </ModalContent>
