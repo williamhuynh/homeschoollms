@@ -115,6 +115,22 @@ logger = logging.getLogger(__name__)
 # Set level to INFO or DEBUG for more detailed logs if needed
 # logging.basicConfig(level=logging.INFO) 
 
+# Utility function to resolve student_id as ObjectId or slug
+async def resolve_student_id(student_id_or_slug, db):
+    try:
+        # Try to interpret as ObjectId
+        obj_id = ObjectId(student_id_or_slug)
+        student = await db.students.find_one({"_id": obj_id})
+        if student:
+            return str(student["_id"])
+    except Exception:
+        pass
+    # Try as slug
+    student = await db.students.find_one({"slug": student_id_or_slug})
+    if student:
+        return str(student["_id"])
+    raise HTTPException(status_code=404, detail=f"Student not found for id or slug: {student_id_or_slug}")
+
 @router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence")
 async def upload_evidence(
     student_id: str,
@@ -135,6 +151,8 @@ async def upload_evidence(
 
     uploaded_files_info = []
     db = Database.get_db()
+    # --- Resolve student_id as ObjectId or slug ---
+    resolved_student_id = await resolve_student_id(student_id, db)
     outcome_obj_id = None
     outcome_code_to_use = learning_outcome_code or learning_outcome_id # Prioritize form input
 
@@ -209,7 +227,7 @@ async def upload_evidence(
                         "created_at": datetime.now(),
                         "created_by": ObjectId(current_user.id) if current_user else None,
                         "context": {
-                            "student_id": student_id,
+                            "student_id": resolved_student_id,
                             "learning_area_code": learning_area_code,
                             "title": title,
                             "student_grade": student_grade,
@@ -258,7 +276,7 @@ async def upload_evidence(
             if '.' in unique_id_str:
                 unique_id_str = unique_id_str.split('.')[0]  # Remove any extension
             # Example path: evidence/student_id/outcome_id/20250410202100-uuid-guid.jpg
-            file_path = f"evidence/{student_id}/{learning_outcome_id}/{timestamp}-{unique_id_str}{file_extension}"
+            file_path = f"evidence/{resolved_student_id}/{learning_outcome_id}/{timestamp}-{unique_id_str}{file_extension}"
             
             # Log the generated file path for debugging
             logger.info(f"Generated file path: {file_path}")
@@ -285,7 +303,7 @@ async def upload_evidence(
             
             # Create document for insertion
             evidence_doc = {
-                "student_id": ObjectId(student_id),
+                "student_id": ObjectId(resolved_student_id),
                 "learning_outcome_id": learning_outcome_id,
                 "learning_outcome_code": outcome_code_to_use, # Store the code used
                 "outcome_obj_id": outcome_obj_id, # Also store the ObjectId for future queries
