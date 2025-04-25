@@ -32,7 +32,7 @@ import { Download, Trash2, Share2, X } from 'react-feather';
 import { curriculumService } from '../../services/curriculum';
 import Select from 'react-select';
 import { updateEvidence } from '../../services/api';
-import { FiMoreVertical } from 'react-icons/fi';
+import { HamburgerIcon } from '@chakra-ui/icons';
 
 const ImageViewerModal = ({ 
   isOpen, 
@@ -536,7 +536,7 @@ const ImageViewerModal = ({
                   <Menu>
                     <MenuButton
                       as={IconButton}
-                      icon={<FiMoreVertical />}
+                      icon={<HamburgerIcon />}
                       variant="ghost"
                       colorScheme="gray"
                       aria-label="Actions"
