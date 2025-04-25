@@ -310,7 +310,8 @@ async def upload_evidence(
                 "title": title, # Title is now mandatory
                 "description": description,
                 "uploaded_at": datetime.now(),
-                "uploaded_by": ObjectId(current_user.id)
+                "uploaded_by": ObjectId(current_user.id),
+                "learning_area_code": learning_area_code # <-- ensure this is always set
             }
             
             # Insert the document

@@ -299,12 +299,10 @@ const ImageViewerModal = ({
 
           console.log('Loaded learning areas:', formattedAreas);
           console.log('Image area fields:', {
-            learningArea: image.learningArea,
-            learning_area_code: image.learning_area_code,
-            learning_area: image.learning_area
+            learning_area_code: image.learning_area_code
           });
 
-          const currentArea = image.learningArea || image.learning_area_code || image.learning_area;
+          const currentArea = image.learning_area_code;
           const areaOption = formattedAreas.find(a => a.value === currentArea) || null;
           console.log('Matched area option:', areaOption);
           setSelectedLearningArea(areaOption);
@@ -322,12 +320,11 @@ const ImageViewerModal = ({
 
             console.log('Loaded learning outcomes:', formattedOutcomes);
             console.log('Image outcome fields:', {
-              learningOutcome: image.learningOutcome,
               learning_outcome_code: image.learning_outcome_code,
               learning_outcome: image.learning_outcome
             });
 
-            const currentOutcome = image.learningOutcome || image.learning_outcome_code || image.learning_outcome;
+            const currentOutcome = image.learning_outcome_code || image.learning_outcome;
             const outcomeOption = formattedOutcomes.find(o => o.value === currentOutcome) || null;
             console.log('Matched outcome option:', outcomeOption);
             setSelectedLearningOutcome(outcomeOption);
@@ -551,7 +548,7 @@ const ImageViewerModal = ({
                     {editErrors.learningArea && <FormErrorMessage>{editErrors.learningArea}</FormErrorMessage>}
                   </FormControl>
                 ) : (
-                  <Text fontSize="md" mt={1}><b>Learning Area:</b> {selectedLearningArea?.label || '-'}</Text>
+                  <Text fontSize="md" mt={1}><b>Learning Area:</b> {selectedLearningArea?.label || image.learning_area_code || '-'}</Text>
                 )}
               </Box>
               <Box mt={3}>

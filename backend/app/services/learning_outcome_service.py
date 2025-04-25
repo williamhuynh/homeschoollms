@@ -180,6 +180,10 @@ class LearningOutcomeService:
                             backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
                             serialized_item["thumbnailUrl"] = f"{backblaze_endpoint}/{bucket_name}/{thumbnail_url}"
             
+            # Ensure learning_area_code is present if it exists in the document
+            if 'learning_area_code' in item:
+                serialized_item['learning_area_code'] = item['learning_area_code']
+            
             serialized_evidence.append(serialized_item)
         
         return {
@@ -255,6 +259,10 @@ class LearningOutcomeService:
                         serialized_item[key] = str(value)
                     else:
                         serialized_item[key] = value
+                
+                # Ensure learning_area_code is present if it exists in the document
+                if 'learning_area_code' in item:
+                    serialized_item['learning_area_code'] = item['learning_area_code']
                 
                 # Handle file paths for Cloudinary or Backblaze
                 if "file_path" in serialized_item:
