@@ -45,7 +45,8 @@ const ImageGallery = ({
   width,
   height,
   borderRadius = 'md',
-  useSignedImages = USE_SIGNED_IMAGE // Allow overriding the feature flag per instance
+  useSignedImages = USE_SIGNED_IMAGE, // Allow overriding the feature flag per instance
+  studentGrade // <-- add this prop
 }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -224,9 +225,10 @@ const ImageGallery = ({
           studentId={studentId}
           learningOutcomeId={learningOutcomeId}
           onImageDeleted={handleImageDeleted}
-          useSignedImages={useSignedImages} // Pass the flag to the modal
+          useSignedImages={useSignedImages}
           width={width}
           height={height}
+          studentGrade={studentGrade}
         />
       )}
     </>

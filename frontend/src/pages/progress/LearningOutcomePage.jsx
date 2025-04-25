@@ -294,6 +294,7 @@ const LearningOutcomePage = () => {
               spacing={4}
               width={THUMBNAIL_WIDTH}
               height={THUMBNAIL_HEIGHT}
+              studentGrade={student?.grade_level}
             />
           )}
         </Box>
