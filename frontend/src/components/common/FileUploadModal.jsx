@@ -63,6 +63,8 @@ const FileUploadModal = ({
   
   // Form validation
   const [titleError, setTitleError] = useState('')
+  const [learningAreaError, setLearningAreaError] = useState('')
+  const [learningOutcomeError, setLearningOutcomeError] = useState('')
 
   // Track online/offline status
   useEffect(() => {
@@ -247,6 +249,22 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
       isValid = false
     } else {
       setTitleError('')
+    }
+
+    // Validate Learning Area (required)
+    if (!selectedLearningArea) {
+      setLearningAreaError('Learning Area is required')
+      isValid = false
+    } else {
+      setLearningAreaError('')
+    }
+
+    // Validate Learning Outcome (required)
+    if (!selectedLearningOutcome) {
+      setLearningOutcomeError('Learning Outcome is required')
+      isValid = false
+    } else {
+      setLearningOutcomeError('')
     }
     
     // Also validate file selection
@@ -500,7 +518,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
               </InputGroup>
             </FormControl>
             
-            <FormControl>
+            <FormControl isInvalid={!!learningAreaError} isRequired>
               <FormLabel>Learning Area</FormLabel>
               {isLoadingAreas ? (
                 <Spinner size="sm" />
@@ -517,6 +535,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                   isDisabled={isOffline && learningAreasList.length === 0}
                 />
               )}
+              {learningAreaError && <FormErrorMessage>{learningAreaError}</FormErrorMessage>}
               {curriculumError && learningAreasList.length === 0 && (
                 <Text color="red.500" fontSize="sm" mt={1}>
                   {curriculumError}
@@ -524,7 +543,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
               )}
             </FormControl>
             
-            <FormControl>
+            <FormControl isInvalid={!!learningOutcomeError} isRequired>
               <FormLabel>Learning Outcome</FormLabel>
               {isLoadingOutcomes ? (
                 <Spinner size="sm" />
@@ -541,6 +560,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                   classNamePrefix="react-select"
                 />
               )}
+              {learningOutcomeError && <FormErrorMessage>{learningOutcomeError}</FormErrorMessage>}
             </FormControl>
             
             <FormControl>
