@@ -227,6 +227,10 @@ export const getSignedImageUrl = async (filePath, options = {}) => {
         
         // Add transformations if specified
         const transformations = [];
+        if (width && height) {
+          transformations.push('c_fill');
+          transformations.push('g_auto');
+        }
         if (width) transformations.push(`w_${width}`);
         if (height) transformations.push(`h_${height}`);
         if (quality !== 80) transformations.push(`q_${quality}`);
