@@ -554,25 +554,25 @@ class LearningOutcomeService:
                 logger.error(f"Evidence not found: ID={evidence_id}, student={student_id}, outcome={learning_outcome_id}")
                 raise HTTPException(status_code=404, detail="Evidence not found")
             
-            # Get the file URL
-            file_url = evidence.get("file_url")
-            if not file_url:
-                logger.error(f"File URL not found for evidence: {evidence_id}")
-                raise HTTPException(status_code=404, detail="File URL not found")
+            # Get the file path (canonical Backblaze path)
+            file_path = evidence.get("file_path")
+            if not file_path:
+                logger.error(f"File path not found for evidence: {evidence_id}")
+                raise HTTPException(status_code=404, detail="File path not found for evidence")
             
             # Generate a download URL with appropriate headers
             from ..services.file_storage_service import file_storage_service
             
             # Remove bucket name from the beginning if it's there
             bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
-            if file_url.startswith(f"{bucket_name}/"):
-                file_url = file_url[len(f"{bucket_name}/"):]
-                
+            if file_path.startswith(f"{bucket_name}/"):
+                file_path = file_path[len(f"{bucket_name}/"):]
+            
             # Generate a presigned URL with download headers
             try:
                 # Use a longer expiration for downloads (1 day)
                 download_url = file_storage_service.generate_presigned_url(
-                    file_url,
+                    file_path,
                     expiration=86400,  # 24 hours
                     content_disposition=f'attachment; filename="{evidence.get("file_name", "download")}"'
                 )
@@ -580,9 +580,7 @@ class LearningOutcomeService:
                 return download_url
             except Exception as e:
                 logger.error(f"Error generating download URL: {str(e)}")
-                # Fallback to direct URL if presigned URL generation fails
-                backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                return f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                raise HTTPException(status_code=500, detail=f"Failed to generate download URL: {str(e)}")
         except HTTPException as he:
             logger.error(f"HTTP error generating download URL: {str(he)}")
             raise he
