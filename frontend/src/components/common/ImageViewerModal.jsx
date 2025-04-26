@@ -634,7 +634,10 @@ const ImageViewerModal = ({
                 <IconButton
                   aria-label="Save"
                   icon={<Download color="#4A5568" />}
-                  onClick={handleDownload}
+                  onClick={() => {
+                    setIsBottomDrawerOpen(false);
+                    setTimeout(() => { handleDownload(); }, 250);
+                  }}
                   bg="gray.100"
                   color="gray.600"
                   isRound
@@ -647,7 +650,10 @@ const ImageViewerModal = ({
                 <IconButton
                   aria-label="Share"
                   icon={<Share2 color="#4A5568" />}
-                  onClick={handleShare}
+                  onClick={() => {
+                    setIsBottomDrawerOpen(false);
+                    setTimeout(() => { handleShare(); }, 250);
+                  }}
                   bg="gray.100"
                   color="gray.600"
                   isRound
@@ -660,7 +666,10 @@ const ImageViewerModal = ({
                 <IconButton
                   aria-label="Delete"
                   icon={<Trash2 color="#4A5568" />}
-                  onClick={() => { setIsDeleteAlertOpen(true); setIsBottomDrawerOpen(false); }}
+                  onClick={() => {
+                    setIsBottomDrawerOpen(false);
+                    setTimeout(() => { setIsDeleteAlertOpen(true); }, 250);
+                  }}
                   bg="gray.100"
                   color="gray.600"
                   isRound
@@ -673,7 +682,10 @@ const ImageViewerModal = ({
                 <IconButton
                   aria-label="Edit"
                   icon={<Edit color="#4A5568" />}
-                  onClick={startEdit}
+                  onClick={() => {
+                    setIsBottomDrawerOpen(false);
+                    setTimeout(() => { startEdit(); }, 250);
+                  }}
                   bg="gray.100"
                   color="gray.600"
                   isRound
