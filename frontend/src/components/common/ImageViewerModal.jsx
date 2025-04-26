@@ -629,29 +629,60 @@ const ImageViewerModal = ({
           <DrawerCloseButton />
           <DrawerHeader>Actions</DrawerHeader>
           <DrawerBody>
-            <List spacing={3}>
-              <ListItem>
-                <Button w="100%" leftIcon={<Download />} onClick={handleDownload} variant="ghost" justifyContent="flex-start">
-                  Download
-                </Button>
-              </ListItem>
-              <ListItem>
-                <Button w="100%" leftIcon={<Share2 />} onClick={handleShare} variant="ghost" justifyContent="flex-start">
-                  Share
-                </Button>
-              </ListItem>
-              <ListItem>
-                <Button w="100%" leftIcon={<Trash2 />} onClick={() => { setIsDeleteAlertOpen(true); setIsBottomDrawerOpen(false); }} colorScheme="red" variant="ghost" justifyContent="flex-start">
-                  Delete
-                </Button>
-              </ListItem>
-              <Divider />
-              <ListItem>
-                <Button w="100%" leftIcon={<Box as="svg" viewBox="0 0 24 24" width="20" height="20"><path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Box>} onClick={startEdit} variant="ghost" justifyContent="flex-start">
-                  Edit
-                </Button>
-              </ListItem>
-            </List>
+            <Flex justify="space-around" align="center" w="100%">
+              <Flex direction="column" align="center" mx={2}>
+                <IconButton
+                  aria-label="Save"
+                  icon={<Download color="#4A5568" />}
+                  onClick={handleDownload}
+                  bg="gray.100"
+                  color="gray.600"
+                  isRound
+                  size="lg"
+                  _hover={{ bg: 'gray.200' }}
+                />
+                <Text fontSize="sm" mt={2}>Save</Text>
+              </Flex>
+              <Flex direction="column" align="center" mx={2}>
+                <IconButton
+                  aria-label="Share"
+                  icon={<Share2 color="#4A5568" />}
+                  onClick={handleShare}
+                  bg="gray.100"
+                  color="gray.600"
+                  isRound
+                  size="lg"
+                  _hover={{ bg: 'gray.200' }}
+                />
+                <Text fontSize="sm" mt={2}>Share</Text>
+              </Flex>
+              <Flex direction="column" align="center" mx={2}>
+                <IconButton
+                  aria-label="Delete"
+                  icon={<Trash2 color="#4A5568" />}
+                  onClick={() => { setIsDeleteAlertOpen(true); setIsBottomDrawerOpen(false); }}
+                  bg="gray.100"
+                  color="gray.600"
+                  isRound
+                  size="lg"
+                  _hover={{ bg: 'red.100' }}
+                />
+                <Text fontSize="sm" mt={2}>Delete</Text>
+              </Flex>
+              <Flex direction="column" align="center" mx={2}>
+                <IconButton
+                  aria-label="Edit"
+                  icon={<Box as="svg" viewBox="0 0 24 24" width="20" height="20"><path d="M12 20h9" stroke="#4A5568" strokeWidth="2" strokeLinecap="round" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="#4A5568" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Box>}
+                  onClick={startEdit}
+                  bg="gray.100"
+                  color="gray.600"
+                  isRound
+                  size="lg"
+                  _hover={{ bg: 'gray.200' }}
+                />
+                <Text fontSize="sm" mt={2}>Edit</Text>
+              </Flex>
+            </Flex>
           </DrawerBody>
         </DrawerContent>
       </Drawer>
