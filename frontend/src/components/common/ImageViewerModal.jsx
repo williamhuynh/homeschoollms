@@ -25,6 +25,15 @@ import {
   MenuList,
   MenuItem,
   Spinner,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerHeader,
+  List,
+  ListItem,
+  Divider,
 } from '@chakra-ui/react';
 import ResponsiveImage from './ResponsiveImage';
 import SignedImage from './SignedImage';
@@ -66,6 +75,7 @@ const ImageViewerModal = ({
   const [outcomesLoaded, setOutcomesLoaded] = useState(false);
   const [selectedLearningArea, setSelectedLearningArea] = useState(null);
   const [selectedLearningOutcome, setSelectedLearningOutcome] = useState(null);
+  const [isBottomDrawerOpen, setIsBottomDrawerOpen] = useState(false);
 
   // Diagnostic log to confirm component mount
   console.log('ImageViewerModal mounted');
@@ -496,22 +506,15 @@ const ImageViewerModal = ({
                   <Text fontWeight="bold" fontSize="xl" noOfLines={2}>{image.title || image.file_name || 'Evidence'}</Text>
                 )}
                 <Box>
-                  <Menu>
-                    <MenuButton
-                      as={IconButton}
-                      icon={<HamburgerIcon />}
-                      variant="ghost"
-                      colorScheme="gray"
-                      aria-label="Actions"
-                      size="sm"
-                    />
-                    <MenuList bg="white" color="black">
-                      <MenuItem icon={<Download />} onClick={handleDownload}>Download</MenuItem>
-                      <MenuItem icon={<Share2 />} onClick={handleShare}>Share</MenuItem>
-                      <MenuItem icon={<Trash2 />} onClick={() => setIsDeleteAlertOpen(true)}>Delete</MenuItem>
-                      <MenuItem icon={<Box as="svg" viewBox="0 0 24 24" width="20" height="20"><path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Box>} onClick={startEdit}>Edit</MenuItem>
-                    </MenuList>
-                  </Menu>
+                  <IconButton
+                    icon={<HamburgerIcon color="#f0f0f0" />}
+                    variant="ghost"
+                    colorScheme="gray"
+                    aria-label="Actions"
+                    size="sm"
+                    _hover={{ bg: 'whiteAlpha.300' }}
+                    onClick={() => setIsBottomDrawerOpen(true)}
+                  />
                 </Box>
               </Flex>
               <Box mt={3}>
@@ -614,6 +617,44 @@ const ImageViewerModal = ({
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      <Drawer
+        isOpen={isBottomDrawerOpen}
+        placement="bottom"
+        onClose={() => setIsBottomDrawerOpen(false)}
+        size="xs"
+      >
+        <DrawerOverlay />
+        <DrawerContent borderTopRadius="2xl" pb={4}>
+          <DrawerCloseButton />
+          <DrawerHeader>Actions</DrawerHeader>
+          <DrawerBody>
+            <List spacing={3}>
+              <ListItem>
+                <Button w="100%" leftIcon={<Download />} onClick={handleDownload} variant="ghost" justifyContent="flex-start">
+                  Download
+                </Button>
+              </ListItem>
+              <ListItem>
+                <Button w="100%" leftIcon={<Share2 />} onClick={handleShare} variant="ghost" justifyContent="flex-start">
+                  Share
+                </Button>
+              </ListItem>
+              <ListItem>
+                <Button w="100%" leftIcon={<Trash2 />} onClick={() => { setIsDeleteAlertOpen(true); setIsBottomDrawerOpen(false); }} colorScheme="red" variant="ghost" justifyContent="flex-start">
+                  Delete
+                </Button>
+              </ListItem>
+              <Divider />
+              <ListItem>
+                <Button w="100%" leftIcon={<Box as="svg" viewBox="0 0 24 24" width="20" height="20"><path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Box>} onClick={startEdit} variant="ghost" justifyContent="flex-start">
+                  Edit
+                </Button>
+              </ListItem>
+            </List>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </>
   );
 };
