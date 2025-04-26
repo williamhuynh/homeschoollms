@@ -37,7 +37,7 @@ import {
 } from '@chakra-ui/react';
 import ResponsiveImage from './ResponsiveImage';
 import SignedImage from './SignedImage';
-import { Download, Trash2, Share2, X } from 'react-feather';
+import { Download, Trash2, Share2, X, Edit } from 'react-feather';
 import { curriculumService } from '../../services/curriculum';
 import Select from 'react-select';
 import { updateEvidence } from '../../services/api';
@@ -672,7 +672,7 @@ const ImageViewerModal = ({
               <Flex direction="column" align="center" mx={2}>
                 <IconButton
                   aria-label="Edit"
-                  icon={<Box as="svg" viewBox="0 0 24 24" width="20" height="20"><path d="M12 20h9" stroke="#4A5568" strokeWidth="2" strokeLinecap="round" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="#4A5568" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></Box>}
+                  icon={<Edit color="#4A5568" />}
                   onClick={startEdit}
                   bg="gray.100"
                   color="gray.600"
