@@ -351,6 +351,17 @@ const ImageViewerModal = ({
     }
   }, [isOpen, studentGrade, image]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditing(false);
+      setEditErrors({});
+      setEditTitle(image?.title || image?.file_name || '');
+      setEditDescription(image?.description || '');
+      setEditLearningArea(null);
+      setEditLearningOutcome(null);
+    }
+  }, [isOpen]);
+
   const findAreaOption = (code, list) => list.find(a => a.value === code) || null;
   const findOutcomeOption = (code, list) => list.find(o => o.value === code) || null;
 
