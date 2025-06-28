@@ -7,6 +7,7 @@ from fastapi import UploadFile
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import cloudinary.utils
 from ..config import settings
 
 # Configure Cloudinary
@@ -22,11 +23,15 @@ class FileStorageService:
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(__name__)
         
+        # Migration mode configuration
+        self.migration_mode = os.getenv('CLOUDINARY_MIGRATION_MODE', 'hybrid')  # hybrid, private, public
+        
         # Log the environment variables
         logger.info(f"BACKBLAZE_ENDPOINT: {os.getenv('BACKBLAZE_ENDPOINT')}")
         logger.info(f"BACKBLAZE_KEY_ID: {os.getenv('BACKBLAZE_KEY_ID')}")
         logger.info(f"BACKBLAZE_APPLICATION_KEY: {'*****' if os.getenv('BACKBLAZE_APPLICATION_KEY') else None}")
         logger.info(f"BACKBLAZE_BUCKET_NAME: {os.getenv('BACKBLAZE_BUCKET_NAME')}")
+        logger.info(f"CLOUDINARY_MIGRATION_MODE: {self.migration_mode}")
         
         self.s3 = boto3.client(
             's3',
@@ -62,13 +67,18 @@ class FileStorageService:
                 logger.error(f"Error uploading to Backblaze B2: {str(e)}")
                 # Continue even if Backblaze upload fails - we'll still use Cloudinary
             
+            # Choose upload type based on migration mode
+            upload_type = "authenticated" if self.migration_mode in ['private', 'hybrid'] else "upload"
+            logger.info(f"Uploading to Cloudinary with type: {upload_type}")
+            
             # Upload to Cloudinary for delivery/serving
             upload_result = cloudinary.uploader.upload(
                 file_data,
                 public_id=file_path_without_ext,
-                resource_type="auto"
+                resource_type="auto",
+                type=upload_type
             )
-            logger.info(f"File uploaded to Cloudinary (primary serving): {upload_result['secure_url']}")
+            logger.info(f"File uploaded to Cloudinary (type: {upload_type}): {upload_result['secure_url']}")
             
             # Generate thumbnail if requested
             thumbnail_url = None
@@ -81,7 +91,8 @@ class FileStorageService:
                         width=thumbnail_size[0],
                         height=thumbnail_size[1],
                         crop="fill",
-                        resource_type="auto"
+                        resource_type="auto",
+                        type=upload_type
                     )
                     thumbnail_url = thumbnail_result['secure_url']
                 except Exception as e:
@@ -109,66 +120,173 @@ class FileStorageService:
                 logger.error("Cloudinary cloud name not configured")
                 raise Exception("Cloudinary cloud name not configured")
             
-            logger.info(f"Generating Cloudinary URL for path: {file_path}")
+            logger.info(f"Generating URL for path: {file_path} (mode: {self.migration_mode})")
             
             # Clean and prepare the file path
-            # Remove any leading/trailing slashes and spaces
             clean_path = file_path.strip().strip('/')
-            
-            # Remove file extension (if any) since Cloudinary will add the correct one
             file_name, file_ext = os.path.splitext(clean_path)
             logger.info(f"File name: {file_name}, extension: {file_ext}")
             
-            # Base Cloudinary URL
-            cloudinary_url = f"https://res.cloudinary.com/{cloud_name}/image/upload"
-            
-            # Add transformations if specified
-            transformations = []
-            if width and height:
-                transformations.append("c_fill")
-                transformations.append("g_auto")  # Smart crop focus
-            if width:
-                transformations.append(f"w_{width}")
-            if height:
-                transformations.append(f"h_{height}")
-            if quality != 80:
-                transformations.append(f"q_{quality}")
-            
-            if transformations:
-                cloudinary_url += "/" + ",".join(transformations)
-            
-            # Add the public ID (with the version Cloudinary added during upload)
-            # Try to look up the file in Cloudinary to get the version
-            try:
-                # Search for the asset in Cloudinary
-                result = cloudinary.api.resources(
-                    type="upload",
-                    prefix=file_name,
-                    max_results=1
-                )
-                
-                if result and 'resources' in result and len(result['resources']) > 0:
-                    # Get the resource with version
-                    resource = result['resources'][0]
-                    version = resource.get('version')
-                    public_id = resource.get('public_id')
+            # Try authenticated first (new system) if in private or hybrid mode
+            if self.migration_mode in ['private', 'hybrid']:
+                try:
+                    logger.info("Attempting to generate authenticated signed URL")
+                    transformation = {}
+                    if width:
+                        transformation['width'] = width
+                    if height:
+                        transformation['height'] = height
+                    if quality != 80:
+                        transformation['quality'] = quality
+                    if width and height:
+                        transformation['crop'] = 'fill'
+                        transformation['gravity'] = 'auto'
                     
-                    if version and public_id:
-                        # Use the version and public_id directly
-                        cloudinary_url += f"/v{version}/{public_id}"
-                        logger.info(f"Found resource in Cloudinary. Using versioned URL: {cloudinary_url}")
-                        return cloudinary_url
-            except Exception as lookup_err:
-                logger.warning(f"Failed to look up resource in Cloudinary: {str(lookup_err)}")
+                    signed_url = cloudinary.utils.cloudinary_url(
+                        file_name,
+                        type="authenticated",
+                        sign_url=True,
+                        **transformation
+                    )[0]
+                    
+                    logger.info(f"Generated authenticated signed URL: {signed_url}")
+                    return signed_url
+                    
+                except Exception as auth_error:
+                    logger.warning(f"Authenticated URL failed for {file_path}: {str(auth_error)}")
+                    if self.migration_mode == 'private':
+                        # In private mode, we don't fall back
+                        raise Exception(f"Private image access failed: {str(auth_error)}")
             
-            # Fallback to using the path without version if lookup failed
-            cloudinary_url += f"/{file_name}"
+            # Fallback to public (legacy system) during hybrid mode or when in public mode
+            if self.migration_mode in ['hybrid', 'public']:
+                logger.info("Generating public Cloudinary URL as fallback")
+                
+                # Base Cloudinary URL
+                cloudinary_url = f"https://res.cloudinary.com/{cloud_name}/image/upload"
+                
+                # Add transformations if specified
+                transformations = []
+                if width and height:
+                    transformations.append("c_fill")
+                    transformations.append("g_auto")  # Smart crop focus
+                if width:
+                    transformations.append(f"w_{width}")
+                if height:
+                    transformations.append(f"h_{height}")
+                if quality != 80:
+                    transformations.append(f"q_{quality}")
+                
+                if transformations:
+                    cloudinary_url += "/" + ",".join(transformations)
+                
+                # Add the public ID (with the version Cloudinary added during upload)
+                try:
+                    # Search for the asset in Cloudinary
+                    result = cloudinary.api.resources(
+                        type="upload",
+                        prefix=file_name,
+                        max_results=1
+                    )
+                    
+                    if result and 'resources' in result and len(result['resources']) > 0:
+                        # Get the resource with version
+                        resource = result['resources'][0]
+                        version = resource.get('version')
+                        public_id = resource.get('public_id')
+                        
+                        if version and public_id:
+                            # Use the version and public_id directly
+                            cloudinary_url += f"/v{version}/{public_id}"
+                            logger.info(f"Found public resource. Using versioned URL: {cloudinary_url}")
+                            return cloudinary_url
+                except Exception as lookup_err:
+                    logger.warning(f"Failed to look up public resource: {str(lookup_err)}")
+                
+                # Fallback to using the path without version if lookup failed
+                cloudinary_url += f"/{file_name}"
+                logger.info(f"Generated fallback public URL: {cloudinary_url}")
+                return cloudinary_url
             
-            logger.info(f"Generated Cloudinary URL: {cloudinary_url}")
-            return cloudinary_url
+            # If we're in private mode and auth failed, raise error
+            raise Exception("Image not accessible - private mode enabled but authentication failed")
+            
         except Exception as e:
             logger.error(f"Error generating URL: {str(e)}")
             raise Exception(f"Failed to generate URL: {str(e)}")
+
+    def generate_user_signed_url(self, file_path: str, user_id: str, expiration=3600, **transforms):
+        """Generate signed URL with user-specific access control"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # For now, we'll implement basic user verification
+            # In the future, you can add more sophisticated access control here
+            logger.info(f"Generating user-specific signed URL for user {user_id}, file {file_path}")
+            
+            # Verify user has permission to access this image
+            # This is a placeholder - implement your access control logic here
+            if not self._verify_user_access(file_path, user_id):
+                raise Exception("Access denied - user does not have permission to view this image")
+            
+            # Clean file path
+            clean_path = file_path.strip().strip('/')
+            file_name, file_ext = os.path.splitext(clean_path)
+            
+            # Generate time-limited signed URL for authenticated assets
+            transformation = {}
+            transformation.update(transforms)
+            
+            auth_token_key = os.getenv('CLOUDINARY_AUTH_KEY')
+            if auth_token_key:
+                # Use token-based authentication if auth key is available
+                signed_url = cloudinary.utils.cloudinary_url(
+                    file_name,
+                    type="authenticated",
+                    sign_url=True,
+                    auth_token={
+                        "key": auth_token_key,
+                        "duration": expiration,
+                        "acl": f"/image/authenticated/{file_name}*"
+                    },
+                    **transformation
+                )[0]
+            else:
+                # Fallback to basic signed URL
+                signed_url = cloudinary.utils.cloudinary_url(
+                    file_name,
+                    type="authenticated",
+                    sign_url=True,
+                    **transformation
+                )[0]
+            
+            logger.info(f"Generated user-specific signed URL successfully")
+            return signed_url
+            
+        except Exception as e:
+            logger.error(f"Error generating user-specific URL: {str(e)}")
+            raise Exception(f"Failed to generate user URL: {str(e)}")
+    
+    def _verify_user_access(self, file_path: str, user_id: str) -> bool:
+        """Verify if user has access to the specified file path"""
+        # Placeholder implementation - customize based on your access control needs
+        
+        # For now, allow access if user_id is provided
+        # You can implement more sophisticated logic here, such as:
+        # - Check if the image belongs to the user
+        # - Check user roles/permissions
+        # - Check if image is in user's accessible folders
+        
+        if not user_id:
+            return False
+        
+        # Example: Allow access to images in user's evidence folder
+        if f"evidence/{user_id}" in file_path or "student" in file_path:
+            return True
+        
+        # Add more access control logic as needed
+        return True  # For now, allow access to authenticated users
 
     async def generate_and_upload_thumbnail(self, file: UploadFile, original_path: str, size=(200, 200)):
         """Generate a thumbnail using Cloudinary."""

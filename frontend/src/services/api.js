@@ -599,4 +599,147 @@ export const updateEvidence = async (studentId, learningOutcomeId, evidenceId, d
   }
 };
 
+// File and image management
+export const uploadFile = async (file, path) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('file_path', path);
+  
+  const response = await fetch(`${API_BASE}/files/upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${getStoredToken()}`
+    },
+    body: formData
+  });
+  
+  if (!response.ok) {
+    throw new Error('Upload failed');
+  }
+  
+  return response.json();
+};
+
+export const getSignedUrl = async (params) => {
+  const response = await fetch(`${API_BASE}/files/signed-url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getStoredToken()}`
+    },
+    body: JSON.stringify(params)
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get signed URL');
+  }
+  
+  return response.json();
+};
+
+export const deleteFile = async (filePath) => {
+  const response = await fetch(`${API_BASE}/files/delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getStoredToken()}`
+    },
+    body: JSON.stringify({ file_path: filePath })
+  });
+  
+  if (!response.ok) {
+    throw new Error('Delete failed');
+  }
+  
+  return response.json();
+};
+
+// Migration API functions
+export const getMigrationStatus = async () => {
+  const response = await fetch(`${API_BASE}/files/migration/status`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${getStoredToken()}`
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to get migration status');
+  }
+  
+  return response.json();
+};
+
+export const listMigrationImages = async (imageType = 'public', limit = 50) => {
+  const response = await fetch(`${API_BASE}/files/migration/images?image_type=${imageType}&limit=${limit}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${getStoredToken()}`
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to list images');
+  }
+  
+  return response.json();
+};
+
+export const migrateSingleImage = async (publicId) => {
+  const response = await fetch(`${API_BASE}/files/migration/migrate-image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getStoredToken()}`
+    },
+    body: JSON.stringify({ public_id: publicId })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to migrate image');
+  }
+  
+  return response.json();
+};
+
+export const bulkMigrateImages = async (publicIds) => {
+  const response = await fetch(`${API_BASE}/files/migration/bulk-migrate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getStoredToken()}`
+    },
+    body: JSON.stringify({ public_ids: publicIds })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to bulk migrate images');
+  }
+  
+  return response.json();
+};
+
+export const setMigrationMode = async (mode) => {
+  const response = await fetch(`${API_BASE}/files/migration/set-mode`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getStoredToken()}`
+    },
+    body: JSON.stringify({ mode })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to set migration mode');
+  }
+  
+  return response.json();
+};
+
 export default apiToUse;

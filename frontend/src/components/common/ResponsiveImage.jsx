@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Image, Skeleton } from '@chakra-ui/react';
-import { getSignedImageUrl } from '../../utils/imageUtils';
+import React from 'react';
+import SignedImage from './SignedImage';
 
 /**
  * A responsive image component that uses thumbnails, lazy loading, and progressive loading
@@ -21,116 +20,47 @@ import { getSignedImageUrl } from '../../utils/imageUtils';
  *   />
  * )
  */
-const ResponsiveImage = ({
-  image,
-  alt,
-  width = '100%',
-  height = 'auto',
-  objectFit = 'cover',
-  borderRadius = 'md',
-  isVisible = true,
-  onLoad,
-  onError,
-  ...props
+const ResponsiveImage = ({ 
+  src, 
+  alt, 
+  sizes = "100vw",
+  className = "",
+  quality = 80,
+  ...props 
 }) => {
-  const [imageUrl, setImageUrl] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadImage() {
-      if (!image || !isVisible) return;
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Get the appropriate image URL with optimization
-        const result = await getSignedImageUrl(image.original_url, {
-          width: width,
-          height: height,
-          quality: 80
-        });
-
-        if (mounted) {
-          setImageUrl(result.optimizedUrl);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err);
-          setIsLoading(false);
-          if (onError) onError(err);
-        }
+  // Generate responsive image sources
+  const generateSrcSet = (imageSrc, quality) => {
+    if (!imageSrc) return '';
+    
+    // Different sizes for responsive images
+    const sizes = [320, 640, 960, 1280, 1920];
+    
+    return sizes.map(size => {
+      // If it's already a full URL, use it as-is for legacy support
+      if (imageSrc.startsWith('http')) {
+        return `${imageSrc} ${size}w`;
       }
-    }
-
-    loadImage();
-
-    return () => {
-      mounted = false;
-    };
-  }, [image, width, height, isVisible, onError]);
-
-  if (!isVisible) return null;
+      
+      // For new images, we'll rely on SignedImage to handle the URL generation
+      return `${imageSrc}?w=${size}&q=${quality} ${size}w`;
+    }).join(', ');
+  };
 
   return (
-    <Box
-      position="relative"
-      width={width}
-      height={height}
-      borderRadius={borderRadius}
-      overflow="hidden"
-      {...props}
-    >
-      {isLoading && (
-        <Skeleton
-          position="absolute"
-          top={0}
-          left={0}
-          width="100%"
-          height="100%"
-        />
-      )}
-      
-      {imageUrl && (
-        <Image
-          src={imageUrl}
-          alt={alt}
-          width="100%"
-          height="100%"
-          objectFit={objectFit}
-          onLoad={() => {
-            setIsLoading(false);
-            if (onLoad) onLoad();
-          }}
-          onError={(e) => {
-            setError(e);
-            setIsLoading(false);
-            if (onError) onError(e);
-          }}
-        />
-      )}
-      
-      {error && (
-        <Box
-          position="absolute"
-          top={0}
-          left={0}
-          width="100%"
-          height="100%"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          bg="gray.100"
-          color="gray.500"
-        >
-          Failed to load image
-        </Box>
-      )}
-    </Box>
+    <div className={`responsive-image-container ${className}`}>
+      <SignedImage
+        src={src}
+        alt={alt}
+        quality={quality}
+        className="responsive-image"
+        style={{
+          width: '100%',
+          height: 'auto',
+          display: 'block'
+        }}
+        {...props}
+      />
+    </div>
   );
 };
 

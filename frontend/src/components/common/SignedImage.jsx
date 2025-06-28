@@ -1,188 +1,135 @@
 import React, { useState, useEffect } from 'react';
-import { getSignedImageUrl } from '../../utils/imageUtils';
-import { Skeleton, Box, Text, Alert, AlertIcon } from '@chakra-ui/react';
+import { getSignedUrl } from '../../services/api';
 
 /**
  * A component for displaying images using signed URLs from the backend.
  * This handles fetching signed URLs and provides a fallback if loading fails.
  * 
  * @param {Object} props Component props
- * @param {string} props.imagePath The path to the image in storage
+ * @param {string} props.src The path to the image in storage
+ * @param {string} props.alt Alt text for the image
+ * @param {string} props.className Optional class name for the image container
  * @param {number|string} props.width Optional width for the image
  * @param {number|string} props.height Optional height for the image
  * @param {number} props.quality Optional quality for the image (1-100)
- * @param {string} props.alt Alt text for the image
+ * @param {string} props.fallbackSrc Fallback image source if loading fails
+ * @param {function} props.onError Callback function to handle image load error
  * @param {Object} props.imgProps Additional props to pass to the img element
- * @param {boolean} props.showPlaceholder Whether to show a placeholder while loading
  */
 const SignedImage = ({
-  imagePath,
+  src,
+  alt,
+  className = '',
   width,
   height,
   quality = 80,
-  alt = 'Image',
-  imgProps = {},
-  showPlaceholder = true,
-  ...rest
+  fallbackSrc = '/assets/images/placeholder-photo.jpg',
+  onError,
+  ...props
 }) => {
   const [imageUrl, setImageUrl] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Helper function to extract the actual file path from a URL
-  const extractFilePath = (url) => {
-    if (!url) return null;
-    
-    // If it's a blob URL, return null as we can't get a signed URL for it
-    if (url.startsWith('blob:')) {
-      return null;
-    }
-    
-    // If it's already a file path (not a URL), return it as is
-    if (!url.startsWith('http')) {
-      return url;
-    }
-    
-    console.log('Extracting file path from URL:', url);
-    
-    // For Cloudinary URLs, extract the file path without version number
-    // Format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/actual/path/to/image.ext
-    const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload(?:\/[^\/]+)?\/(.+?)(?:\?.*)?$/);
-    if (cloudinaryMatch && cloudinaryMatch[1]) {
-      // Remove any double extensions (e.g., .png.png)
-      let path = cloudinaryMatch[1];
-      
-      // Log the matched path for debugging
-      console.log('Matched Cloudinary path:', path);
-      
-      // Check for double extensions
-      const extensionMatch = path.match(/(\.[^.\/]+)\1$/);
-      if (extensionMatch) {
-        path = path.replace(extensionMatch[0], extensionMatch[1]);
-        console.log('Fixed double extension, path is now:', path);
-      }
-      return path;
-    }
-    
-    // For Backblaze URLs, extract the path after the bucket name
-    const backblazeMatch = url.match(/backblazeb2\.com\/[^\/]+\/([^\/]+)\/(.+)/);
-    if (backblazeMatch && backblazeMatch[2]) {
-      return backblazeMatch[2];
-    }
-    
-    // For API URLs, extract the path part
-    const apiMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
-    if (apiMatch && apiMatch[1]) {
-      return apiMatch[1];
-    }
-    
-    // If we can't extract a path, return the full URL
-    return url;
-  };
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 2;
 
   useEffect(() => {
-    let isMounted = true;
+    if (!src) {
+      setLoading(false);
+      setError('No image source provided');
+      return;
+    }
 
-    const fetchSignedUrl = async () => {
-      if (!imagePath) {
-        setIsLoading(false);
+    fetchSignedUrl();
+  }, [src, width, height, quality, retryCount]);
+
+  const fetchSignedUrl = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Check if the src is already a full URL (public legacy images)
+      if (src.startsWith('http')) {
+        setImageUrl(src);
+        setLoading(false);
         return;
       }
 
-      try {
-        setIsLoading(true);
-        setError(null);
+      // Generate signed URL for private images
+      const response = await getSignedUrl({
+        file_path: src,
+        width: width,
+        height: height,
+        quality: quality,
+        expiration: 3600 // 1 hour
+      });
 
-        // If it's a blob URL, use it directly for preview
-        if (imagePath.startsWith('blob:')) {
-          setImageUrl(imagePath);
-          setIsLoading(false);
-          return;
-        }
-
-        // Extract the actual file path
-        const actualFilePath = extractFilePath(imagePath);
-        
-        if (!actualFilePath) {
-          // If we can't extract a valid file path, use the original URL
-          setImageUrl(imagePath);
-          setIsLoading(false);
-          return;
-        }
-
-        // Convert percentage strings to numbers if possible
-        const processedWidth = typeof width === 'string' && width.endsWith('%') 
-          ? parseInt(width, 10) // Try to extract numeric value without '%'
-          : width;
-        
-        const processedHeight = typeof height === 'string' && height.endsWith('%') 
-          ? parseInt(height, 10) // Try to extract numeric value without '%'
-          : height;
-
-        const { optimizedUrl } = await getSignedImageUrl(actualFilePath, {
-          width: processedWidth,
-          height: processedHeight,
-          quality,
-        });
-
-        if (isMounted) {
-          setImageUrl(optimizedUrl);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Error loading image:', err);
-        if (isMounted) {
-          // Fallback: use the original imagePath (e.g., Cloudinary public URL)
-          setImageUrl(imagePath);
-          setIsLoading(false);
-        }
+      if (response.signed_url) {
+        setImageUrl(response.signed_url);
+      } else {
+        throw new Error('No signed URL received');
       }
-    };
+    } catch (err) {
+      console.error('Error fetching signed URL:', err);
+      setError(err.message || 'Failed to load image');
+      
+      // Try to use the original src as fallback for hybrid mode
+      if (retryCount === 0 && src) {
+        setImageUrl(src);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchSignedUrl();
+  const handleImageError = (e) => {
+    console.error('Image load error:', e);
+    
+    // Try retry logic
+    if (retryCount < maxRetries) {
+      setRetryCount(prev => prev + 1);
+      return;
+    }
 
-    return () => {
-      isMounted = false;
-    };
-  }, [imagePath, width, height, quality]);
+    // Final fallback
+    if (imageUrl !== fallbackSrc) {
+      setImageUrl(fallbackSrc);
+      setError(null);
+    } else {
+      setError('Failed to load image and fallback');
+      if (onError) {
+        onError(e);
+      }
+    }
+  };
 
-  if (isLoading && showPlaceholder) {
+  const handleImageLoad = () => {
+    setError(null);
+  };
+
+  if (loading) {
     return (
-      <Skeleton
-        width={width || '100%'}
-        height={height || '200px'}
-        startColor="gray.100"
-        endColor="gray.300"
-        borderRadius="md"
-        {...rest}
-      />
-    );
-  }
-
-  if (error) {
-    // Only show error if both signed URL and original imagePath fail
-    return (
-      <Alert status="error" borderRadius="md" {...rest}>
-        <AlertIcon />
-        <Text fontSize="sm">{error}</Text>
-      </Alert>
-    );
-  }
-
-  if (!imageUrl) {
-    return (
-      <Box
-        width={width || '100%'}
-        height={height || '200px'}
-        bg="gray.100"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        borderRadius="md"
-        {...rest}
+      <div 
+        className={`bg-gray-200 animate-pulse flex items-center justify-center ${className}`}
+        style={{ width, height }}
+        {...props}
       >
-        <Text color="gray.500">No image available</Text>
-      </Box>
+        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (error && !imageUrl) {
+    return (
+      <div 
+        className={`bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded flex items-center justify-center ${className}`}
+        style={{ width, height }}
+        {...props}
+      >
+        <span className="text-sm">Failed to load image</span>
+      </div>
     );
   }
 
@@ -190,17 +137,11 @@ const SignedImage = ({
     <img
       src={imageUrl}
       alt={alt}
-      width={width}
-      height={height}
-      style={{
-        maxWidth: '100%',
-        height: 'auto',
-        display: 'block',
-        borderRadius: '4px',
-        ...imgProps.style,
-      }}
-      {...imgProps}
-      {...rest}
+      className={className}
+      onError={handleImageError}
+      onLoad={handleImageLoad}
+      style={{ width, height }}
+      {...props}
     />
   );
 };

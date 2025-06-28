@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 from datetime import date
 from .base import MongoBaseModel, PyObjectId
+from pydantic import BaseModel
 
 class ContentBase(MongoBaseModel):
     title: str
@@ -16,3 +17,10 @@ class ContentBase(MongoBaseModel):
     prerequisites: List[PyObjectId] = []  # Prerequisite content
     tags: List[str] = []
     metadata: Dict = {}  # Flexible metadata field
+
+class SignedUrlRequest(BaseModel):
+    file_path: str
+    width: Optional[int] = None
+    height: Optional[int] = None
+    quality: Optional[int] = 80
+    expiration: Optional[int] = 3600  # 1 hour default

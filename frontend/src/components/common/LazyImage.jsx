@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Image, Skeleton } from '@chakra-ui/react';
-import { getSignedImageUrl } from '../../utils/imageUtils';
+import React, { useState, useEffect, useRef } from 'react';
+import SignedImage from './SignedImage';
 
 /**
  * A lazy-loading wrapper for the ResponsiveImage component
@@ -24,20 +23,18 @@ import { getSignedImageUrl } from '../../utils/imageUtils';
  * )
  */
 const LazyImage = ({
-  image,
+  src,
   alt,
-  width = '100%',
-  height = 'auto',
-  objectFit = 'cover',
-  borderRadius = 'md',
-  onLoad,
-  onError,
+  className = "",
+  placeholderClassName = "",
+  quality = 80,
+  threshold = 0.1,
+  rootMargin = '50px',
   ...props
 }) => {
-  const [imageUrl, setImageUrl] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const imgRef = useRef();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -48,116 +45,77 @@ const LazyImage = ({
         }
       },
       {
-        rootMargin: '50px',
-        threshold: 0.1
+        threshold,
+        rootMargin
       }
     );
 
-    const element = document.getElementById(`lazy-image-${image?.original_url}`);
-    if (element) {
-      observer.observe(element);
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
     }
 
-    return () => {
-      if (element) {
-        observer.unobserve(element);
-      }
-    };
-  }, [image]);
+    return () => observer.disconnect();
+  }, [threshold, rootMargin]);
 
-  useEffect(() => {
-    let mounted = true;
+  const handleImageLoad = () => {
+    setHasLoaded(true);
+  };
 
-    async function loadImage() {
-      if (!image || !isVisible) return;
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Get the appropriate image URL with optimization
-        const result = await getSignedImageUrl(image.original_url, {
-          width: width,
-          height: height,
-          quality: 80
-        });
-
-        if (mounted) {
-          setImageUrl(result.optimizedUrl);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err);
-          setIsLoading(false);
-          if (onError) onError(err);
-        }
-      }
-    }
-
-    loadImage();
-
-    return () => {
-      mounted = false;
-    };
-  }, [image, width, height, isVisible, onError]);
+  const handleImageError = (e) => {
+    console.error('Lazy image failed to load:', e);
+  };
 
   return (
-    <Box
-      id={`lazy-image-${image?.original_url}`}
-      position="relative"
-      width={width}
-      height={height}
-      borderRadius={borderRadius}
-      overflow="hidden"
-      {...props}
+    <div 
+      ref={imgRef} 
+      className={`lazy-image-container ${className}`}
+      style={{ 
+        position: 'relative',
+        overflow: 'hidden'
+      }}
     >
-      {isLoading && (
-        <Skeleton
-          position="absolute"
-          top={0}
-          left={0}
-          width="100%"
-          height="100%"
-        />
-      )}
-      
-      {imageUrl && (
-        <Image
-          src={imageUrl}
-          alt={alt}
-          width="100%"
-          height="100%"
-          objectFit={objectFit}
-          onLoad={() => {
-            setIsLoading(false);
-            if (onLoad) onLoad();
+      {/* Placeholder */}
+      {!hasLoaded && (
+        <div 
+          className={`lazy-image-placeholder bg-gray-200 animate-pulse flex items-center justify-center ${placeholderClassName}`}
+          style={{
+            position: isVisible ? 'absolute' : 'static',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 1
           }}
-          onError={(e) => {
-            setError(e);
-            setIsLoading(false);
-            if (onError) onError(e);
-          }}
-        />
-      )}
-      
-      {error && (
-        <Box
-          position="absolute"
-          top={0}
-          left={0}
-          width="100%"
-          height="100%"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          bg="gray.100"
-          color="gray.500"
         >
-          Failed to load image
-        </Box>
+          <svg 
+            className="w-8 h-8 text-gray-400" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
+            />
+          </svg>
+        </div>
       )}
-    </Box>
+
+      {/* Actual Image */}
+      {isVisible && (
+        <SignedImage
+          src={src}
+          alt={alt}
+          quality={quality}
+          className={`lazy-image ${hasLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+          {...props}
+        />
+      )}
+    </div>
   );
 };
 
