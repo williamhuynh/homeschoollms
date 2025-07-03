@@ -4,7 +4,7 @@ from ..services.learning_outcome_service import LearningOutcomeService
 from ..services.file_storage_service import file_storage_service
 from ..utils.database_utils import Database
 from ..models.schemas.learning_outcome import LearningOutcome
-from ..utils.auth_utils import get_current_user, get_current_user_with_org
+from ..utils.auth_utils import get_current_user, get_current_user_with_org, is_admin_user
 from typing import List, Optional, Dict, Any # Added List
 from ..models.schemas.user import UserInDB
 from datetime import datetime
@@ -15,6 +15,74 @@ import re # Added for outcome code lookup
 from ..models.schemas.evidence import EvidenceUpdate
 
 router = APIRouter()
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+async def verify_student_access(student_id: str, current_user: UserInDB, required_access: str = "view") -> bool:
+    """
+    Verify if the current user has the required access level to a student's data.
+    
+    Args:
+        student_id: The ID of the student
+        current_user: The current authenticated user
+        required_access: Required access level ("view", "content", "admin")
+    
+    Returns:
+        bool: True if user has access, False otherwise
+    """
+    # Admins and developers can access everything
+    if is_admin_user(current_user):
+        return True
+    
+    # Get the student data
+    db = Database.get_db()
+    try:
+        # Handle both ObjectId and slug
+        if ObjectId.is_valid(student_id):
+            student = await db.students.find_one({"_id": ObjectId(student_id)})
+        else:
+            student = await db.students.find_one({"slug": student_id})
+        
+        if not student:
+            return False
+        
+        user_obj_id = ObjectId(current_user.id)
+        
+        # Check parent_access entries
+        for access in student.get("parent_access", []):
+            if access.get("parent_id") == user_obj_id:
+                access_level = access.get("access_level", "view")
+                
+                # Check if user has required access level
+                access_hierarchy = {"view": 1, "content": 2, "admin": 3}
+                user_level = access_hierarchy.get(access_level, 0)
+                required_level = access_hierarchy.get(required_access, 1)
+                
+                return user_level >= required_level
+        
+        # For backward compatibility: check parent_ids
+        if user_obj_id in student.get("parent_ids", []):
+            # If no parent_access entry exists, assume admin level (backward compatibility)
+            if not student.get("parent_access"):
+                return True
+        
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error verifying student access: {str(e)}")
+        return False
+
+async def ensure_student_access(student_id: str, current_user: UserInDB, required_access: str = "view"):
+    """
+    Ensure the current user has access to the student, raise HTTPException if not.
+    """
+    has_access = await verify_student_access(student_id, current_user, required_access)
+    if not has_access:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"You do not have {required_access} access to this student's data"
+        )
 
 @router.post("/learning-outcomes/", response_model=LearningOutcome)
 async def create_learning_outcome(
@@ -65,8 +133,9 @@ async def get_evidence(
     learning_outcome_id: str,
     current_user: UserInDB = Depends(get_current_user)
 ):
-    import logging
-    logger = logging.getLogger(__name__)
+    # Verify user has access to this student's evidence
+    await ensure_student_access(student_id, current_user, "view")
+    
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     try:
@@ -86,8 +155,9 @@ async def get_batch_evidence(
     outcomes: str,
     current_user: UserInDB = Depends(get_current_user)
 ):
-    import logging
-    logger = logging.getLogger(__name__)
+    # Verify user has access to this student's evidence
+    await ensure_student_access(student_id, current_user, "view")
+    
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     try:
@@ -101,11 +171,6 @@ async def get_batch_evidence(
     except Exception as e:
         logger.error(f"Error fetching batch evidence: {str(e)}")
         return {}
-
-# Configure logger
-logger = logging.getLogger(__name__)
-# Set level to INFO or DEBUG for more detailed logs if needed
-# logging.basicConfig(level=logging.INFO) 
 
 # Utility function to resolve student_id as ObjectId or slug
 async def resolve_student_id(student_id_or_slug, db):
@@ -137,6 +202,9 @@ async def upload_evidence(
     learning_outcome_description: Optional[str] = Form(None), # Added learning outcome description
     current_user: UserInDB = Depends(get_current_user)
 ):
+    # Verify user has content access to this student (required for uploading evidence)
+    await ensure_student_access(student_id, current_user, "content")
+    
     logger.info(f"Received {len(files)} file(s) for student {student_id}, path outcome {learning_outcome_id}")
     logger.info(f"Form data - Title: '{title}', Desc: '{description}', Loc: '{location}', Area: '{learning_area_code}', Outcome: '{learning_outcome_code}'")
     logger.info(f"Additional context - Grade: '{student_grade}', Outcome Desc: '{learning_outcome_description}'")
@@ -360,7 +428,9 @@ async def delete_evidence(
     """
     Mark evidence as deleted without removing it from storage.
     """
-    logger = logging.getLogger(__name__)
+    # Verify user has admin access to this student (required for deleting evidence)
+    await ensure_student_access(student_id, current_user, "admin")
+    
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     logger.info(f"Deleting evidence: {evidence_id} for student: {resolved_student_id}, outcome: {learning_outcome_id}")
@@ -391,7 +461,9 @@ async def download_evidence(
     """
     Generate a download URL for the evidence file.
     """
-    logger = logging.getLogger(__name__)
+    # Verify user has view access to this student (required for downloading evidence)
+    await ensure_student_access(student_id, current_user, "view")
+    
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     logger.info(f"Generating download URL for evidence: {evidence_id} for student: {resolved_student_id}, outcome: {learning_outcome_id}")
@@ -421,7 +493,9 @@ async def share_evidence(
     """
     Generate a shareable URL for the evidence file.
     """
-    logger = logging.getLogger(__name__)
+    # Verify user has content access to this student (required for sharing evidence)
+    await ensure_student_access(student_id, current_user, "content")
+    
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     logger.info(f"Generating share URL for evidence: {evidence_id} for student: {resolved_student_id}, outcome: {learning_outcome_id}")
@@ -449,6 +523,9 @@ async def update_evidence(
     update: EvidenceUpdate,
     current_user: UserInDB = Depends(get_current_user)
 ):
+    # Verify user has content access to this student (required for updating evidence)
+    await ensure_student_access(student_id, current_user, "content")
+    
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     updated = await LearningOutcomeService.update_evidence(

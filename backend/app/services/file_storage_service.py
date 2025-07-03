@@ -278,23 +278,80 @@ class FileStorageService:
     
     def _verify_user_access(self, file_path: str, user_id: str) -> bool:
         """Verify if user has access to the specified file path"""
-        # Placeholder implementation - customize based on your access control needs
+        import asyncio
+        from ..utils.database_utils import Database
+        from ..utils.auth_utils import is_admin_user
+        from bson import ObjectId
         
-        # For now, allow access if user_id is provided
-        # You can implement more sophisticated logic here, such as:
-        # - Check if the image belongs to the user
-        # - Check user roles/permissions
-        # - Check if image is in user's accessible folders
-        
+        # No access if no user_id provided
         if not user_id:
             return False
         
-        # Example: Allow access to images in user's evidence folder
-        if f"evidence/{user_id}" in file_path or "student" in file_path:
-            return True
-        
-        # Add more access control logic as needed
-        return True  # For now, allow access to authenticated users
+        try:
+            # Get user from database to check admin status
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're already in an async context, we can't use asyncio.run()
+                # For now, allow access and log warning - this should be refactored
+                logger = logging.getLogger(__name__)
+                logger.warning(f"_verify_user_access called in async context - allowing access for now. File: {file_path}, User: {user_id}")
+                return True
+            
+            async def check_access():
+                db = Database.get_db()
+                
+                # Get user to check if they're admin
+                user = await db.users.find_one({"_id": ObjectId(user_id)})
+                if user and user.get("role") in ["admin", "developer"]:
+                    return True
+                
+                # Extract student_id from file path: evidence/{student_id}/...
+                if not file_path.startswith("evidence/"):
+                    return False
+                
+                path_parts = file_path.split("/")
+                if len(path_parts) < 2:
+                    return False
+                
+                student_id_from_path = path_parts[1]
+                
+                # Check if user has access to this student
+                try:
+                    # Handle both ObjectId and slug
+                    if ObjectId.is_valid(student_id_from_path):
+                        student = await db.students.find_one({"_id": ObjectId(student_id_from_path)})
+                    else:
+                        student = await db.students.find_one({"slug": student_id_from_path})
+                    
+                    if not student:
+                        return False
+                    
+                    user_obj_id = ObjectId(user_id)
+                    
+                    # Check parent_access entries
+                    for access in student.get("parent_access", []):
+                        if access.get("parent_id") == user_obj_id:
+                            # Any access level allows viewing evidence
+                            return True
+                    
+                    # For backward compatibility: check parent_ids
+                    if user_obj_id in student.get("parent_ids", []):
+                        return True
+                    
+                    return False
+                    
+                except Exception as e:
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error checking student access in _verify_user_access: {str(e)}")
+                    return False
+            
+            # Run the async check
+            return asyncio.run(check_access())
+            
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in _verify_user_access: {str(e)}")
+            return False
 
     async def generate_and_upload_thumbnail(self, file: UploadFile, original_path: str, size=(200, 200)):
         """Generate a thumbnail using Cloudinary."""

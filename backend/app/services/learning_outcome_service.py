@@ -140,30 +140,35 @@ class LearningOutcomeService:
                 if "file_path" in serialized_item:
                     file_path = serialized_item["file_path"]
                     
-                    # Try to generate fresh presigned URLs for better security
+                    # Try to generate fresh presigned URLs for better security (1 hour expiration)
                     try:
                         from ..services.file_storage_service import file_storage_service
                         
-                        # Generate main image URL
-                        image_url = file_storage_service.generate_presigned_url(file_path)
+                        # Generate main image URL with 1-hour expiration
+                        image_url = file_storage_service.generate_presigned_url(
+                            file_path, 
+                            expiration=3600  # 1 hour for security
+                        )
                         serialized_item["fileUrl"] = image_url
                         
-                        # Generate thumbnail URL
+                        # Generate thumbnail URL with 1-hour expiration
                         thumbnail_url = file_storage_service.generate_presigned_url(
                             file_path, 
+                            expiration=3600,  # 1 hour for security
                             width=150, 
                             height=150, 
                             quality=80
                         )
                         serialized_item["thumbnailUrl"] = thumbnail_url
                         
-                        logger.info(f"Successfully generated presigned URLs for evidence {serialized_item.get('_id', 'unknown')}")
+                        logger.info(f"Successfully generated time-limited presigned URLs for evidence {serialized_item.get('_id', 'unknown')}")
                         
                     except Exception as e:
                         logger.error(f"Error generating presigned URLs for file_path '{file_path}': {str(e)}")
                         logger.info("Falling back to stored URLs from database")
                         
                         # Fallback to stored URLs (like batch method does)
+                        # Note: These URLs may not have time limits but are still signed
                         if "file_url" in serialized_item:
                             serialized_item["fileUrl"] = serialized_item["file_url"]
                             logger.info(f"Using stored file_url: {serialized_item['file_url']}")
@@ -275,30 +280,35 @@ class LearningOutcomeService:
                 if "file_path" in serialized_item:
                     file_path = serialized_item["file_path"]
                     
-                    # Try to generate fresh presigned URLs for better security
+                    # Try to generate fresh presigned URLs for better security (1 hour expiration)
                     try:
                         from ..services.file_storage_service import file_storage_service
                         
-                        # Generate main image URL
-                        image_url = file_storage_service.generate_presigned_url(file_path)
+                        # Generate main image URL with 1-hour expiration
+                        image_url = file_storage_service.generate_presigned_url(
+                            file_path, 
+                            expiration=3600  # 1 hour for security
+                        )
                         serialized_item["fileUrl"] = image_url
                         
-                        # Generate thumbnail URL
+                        # Generate thumbnail URL with 1-hour expiration
                         thumbnail_url = file_storage_service.generate_presigned_url(
                             file_path, 
+                            expiration=3600,  # 1 hour for security
                             width=150, 
                             height=150, 
                             quality=80
                         )
                         serialized_item["thumbnailUrl"] = thumbnail_url
                         
-                        logger.info(f"Successfully generated presigned URLs for evidence {serialized_item.get('_id', 'unknown')}")
+                        logger.info(f"Successfully generated time-limited presigned URLs for evidence {serialized_item.get('_id', 'unknown')}")
                         
                     except Exception as e:
                         logger.error(f"Error generating presigned URLs for file_path '{file_path}': {str(e)}")
                         logger.info("Falling back to stored URLs from database")
                         
                         # Fallback to stored URLs (like batch method does)
+                        # Note: These URLs may not have time limits but are still signed
                         if "file_url" in serialized_item:
                             serialized_item["fileUrl"] = serialized_item["file_url"]
                             logger.info(f"Using stored file_url: {serialized_item['file_url']}")
@@ -597,10 +607,10 @@ class LearningOutcomeService:
             
             # Generate a presigned URL with download headers
             try:
-                # Use a longer expiration for downloads (1 day)
+                # Use shorter expiration for downloads (4 hours)
                 download_url = file_storage_service.generate_presigned_url(
                     file_path,
-                    expiration=86400,  # 24 hours
+                    expiration=14400,  # 4 hours for security
                     content_disposition=f'attachment; filename="{evidence.get("file_name", "download")}"'
                 )
                 logger.info(f"Generated download URL for evidence: {evidence_id}")
@@ -691,10 +701,10 @@ class LearningOutcomeService:
                 
             # Generate a presigned URL with inline display headers
             try:
-                # Use a longer expiration for shares (7 days)
+                # Use shorter expiration for shares (24 hours)
                 share_url = file_storage_service.generate_presigned_url(
                     file_url,
-                    expiration=604800,  # 7 days
+                    expiration=86400,  # 24 hours for security
                     content_disposition='inline'
                 )
                 logger.info(f"Generated share URL for evidence: {evidence_id}")
