@@ -132,11 +132,11 @@ async def get_signed_url(
 
 # Migration API endpoints
 @router.get("/migration/status")
-async def get_migration_status(current_user: dict = Depends(get_current_user)):
+async def get_migration_status(current_user: UserInDB = Depends(get_current_user)):
     """Get current migration status and configuration"""
     try:
         # Check if user is admin (implement your admin check logic)
-        if not current_user.get('is_admin', False):
+        if not getattr(current_user, 'is_admin', False):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         migration_mode = os.getenv('CLOUDINARY_MIGRATION_MODE', 'public')
@@ -171,12 +171,12 @@ async def get_migration_status(current_user: dict = Depends(get_current_user)):
 async def list_migration_images(
     image_type: str = "public", 
     limit: int = 50,
-    current_user: dict = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_current_user)
 ):
     """List images for migration (public -> private)"""
     try:
         # Check if user is admin
-        if not current_user.get('is_admin', False):
+        if not getattr(current_user, 'is_admin', False):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         resource_type = "upload" if image_type == "public" else "authenticated"
@@ -208,12 +208,12 @@ async def list_migration_images(
 @router.post("/migration/migrate-image")
 async def migrate_single_image(
     request: dict,
-    current_user: dict = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_current_user)
 ):
     """Migrate a single image from public to private"""
     try:
         # Check if user is admin
-        if not current_user.get('is_admin', False):
+        if not getattr(current_user, 'is_admin', False):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         public_id = request.get('public_id')
@@ -247,12 +247,12 @@ async def migrate_single_image(
 @router.post("/migration/bulk-migrate")
 async def bulk_migrate_images(
     request: dict,
-    current_user: dict = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_current_user)
 ):
     """Migrate multiple images from public to private"""
     try:
         # Check if user is admin
-        if not current_user.get('is_admin', False):
+        if not getattr(current_user, 'is_admin', False):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         public_ids = request.get('public_ids', [])
@@ -298,12 +298,12 @@ async def bulk_migrate_images(
 @router.post("/migration/set-mode")
 async def set_migration_mode(
     request: dict,
-    current_user: dict = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_current_user)
 ):
     """Set the migration mode (public/hybrid/private)"""
     try:
         # Check if user is admin
-        if not current_user.get('is_admin', False):
+        if not getattr(current_user, 'is_admin', False):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         mode = request.get('mode')
