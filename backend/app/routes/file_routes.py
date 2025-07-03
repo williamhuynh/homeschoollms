@@ -321,4 +321,167 @@ async def set_migration_mode(
         }
     except Exception as e:
         logger.error(f"Error setting migration mode: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/migration/cleanup/delete-all-public")
+async def delete_all_public_images(
+    request: dict,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """DELETE ALL PUBLIC IMAGES - Use with caution!"""
+    try:
+        # Check if user is admin
+        if not is_admin_user(current_user):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Safety check - require confirmation
+        confirm = request.get('confirm_delete_all')
+        if confirm != 'YES_DELETE_ALL_PUBLIC_IMAGES':
+            raise HTTPException(
+                status_code=400, 
+                detail="Must provide confirm_delete_all='YES_DELETE_ALL_PUBLIC_IMAGES' to proceed"
+            )
+        
+        # Get all public images
+        result = cloudinary.api.resources(type="upload", max_results=500)
+        resources = result.get('resources', [])
+        
+        deleted = []
+        failed = []
+        
+        for resource in resources:
+            try:
+                public_id = resource.get('public_id')
+                cloudinary.uploader.destroy(public_id, type="upload")
+                deleted.append(public_id)
+                logger.info(f"Deleted public image: {public_id}")
+            except Exception as e:
+                failed.append({
+                    "public_id": resource.get('public_id'),
+                    "error": str(e)
+                })
+                logger.error(f"Failed to delete {resource.get('public_id')}: {str(e)}")
+        
+        return {
+            "success": True,
+            "message": f"Deleted {len(deleted)} public images",
+            "deleted_count": len(deleted),
+            "failed_count": len(failed),
+            "deleted_images": deleted,
+            "failed_images": failed
+        }
+    except Exception as e:
+        logger.error(f"Error deleting public images: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/migration/cleanup/delete-all-private")
+async def delete_all_private_images(
+    request: dict,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """DELETE ALL PRIVATE/AUTHENTICATED IMAGES - Use with caution!"""
+    try:
+        # Check if user is admin
+        if not is_admin_user(current_user):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Safety check - require confirmation
+        confirm = request.get('confirm_delete_all')
+        if confirm != 'YES_DELETE_ALL_PRIVATE_IMAGES':
+            raise HTTPException(
+                status_code=400, 
+                detail="Must provide confirm_delete_all='YES_DELETE_ALL_PRIVATE_IMAGES' to proceed"
+            )
+        
+        # Get all private images
+        result = cloudinary.api.resources(type="authenticated", max_results=500)
+        resources = result.get('resources', [])
+        
+        deleted = []
+        failed = []
+        
+        for resource in resources:
+            try:
+                public_id = resource.get('public_id')
+                cloudinary.uploader.destroy(public_id, type="authenticated")
+                deleted.append(public_id)
+                logger.info(f"Deleted private image: {public_id}")
+            except Exception as e:
+                failed.append({
+                    "public_id": resource.get('public_id'),
+                    "error": str(e)
+                })
+                logger.error(f"Failed to delete {resource.get('public_id')}: {str(e)}")
+        
+        return {
+            "success": True,
+            "message": f"Deleted {len(deleted)} private images",
+            "deleted_count": len(deleted),
+            "failed_count": len(failed),
+            "deleted_images": deleted,
+            "failed_images": failed
+        }
+    except Exception as e:
+        logger.error(f"Error deleting private images: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/migration/cleanup/delete-all-cloudinary")
+async def delete_all_cloudinary_images(
+    request: dict,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """DELETE ALL IMAGES FROM CLOUDINARY (both public and private) - Nuclear option!"""
+    try:
+        # Check if user is admin
+        if not is_admin_user(current_user):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Safety check - require confirmation
+        confirm = request.get('confirm_delete_all')
+        if confirm != 'YES_DELETE_EVERYTHING_FROM_CLOUDINARY':
+            raise HTTPException(
+                status_code=400, 
+                detail="Must provide confirm_delete_all='YES_DELETE_EVERYTHING_FROM_CLOUDINARY' to proceed"
+            )
+        
+        total_deleted = []
+        total_failed = []
+        
+        # Delete all public images
+        try:
+            public_result = cloudinary.api.resources(type="upload", max_results=500)
+            for resource in public_result.get('resources', []):
+                try:
+                    public_id = resource.get('public_id')
+                    cloudinary.uploader.destroy(public_id, type="upload")
+                    total_deleted.append(f"public:{public_id}")
+                except Exception as e:
+                    total_failed.append(f"public:{resource.get('public_id')} - {str(e)}")
+        except Exception as e:
+            logger.error(f"Error accessing public images: {str(e)}")
+        
+        # Delete all private images
+        try:
+            private_result = cloudinary.api.resources(type="authenticated", max_results=500)
+            for resource in private_result.get('resources', []):
+                try:
+                    public_id = resource.get('public_id')
+                    cloudinary.uploader.destroy(public_id, type="authenticated")
+                    total_deleted.append(f"private:{public_id}")
+                except Exception as e:
+                    total_failed.append(f"private:{resource.get('public_id')} - {str(e)}")
+        except Exception as e:
+            logger.error(f"Error accessing private images: {str(e)}")
+        
+        return {
+            "success": True,
+            "message": f"Nuclear cleanup complete! Deleted {len(total_deleted)} images total",
+            "deleted_count": len(total_deleted),
+            "failed_count": len(total_failed),
+            "deleted_images": total_deleted,
+            "failed_images": total_failed,
+            "warning": "All images deleted from Cloudinary. Database references may still exist."
+        }
+    except Exception as e:
+        logger.error(f"Error in nuclear cleanup: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

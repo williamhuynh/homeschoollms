@@ -4,7 +4,10 @@ import {
   listMigrationImages, 
   migrateSingleImage, 
   bulkMigrateImages, 
-  setMigrationMode 
+  setMigrationMode,
+  deleteAllPublicImages,
+  deleteAllPrivateImages,
+  deleteAllCloudinaryImages
 } from '../../services/api';
 
 const ImageMigrationManager = () => {
@@ -17,6 +20,8 @@ const ImageMigrationManager = () => {
   const [success, setSuccess] = useState(null);
   const [currentView, setCurrentView] = useState('status'); // status, public, private
   const [migrationResults, setMigrationResults] = useState(null);
+  const [cleanupResults, setCleanupResults] = useState(null);
+  const [confirmationText, setConfirmationText] = useState('');
 
   useEffect(() => {
     fetchMigrationStatus();
@@ -121,6 +126,46 @@ const ImageMigrationManager = () => {
     setSelectedImages([]);
   };
 
+  const handleCleanupOperation = async (operation, requiredText) => {
+    if (confirmationText !== requiredText) {
+      setError(`Please type "${requiredText}" to confirm this dangerous operation`);
+      return;
+    }
+
+    try {
+      setMigrating(true);
+      setError(null);
+      setCleanupResults(null);
+      
+      let result;
+      switch (operation) {
+        case 'public':
+          result = await deleteAllPublicImages();
+          break;
+        case 'private':
+          result = await deleteAllPrivateImages();
+          break;
+        case 'all':
+          result = await deleteAllCloudinaryImages();
+          break;
+        default:
+          throw new Error('Invalid cleanup operation');
+      }
+      
+      setCleanupResults(result);
+      setSuccess(result.message);
+      setConfirmationText('');
+      
+      // Refresh status
+      fetchMigrationStatus();
+      
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   const getModeDisplayName = (mode) => {
     switch (mode) {
       case 'public': return 'Public (Legacy)';
@@ -174,6 +219,12 @@ const ImageMigrationManager = () => {
             className={`px-4 py-2 rounded ${currentView === 'private' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
           >
             Private Images ({status?.private_images || 0})
+          </button>
+          <button
+            onClick={() => setCurrentView('cleanup')}
+            className={`px-4 py-2 rounded ${currentView === 'cleanup' ? 'bg-red-600 text-white' : 'bg-red-200 text-red-800'}`}
+          >
+            🗑️ Cleanup
           </button>
         </div>
 
@@ -326,8 +377,110 @@ const ImageMigrationManager = () => {
           </div>
         )}
 
+        {/* Cleanup View */}
+        {currentView === 'cleanup' && (
+          <div className="space-y-6">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-red-800 mb-2">⚠️ Dangerous Operations</h3>
+              <p className="text-red-700 text-sm mb-4">
+                These operations permanently delete images from Cloudinary. Use only for starting fresh with test data!
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Delete Public Images */}
+              <div className="border border-orange-300 rounded-lg p-4 bg-orange-50">
+                <h4 className="font-semibold text-orange-800 mb-2">Delete Public Images</h4>
+                <p className="text-sm text-orange-700 mb-3">
+                  Delete all {status?.public_images || 0} public images from Cloudinary
+                </p>
+                <input
+                  type="text"
+                  placeholder="Type: DELETE_PUBLIC"
+                  value={confirmationText}
+                  onChange={(e) => setConfirmationText(e.target.value)}
+                  className="w-full px-3 py-2 border border-orange-300 rounded text-sm mb-3"
+                />
+                <button
+                  onClick={() => handleCleanupOperation('public', 'DELETE_PUBLIC')}
+                  disabled={migrating || confirmationText !== 'DELETE_PUBLIC'}
+                  className="w-full bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 disabled:bg-gray-400 text-sm"
+                >
+                  {migrating ? 'Deleting...' : 'Delete Public Images'}
+                </button>
+              </div>
+
+              {/* Delete Private Images */}
+              <div className="border border-purple-300 rounded-lg p-4 bg-purple-50">
+                <h4 className="font-semibold text-purple-800 mb-2">Delete Private Images</h4>
+                <p className="text-sm text-purple-700 mb-3">
+                  Delete all {status?.private_images || 0} private images from Cloudinary
+                </p>
+                <input
+                  type="text"
+                  placeholder="Type: DELETE_PRIVATE"
+                  value={confirmationText}
+                  onChange={(e) => setConfirmationText(e.target.value)}
+                  className="w-full px-3 py-2 border border-purple-300 rounded text-sm mb-3"
+                />
+                <button
+                  onClick={() => handleCleanupOperation('private', 'DELETE_PRIVATE')}
+                  disabled={migrating || confirmationText !== 'DELETE_PRIVATE'}
+                  className="w-full bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:bg-gray-400 text-sm"
+                >
+                  {migrating ? 'Deleting...' : 'Delete Private Images'}
+                </button>
+              </div>
+
+              {/* Nuclear Option */}
+              <div className="border border-red-300 rounded-lg p-4 bg-red-50">
+                <h4 className="font-semibold text-red-800 mb-2">🚨 Nuclear Option</h4>
+                <p className="text-sm text-red-700 mb-3">
+                  Delete ALL {(status?.public_images || 0) + (status?.private_images || 0)} images from Cloudinary
+                </p>
+                <input
+                  type="text"
+                  placeholder="Type: DELETE_EVERYTHING"
+                  value={confirmationText}
+                  onChange={(e) => setConfirmationText(e.target.value)}
+                  className="w-full px-3 py-2 border border-red-300 rounded text-sm mb-3"
+                />
+                <button
+                  onClick={() => handleCleanupOperation('all', 'DELETE_EVERYTHING')}
+                  disabled={migrating || confirmationText !== 'DELETE_EVERYTHING'}
+                  className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-400 text-sm"
+                >
+                  {migrating ? 'Deleting...' : 'DELETE EVERYTHING'}
+                </button>
+              </div>
+            </div>
+
+            {/* Cleanup Results */}
+            {cleanupResults && (
+              <div className="bg-gray-50 p-4 rounded">
+                <h3 className="font-semibold mb-2">Cleanup Results</h3>
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">{cleanupResults.deleted_count}</div>
+                    <div className="text-sm text-gray-600">Deleted</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-red-600">{cleanupResults.failed_count}</div>
+                    <div className="text-sm text-gray-600">Failed</div>
+                  </div>
+                </div>
+                {cleanupResults.warning && (
+                  <div className="mt-3 text-sm text-orange-700 bg-orange-100 p-2 rounded">
+                    {cleanupResults.warning}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Migration Results */}
-        {migrationResults && (
+        {migrationResults && currentView !== 'cleanup' && (
           <div className="mt-6 bg-gray-50 p-4 rounded">
             <h3 className="font-semibold mb-2">Migration Results</h3>
             <div className="grid grid-cols-3 gap-4 text-center">

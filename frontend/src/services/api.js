@@ -692,4 +692,15 @@ export const setMigrationMode = async (mode) => {
   }
 };
 
+// Cleanup functions (DANGEROUS - for starting fresh)
+export const deleteAllPublicImages = () => apiToUse.post('/files/migration/cleanup/delete-all-public', { 
+  confirm_delete_all: 'YES_DELETE_ALL_PUBLIC_IMAGES' 
+});
+export const deleteAllPrivateImages = () => apiToUse.post('/files/migration/cleanup/delete-all-private', { 
+  confirm_delete_all: 'YES_DELETE_ALL_PRIVATE_IMAGES' 
+});
+export const deleteAllCloudinaryImages = () => apiToUse.post('/files/migration/cleanup/delete-all-cloudinary', { 
+  confirm_delete_all: 'YES_DELETE_EVERYTHING_FROM_CLOUDINARY' 
+});
+
 export default apiToUse;
