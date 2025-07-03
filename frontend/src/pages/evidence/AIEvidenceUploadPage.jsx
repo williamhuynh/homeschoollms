@@ -388,7 +388,6 @@ const AIEvidenceUploadPage = () => {
         <label htmlFor="ai-file-upload">
           <Button
             as="span"
-            leftIcon={<Upload />}
             w="full"
             h="150px"
             variant="outline"
