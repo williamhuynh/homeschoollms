@@ -249,7 +249,7 @@ class StudentService:
                 result.append({
                     "parent_id": str(access.get("parent_id")),
                     "email": parent.email,
-                    "full_name": parent.full_name,
+                    "full_name": f"{parent.first_name} {parent.last_name}",
                     "access_level": access.get("access_level")
                 })
             except HTTPException:
@@ -267,7 +267,7 @@ class StudentService:
                 result.append({
                     "parent_id": str(parent_id),
                     "email": parent.email,
-                    "full_name": parent.full_name,
+                    "full_name": f"{parent.first_name} {parent.last_name}",
                     "access_level": "admin"  # Default for backward compatibility
                 })
             except HTTPException:

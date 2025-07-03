@@ -106,7 +106,7 @@ async def check_file_existence(
 @router.post("/signed-url")
 async def get_signed_url(
     request: SignedUrlRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_current_user)
 ):
     """Generate a signed URL for accessing files"""
     try:
@@ -115,7 +115,7 @@ async def get_signed_url(
         # Use user-specific signed URL generation
         signed_url = file_storage_service.generate_user_signed_url(
             file_path=request.file_path,
-            user_id=current_user.get('id'),
+            user_id=str(current_user.id),
             expiration=request.expiration or 3600,
             width=request.width,
             height=request.height,
