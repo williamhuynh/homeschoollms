@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from typing import Optional, List
-from ..utils.auth_utils import get_current_user
+from ..utils.auth_utils import get_current_user, is_admin_user
 from ..models.schemas.user import UserInDB
 from ..models.schemas.content import SignedUrlRequest
 import logging
@@ -135,8 +135,8 @@ async def get_signed_url(
 async def get_migration_status(current_user: UserInDB = Depends(get_current_user)):
     """Get current migration status and configuration"""
     try:
-        # Check if user is admin (implement your admin check logic)
-        if not getattr(current_user, 'is_admin', False):
+        # Check if user is admin
+        if not is_admin_user(current_user):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         migration_mode = os.getenv('CLOUDINARY_MIGRATION_MODE', 'public')
@@ -176,7 +176,7 @@ async def list_migration_images(
     """List images for migration (public -> private)"""
     try:
         # Check if user is admin
-        if not getattr(current_user, 'is_admin', False):
+        if not is_admin_user(current_user):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         resource_type = "upload" if image_type == "public" else "authenticated"
@@ -213,7 +213,7 @@ async def migrate_single_image(
     """Migrate a single image from public to private"""
     try:
         # Check if user is admin
-        if not getattr(current_user, 'is_admin', False):
+        if not is_admin_user(current_user):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         public_id = request.get('public_id')
@@ -252,7 +252,7 @@ async def bulk_migrate_images(
     """Migrate multiple images from public to private"""
     try:
         # Check if user is admin
-        if not getattr(current_user, 'is_admin', False):
+        if not is_admin_user(current_user):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         public_ids = request.get('public_ids', [])
@@ -303,7 +303,7 @@ async def set_migration_mode(
     """Set the migration mode (public/hybrid/private)"""
     try:
         # Check if user is admin
-        if not getattr(current_user, 'is_admin', False):
+        if not is_admin_user(current_user):
             raise HTTPException(status_code=403, detail="Admin access required")
         
         mode = request.get('mode')
