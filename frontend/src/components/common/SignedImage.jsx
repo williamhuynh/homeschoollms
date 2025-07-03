@@ -58,6 +58,26 @@ const SignedImage = ({
       // Check if the src is a public Cloudinary URL
       const isCloudinaryPublic = src.startsWith('http') && src.includes('res.cloudinary.com') && !isCloudinaryAuthenticated;
 
+      // Check if it's a blob URL (local file preview)
+      const isBlobUrl = src.startsWith('blob:');
+
+      // Check if it's a data URL (base64 encoded file)
+      const isDataUrl = src.startsWith('data:');
+
+      if (isBlobUrl) {
+        console.log('[SignedImage] Using blob URL (local file preview):', src);
+        setImageUrl(src);
+        setLoading(false);
+        return;
+      }
+
+      if (isDataUrl) {
+        console.log('[SignedImage] Using data URL (base64 file preview):', src.substring(0, 50) + '...');
+        setImageUrl(src);
+        setLoading(false);
+        return;
+      }
+
       if (isCloudinaryAuthenticated) {
         console.log('[SignedImage] Using Cloudinary authenticated URL (already signed):', src);
         setImageUrl(src);

@@ -468,8 +468,15 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
                         alt={`Preview ${file.name}`}
                         width="100%"
                         height="100%"
-                        objectFit="cover"
-                        borderRadius="md"
+                        imgProps={{
+                          style: {
+                            objectFit: 'cover',
+                            objectPosition: 'center',
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '0.375rem'
+                          }
+                        }}
                         isVisible={true} // Ensure image loading is triggered
                       />
                       <IconButton

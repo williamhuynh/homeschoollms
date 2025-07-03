@@ -21,42 +21,28 @@ import SignedImage from './SignedImage';
  * )
  */
 const ResponsiveImage = ({ 
+  image,
   src, 
   alt, 
-  sizes = "100vw",
   className = "",
   quality = 80,
   ...props 
 }) => {
-  // Generate responsive image sources
-  const generateSrcSet = (imageSrc, quality) => {
-    if (!imageSrc) return '';
-    
-    // Different sizes for responsive images
-    const sizes = [320, 640, 960, 1280, 1920];
-    
-    return sizes.map(size => {
-      // If it's already a full URL, use it as-is for legacy support
-      if (imageSrc.startsWith('http')) {
-        return `${imageSrc} ${size}w`;
-      }
-      
-      // For new images, we'll rely on SignedImage to handle the URL generation
-      return `${imageSrc}?w=${size}&q=${quality} ${size}w`;
-    }).join(', ');
-  };
+  // Determine the source URL from either image object or direct src prop
+  const imageSource = image?.original_url || src;
 
   return (
     <div className={`responsive-image-container ${className}`}>
       <SignedImage
-        src={src}
+        src={imageSource}
         alt={alt}
         quality={quality}
         className="responsive-image"
         style={{
           width: '100%',
           height: 'auto',
-          display: 'block'
+          display: 'block',
+          ...props.style
         }}
         {...props}
       />
