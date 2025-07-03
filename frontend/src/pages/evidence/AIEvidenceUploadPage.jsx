@@ -27,7 +27,7 @@ import {
   CardBody,
   Progress
 } from '@chakra-ui/react'
-import { ArrowLeft, Upload, Brain, CheckCircle } from 'react-feather'
+import { ArrowLeft, Upload, Zap, CheckCircle } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStudents } from '../../contexts/StudentsContext'
 import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence } from '../../services/api'
@@ -455,7 +455,7 @@ const AIEvidenceUploadPage = () => {
 
       {selectedFiles.length > 0 && (
         <Button
-          leftIcon={<Brain />}
+          leftIcon={<Zap />}
           colorScheme="blue"
           size="lg"
           onClick={handleUploadAndAnalyze}
