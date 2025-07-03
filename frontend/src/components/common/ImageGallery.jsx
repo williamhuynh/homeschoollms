@@ -100,52 +100,8 @@ const ImageGallery = ({
             availableProps: Object.keys(image)
           });
           
-          // Extract the actual path from the URL to be used with SignedImage
-          const extractImagePath = (url) => {
-            if (!url) return null;
-            
-            console.log('ImageGallery extractImagePath:', url);
-            
-            // If the URL is a blob, use it directly
-            if (url.startsWith('blob:')) {
-              return url;
-            }
-            
-            // If it's already a file path (not a URL), return it as is
-            if (!url.startsWith('http')) {
-              return url;
-            }
-            
-            // For Cloudinary URLs, extract the path without version number
-            // Format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/actual/path/to/image.ext
-            const cloudinaryMatch = url.match(/res\.cloudinary\.com\/[^\/]+\/image\/upload(?:\/[^\/]+)?\/(.+?)(?:\?.*)?$/);
-            if (cloudinaryMatch && cloudinaryMatch[1]) {
-              // Remove any double extensions
-              let path = cloudinaryMatch[1];
-              
-              // Check for double extensions
-              const extensionMatch = path.match(/(\.[^.\/]+)\1$/);
-              if (extensionMatch) {
-                path = path.replace(extensionMatch[0], extensionMatch[1]);
-              }
-              
-              console.log('ImageGallery extracted Cloudinary path:', path);
-              return path;
-            }
-            
-            // For direct Backblaze URLs, extract the path after the domain
-            const backblazeMatch = url.match(/backblazeb2\.com\/[^\/]+\/(.+)/);
-            if (backblazeMatch && backblazeMatch[1]) {
-              return backblazeMatch[1];
-            }
-            
-            // Use the full URL as fallback
-            return url;
-          };
-          
-          // Get the image path for SignedImage
+          // Get the image URL
           const originalUrl = image.file_url || image.fileUrl;
-          const imagePath = extractImagePath(originalUrl);
           
           return (
             <Box // Outer Box (Card)
@@ -171,10 +127,10 @@ const ImageGallery = ({
                   overflow="hidden" // Ensure image corners are rounded
                 >
                   <Box position="absolute" top="0" left="0" width="100%" height="100%">
-                    {useSignedImages && imagePath ? (
+                    {useSignedImages && originalUrl ? (
                       // New approach using SignedImage
                       <SignedImage
-                        imagePath={imagePath}
+                        src={originalUrl}
                         width={width || "100%"}
                         height={height || "100%"}
                         quality={80}

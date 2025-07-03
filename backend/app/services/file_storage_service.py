@@ -221,14 +221,22 @@ class FileStorageService:
         logger = logging.getLogger(__name__)
         
         try:
-            # For now, we'll implement basic user verification
-            # In the future, you can add more sophisticated access control here
             logger.info(f"Generating user-specific signed URL for user {user_id}, file {file_path}")
             
-            # Verify user has permission to access this image
-            # This is a placeholder - implement your access control logic here
+            # In hybrid mode, if this is already a public Cloudinary URL, return it directly
+            if self.migration_mode == 'hybrid' and file_path.startswith('https://res.cloudinary.com/'):
+                logger.info("Hybrid mode: Returning existing public Cloudinary URL")
+                return file_path
+            
+            # For non-URL paths, verify user has permission to access this image
             if not self._verify_user_access(file_path, user_id):
                 raise Exception("Access denied - user does not have permission to view this image")
+            
+            # If it's a full URL but not Cloudinary, extract the path
+            if file_path.startswith('http'):
+                logger.warning(f"Received non-Cloudinary URL: {file_path}")
+                # Return as-is for now
+                return file_path
             
             # Clean file path
             clean_path = file_path.strip().strip('/')

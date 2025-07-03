@@ -80,24 +80,6 @@ const ImageViewerModal = ({
   // Diagnostic log to confirm component mount
   console.log('ImageViewerModal mounted');
 
-  const extractImagePath = (url) => {
-    if (!url) return null;
-    
-    const apiPathMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
-    if (apiPathMatch && apiPathMatch[1]) {
-      return apiPathMatch[1];
-    }
-    
-    const backblazeMatch = url.match(/backblazeb2\.com\/(.+)/);
-    if (backblazeMatch && backblazeMatch[1]) {
-      return backblazeMatch[1];
-    }
-    
-    return url;
-  };
-  
-  const imagePath = extractImagePath(image?.fileUrl);
-
   const refreshToken = async () => {
     console.log('Refreshing token...');
     const { supabase } = await import('../../services/supabase');
@@ -463,9 +445,9 @@ const ImageViewerModal = ({
             w="100vw"
             position="relative"
           >
-            {useSignedImages && imagePath ? (
+            {useSignedImages && image.fileUrl ? (
               <SignedImage
-                imagePath={imagePath}
+                src={image.fileUrl}
                 alt={image.title || 'Evidence'}
                 quality={90}
                 width={width}

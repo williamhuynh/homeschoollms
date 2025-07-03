@@ -43,26 +43,6 @@ const SubjectContentPage = () => {
     };
   }, []);
 
-  // Helper to extract file path from URL
-  const extractImagePath = (url) => {
-    if (!url) return null;
-    
-    // For URLs that use our API format, extract the path part
-    const apiPathMatch = url.match(/\/api\/images\/[^\/]+\/(.+)/);
-    if (apiPathMatch && apiPathMatch[1]) {
-      return apiPathMatch[1];
-    }
-    
-    // For direct Backblaze URLs, extract the path after the domain
-    const backblazeMatch = url.match(/backblazeb2\.com\/(.+)/);
-    if (backblazeMatch && backblazeMatch[1]) {
-      return backblazeMatch[1];
-    }
-    
-    // Use the full URL as fallback
-    return url;
-  };
-
   // Initialize curriculum and fetch data
   useEffect(() => {
     const fetchData = async () => {
@@ -133,6 +113,12 @@ const SubjectContentPage = () => {
       setEvidenceLoading(false)
     }
   }, [outcomes, student, isOffline])
+
+  const handleNavigateToOutcome = (outcome) => {
+    navigate(`/students/${studentId}/learning-outcomes/${outcome.code.toLowerCase()}`, {
+      state: { learningOutcome: outcome, stage: curriculumService.getStageForGrade(student.grade_level), subject: subjectData }
+    })
+  }
 
   if (loading) {
     return (
@@ -216,12 +202,7 @@ const SubjectContentPage = () => {
               <div 
                 key={outcome.code} 
                 className={styles.outcomeCard}
-                onClick={() => navigate(`/students/${student._id}/learning-outcomes/${outcome.code}`, {
-                  state: {
-                    stage: curriculumService.getStageForGrade(student.grade_level),
-                    subject: subjectData
-                  }
-                })}
+                onClick={() => handleNavigateToOutcome(outcome)}
               >
                 <div className={styles.imageContainer}>
                   {evidenceLoading ? (
@@ -231,7 +212,7 @@ const SubjectContentPage = () => {
                   ) : evidenceMap[outcome.code] ? (
                     USE_SIGNED_IMAGES ? (
                       <SignedImage
-                        imagePath={extractImagePath(evidenceMap[outcome.code].fileUrl)}
+                        src={evidenceMap[outcome.code].fileUrl}
                         alt={`Evidence for ${outcome.name}`}
                         width={IMAGE_WIDTH}
                         height={IMAGE_HEIGHT}

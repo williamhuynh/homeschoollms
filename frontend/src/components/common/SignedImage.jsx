@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSignedUrl } from '../../services/api';
+import placeholderImage from '../../assets/images/placeholder-photo.jpg';
 
 /**
  * A component for displaying images using signed URLs from the backend.
@@ -23,7 +24,7 @@ const SignedImage = ({
   width,
   height,
   quality = 80,
-  fallbackSrc = '/assets/images/placeholder-photo.jpg',
+  fallbackSrc = placeholderImage,
   onError,
   ...props
 }) => {
@@ -48,13 +49,19 @@ const SignedImage = ({
       setLoading(true);
       setError(null);
 
+      console.log('[SignedImage] Processing src:', src);
+      console.log('[SignedImage] URL starts with http?', src?.startsWith('http'));
+
       // Check if the src is already a full URL (public legacy images)
       if (src.startsWith('http')) {
+        console.log('[SignedImage] Using direct URL (public image):', src);
         setImageUrl(src);
         setLoading(false);
         return;
       }
 
+      console.log('[SignedImage] Requesting signed URL for path:', src);
+      
       // Generate signed URL for private images
       const response = await getSignedUrl({
         file_path: src,
@@ -64,17 +71,20 @@ const SignedImage = ({
         expiration: 3600 // 1 hour
       });
 
+      console.log('[SignedImage] Signed URL response:', response);
+
       if (response.signed_url) {
         setImageUrl(response.signed_url);
       } else {
         throw new Error('No signed URL received');
       }
     } catch (err) {
-      console.error('Error fetching signed URL:', err);
+      console.error('[SignedImage] Error fetching signed URL:', err);
       setError(err.message || 'Failed to load image');
       
       // Try to use the original src as fallback for hybrid mode
       if (retryCount === 0 && src) {
+        console.log('[SignedImage] Using fallback - original src:', src);
         setImageUrl(src);
       }
     } finally {
@@ -83,16 +93,20 @@ const SignedImage = ({
   };
 
   const handleImageError = (e) => {
-    console.error('Image load error:', e);
+    console.error('[SignedImage] Image load error:', e);
+    console.error('[SignedImage] Failed URL was:', imageUrl);
+    console.error('[SignedImage] Retry count:', retryCount);
     
     // Try retry logic
     if (retryCount < maxRetries) {
+      console.log('[SignedImage] Retrying... attempt', retryCount + 1);
       setRetryCount(prev => prev + 1);
       return;
     }
 
     // Final fallback
     if (imageUrl !== fallbackSrc) {
+      console.log('[SignedImage] Using final fallback image:', fallbackSrc);
       setImageUrl(fallbackSrc);
       setError(null);
     } else {
