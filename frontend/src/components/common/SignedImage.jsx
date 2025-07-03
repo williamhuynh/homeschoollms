@@ -26,6 +26,7 @@ const SignedImage = ({
   quality = 80,
   fallbackSrc = placeholderImage,
   onError,
+  imgProps = {},
   ...props
 }) => {
   const [imageUrl, setImageUrl] = useState(null);
@@ -173,8 +174,13 @@ const SignedImage = ({
       className={className}
       onError={handleImageError}
       onLoad={handleImageLoad}
-      style={{ width, height }}
       {...props}
+      {...imgProps}
+      style={{
+        width,
+        height,
+        ...imgProps.style
+      }}
     />
   );
 };

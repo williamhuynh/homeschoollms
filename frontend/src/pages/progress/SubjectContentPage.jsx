@@ -219,6 +219,7 @@ const SubjectContentPage = () => {
                         imgProps={{
                           style: {
                             objectFit: 'cover',
+                            objectPosition: 'center',
                             position: 'absolute',
                             top: 0,
                             left: 0,
@@ -239,8 +240,16 @@ const SubjectContentPage = () => {
                         alt={`Evidence for ${outcome.name}`}
                         width={IMAGE_WIDTH}
                         height={IMAGE_HEIGHT}
-                        objectFit="cover"
-                        borderRadius="md"
+                        style={{
+                          objectFit: 'cover',
+                          objectPosition: 'center',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          borderRadius: '0.375rem'
+                        }}
                         rootMargin="200px"
                       />
                     )
@@ -251,7 +260,8 @@ const SubjectContentPage = () => {
                       style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain',
+                        objectFit: 'cover',
+                        objectPosition: 'center',
                         borderRadius: '0.375rem',
                         position: 'absolute',
                         top: 0,
