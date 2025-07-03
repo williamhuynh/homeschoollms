@@ -136,49 +136,56 @@ class LearningOutcomeService:
                 else:
                     serialized_item[key] = value
             
-                # Ensure the file_url field is properly formatted
-                if "file_url" in serialized_item:
-                    file_url = serialized_item["file_url"]
-                    # If it doesn't start with http, generate a presigned URL
-                    if not file_url.startswith("http"):
+                # Handle file paths for Cloudinary or Backblaze
+                if "file_path" in serialized_item:
+                    file_path = serialized_item["file_path"]
+                    
+                    # Try to generate fresh presigned URLs for better security
+                    try:
                         from ..services.file_storage_service import file_storage_service
                         
-                        # Remove bucket name from the beginning if it's there
-                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
-                        if file_url.startswith(f"{bucket_name}/"):
-                            file_url = file_url[len(f"{bucket_name}/"):]
-                            
-                        # Generate a presigned URL with proper headers
-                        try:
-                            presigned_url = file_storage_service.generate_presigned_url(file_url)
-                            serialized_item["fileUrl"] = presigned_url
-                        except Exception as e:
-                            logger.error(f"Error generating presigned URL: {str(e)}")
-                            # Fallback to direct URL if presigned URL generation fails
-                            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                            serialized_item["fileUrl"] = f"{backblaze_endpoint}/{bucket_name}/{file_url}"
+                        # Generate main image URL
+                        image_url = file_storage_service.generate_presigned_url(file_path)
+                        serialized_item["fileUrl"] = image_url
+                        
+                        # Generate thumbnail URL
+                        thumbnail_url = file_storage_service.generate_presigned_url(
+                            file_path, 
+                            width=150, 
+                            height=150, 
+                            quality=80
+                        )
+                        serialized_item["thumbnailUrl"] = thumbnail_url
+                        
+                        logger.info(f"Successfully generated presigned URLs for evidence {serialized_item.get('_id', 'unknown')}")
+                        
+                    except Exception as e:
+                        logger.error(f"Error generating presigned URLs for file_path '{file_path}': {str(e)}")
+                        logger.info("Falling back to stored URLs from database")
+                        
+                        # Fallback to stored URLs (like batch method does)
+                        if "file_url" in serialized_item:
+                            serialized_item["fileUrl"] = serialized_item["file_url"]
+                            logger.info(f"Using stored file_url: {serialized_item['file_url']}")
+                        
+                        if "thumbnail_url" in serialized_item:
+                            serialized_item["thumbnailUrl"] = serialized_item["thumbnail_url"]
+                            logger.info(f"Using stored thumbnail_url: {serialized_item['thumbnail_url']}")
+                        else:
+                            # Generate thumbnail URL from main URL if available
+                            if "file_url" in serialized_item:
+                                base_url = serialized_item["file_url"]
+                                if "?" in base_url:
+                                    serialized_item["thumbnailUrl"] = f"{base_url}&width=150&height=150&quality=80"
+                                else:
+                                    serialized_item["thumbnailUrl"] = f"{base_url}?width=150&height=150&quality=80"
                 
-                # Handle thumbnail_url field similarly
-                if "thumbnail_url" in serialized_item:
-                    thumbnail_url = serialized_item["thumbnail_url"]
-                    # If it doesn't start with http, generate a presigned URL
-                    if thumbnail_url and not thumbnail_url.startswith("http"):
-                        from ..services.file_storage_service import file_storage_service
-                        
-                        # Remove bucket name from the beginning if it's there
-                        bucket_name = os.getenv('BACKBLAZE_BUCKET_NAME', 'homeschoollms')
-                        if thumbnail_url.startswith(f"{bucket_name}/"):
-                            thumbnail_url = thumbnail_url[len(f"{bucket_name}/"):]
-                            
-                        # Generate a presigned URL with proper headers
-                        try:
-                            presigned_url = file_storage_service.generate_presigned_url(thumbnail_url)
-                            serialized_item["thumbnailUrl"] = presigned_url
-                        except Exception as e:
-                            logger.error(f"Error generating presigned URL for thumbnail: {str(e)}")
-                            # Fallback to direct URL if presigned URL generation fails
-                            backblaze_endpoint = os.getenv('BACKBLAZE_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com')
-                            serialized_item["thumbnailUrl"] = f"{backblaze_endpoint}/{bucket_name}/{thumbnail_url}"
+                # Ensure we have URLs even without file_path (backward compatibility)
+                if "fileUrl" not in serialized_item and "file_url" in serialized_item:
+                    serialized_item["fileUrl"] = serialized_item["file_url"]
+                
+                if "thumbnailUrl" not in serialized_item and "thumbnail_url" in serialized_item:
+                    serialized_item["thumbnailUrl"] = serialized_item["thumbnail_url"]
             
             # Ensure learning_area_code is present if it exists in the document
             if 'learning_area_code' in item:
@@ -267,9 +274,12 @@ class LearningOutcomeService:
                 # Handle file paths for Cloudinary or Backblaze
                 if "file_path" in serialized_item:
                     file_path = serialized_item["file_path"]
-                    # Generate optimized image URL
+                    
+                    # Try to generate fresh presigned URLs for better security
                     try:
                         from ..services.file_storage_service import file_storage_service
+                        
+                        # Generate main image URL
                         image_url = file_storage_service.generate_presigned_url(file_path)
                         serialized_item["fileUrl"] = image_url
                         
@@ -281,17 +291,34 @@ class LearningOutcomeService:
                             quality=80
                         )
                         serialized_item["thumbnailUrl"] = thumbnail_url
+                        
+                        logger.info(f"Successfully generated presigned URLs for evidence {serialized_item.get('_id', 'unknown')}")
+                        
                     except Exception as e:
-                        logger.error(f"Error generating image URLs: {str(e)}")
-                        # Use direct URLs from upload if available
+                        logger.error(f"Error generating presigned URLs for file_path '{file_path}': {str(e)}")
+                        logger.info("Falling back to stored URLs from database")
+                        
+                        # Fallback to stored URLs (like batch method does)
                         if "file_url" in serialized_item:
                             serialized_item["fileUrl"] = serialized_item["file_url"]
+                            logger.info(f"Using stored file_url: {serialized_item['file_url']}")
+                        
+                        if "thumbnail_url" in serialized_item:
+                            serialized_item["thumbnailUrl"] = serialized_item["thumbnail_url"]
+                            logger.info(f"Using stored thumbnail_url: {serialized_item['thumbnail_url']}")
+                        else:
+                            # Generate thumbnail URL from main URL if available
+                            if "file_url" in serialized_item:
+                                base_url = serialized_item["file_url"]
+                                if "?" in base_url:
+                                    serialized_item["thumbnailUrl"] = f"{base_url}&width=150&height=150&quality=80"
+                                else:
+                                    serialized_item["thumbnailUrl"] = f"{base_url}?width=150&height=150&quality=80"
                 
-                # Fallback to existing file_url if available
+                # Ensure we have URLs even without file_path (backward compatibility)
                 if "fileUrl" not in serialized_item and "file_url" in serialized_item:
                     serialized_item["fileUrl"] = serialized_item["file_url"]
                 
-                # Fallback to existing thumbnail_url if available
                 if "thumbnailUrl" not in serialized_item and "thumbnail_url" in serialized_item:
                     serialized_item["thumbnailUrl"] = serialized_item["thumbnail_url"]
                 
