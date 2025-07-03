@@ -6,6 +6,7 @@ from ..services import ai_service
 from ..utils.auth_utils import get_current_user # Using the available authentication function
 from ..models.schemas.user import User # For dependency injection type hint
 import logging # Added logging
+import json
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -121,4 +122,187 @@ async def generate_ai_description(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, # Use 500 for unexpected server errors
             detail=f"Failed to generate description due to an internal error."
+        )
+
+@router.post("/analyze-image", response_model=dict)
+async def analyze_image_for_questions(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    # current_user: User = Depends(get_current_user) # Uncomment if endpoint is protected
+):
+    """
+    Analyzes uploaded images and generates contextual questions to better understand the learning activity.
+    """
+    logger.info(f"Received request to analyze {len(files)} image(s) for question generation.")
+
+    image_data_list: List[Dict[str, Union[bytes, str]]] = []
+        
+    if not files:
+        logger.error("Validation failed: No files provided.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No files provided for analysis."
+        )
+
+    # Process each file
+    for file in files:
+        try:
+            logger.info(f"Processing file: {file.filename} ({file.content_type}, Size: {file.size})")
+            
+            # Validate file type
+            if not file.content_type or not file.content_type.startswith("image/"):
+                logger.warning(f"Invalid content type '{file.content_type}' for file {file.filename}. Skipping.")
+                continue
+
+            # Read file content
+            image_bytes = await file.read()
+            if len(image_bytes) == 0:
+                 logger.warning(f"Empty file uploaded: {file.filename}. Skipping.")
+                 continue
+                 
+            logger.debug(f"Successfully read {len(image_bytes)} bytes from {file.filename}")
+            
+            image_data_list.append({
+                "bytes": image_bytes,
+                "mime_type": file.content_type
+            })
+
+        except Exception as read_error:
+            logger.error(f"Error reading file {file.filename}: {read_error}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Failed to read uploaded file: {file.filename} ({str(read_error)})"
+            )
+        finally:
+            try:
+                await file.close()
+                logger.debug(f"Closed file: {file.filename}")
+            except Exception as close_error:
+                logger.warning(f"Error closing file {file.filename}: {close_error}")
+
+    # Check if any valid images were processed
+    if not image_data_list:
+        logger.error("No valid image files were processed after validation.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No valid image files provided for analysis."
+        )
+
+    # Call AI service to generate questions
+    try:
+        logger.info(f"Calling AI service to analyze {len(image_data_list)} image(s) for questions.")
+        questions = await ai_service.analyze_image_for_questions(images=image_data_list)
+        
+        logger.info(f"Successfully generated {len(questions)} questions.")
+        return {"questions": questions}
+
+    except HTTPException as http_exc:
+        logger.error(f"HTTP Exception during AI service call: {http_exc.detail}", exc_info=True)
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Unexpected error during AI question generation: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate questions due to an internal error."
+        )
+
+@router.post("/suggest-outcomes", response_model=dict)
+async def suggest_learning_outcomes(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    question_answers: str = Form(...),  # JSON string of answers
+    curriculum_data: str = Form(...),   # JSON string of curriculum
+    student_grade: str = Form(...),
+    # current_user: User = Depends(get_current_user) # Uncomment if endpoint is protected
+):
+    """
+    Analyzes images and context answers to suggest appropriate learning outcomes with confidence scores.
+    """
+    logger.info(f"Received request to suggest learning outcomes for {len(files)} image(s), grade: {student_grade}")
+
+    image_data_list: List[Dict[str, Union[bytes, str]]] = []
+        
+    if not files:
+        logger.error("Validation failed: No files provided.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No files provided for analysis."
+        )
+
+    # Parse JSON strings
+    try:
+        answers_dict = json.loads(question_answers)
+        curriculum_dict = json.loads(curriculum_data)
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON data: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid JSON format in request data."
+        )
+
+    # Process each file
+    for file in files:
+        try:
+            logger.info(f"Processing file: {file.filename} ({file.content_type}, Size: {file.size})")
+            
+            # Validate file type
+            if not file.content_type or not file.content_type.startswith("image/"):
+                logger.warning(f"Invalid content type '{file.content_type}' for file {file.filename}. Skipping.")
+                continue
+
+            # Read file content
+            image_bytes = await file.read()
+            if len(image_bytes) == 0:
+                 logger.warning(f"Empty file uploaded: {file.filename}. Skipping.")
+                 continue
+                 
+            logger.debug(f"Successfully read {len(image_bytes)} bytes from {file.filename}")
+            
+            image_data_list.append({
+                "bytes": image_bytes,
+                "mime_type": file.content_type
+            })
+
+        except Exception as read_error:
+            logger.error(f"Error reading file {file.filename}: {read_error}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Failed to read uploaded file: {file.filename} ({str(read_error)})"
+            )
+        finally:
+            try:
+                await file.close()
+                logger.debug(f"Closed file: {file.filename}")
+            except Exception as close_error:
+                logger.warning(f"Error closing file {file.filename}: {close_error}")
+
+    # Check if any valid images were processed
+    if not image_data_list:
+        logger.error("No valid image files were processed after validation.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No valid image files provided for analysis."
+        )
+
+    # Call AI service to suggest learning outcomes
+    try:
+        logger.info(f"Calling AI service to suggest outcomes for {len(image_data_list)} image(s).")
+        outcomes = await ai_service.suggest_learning_outcomes(
+            images=image_data_list,
+            question_answers=answers_dict,
+            curriculum_data=curriculum_dict,
+            student_grade=student_grade
+        )
+        
+        logger.info(f"Successfully generated {len(outcomes)} outcome suggestions.")
+        return {"outcomes": outcomes}
+
+    except HTTPException as http_exc:
+        logger.error(f"HTTP Exception during AI service call: {http_exc.detail}", exc_info=True)
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Unexpected error during AI outcome suggestion: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to suggest learning outcomes due to an internal error."
         )

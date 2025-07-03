@@ -2,13 +2,11 @@
 import { Box, Flex, IconButton } from '@chakra-ui/react'
 import { Home, Plus, User } from 'react-feather' // Changed Settings to User
 import { useNavigate, useLocation, useParams, useMatch } from 'react-router-dom'
-import { useFileUploadModal } from '../../contexts/FileUploadModalContext'
 
 const BottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
-  const { openModal } = useFileUploadModal()
   
   // Use useMatch to reliably get studentId from the current path
   const studentMatch = useMatch('/students/:studentId/*');
@@ -17,15 +15,12 @@ const BottomNav = () => {
   // Check if we're on the student selector page
   const isStudentSelectorPage = location.pathname === '/students'
 
-  const handleOpenGlobalModal = () => {
-    if (studentId) { // Only open if we have a student context
-       console.log(`BottomNav: Opening global modal with studentId: ${studentId}`) // Log
-       openModal({
-         studentId: studentId,
-         // Let the provider derive the grade
-       });
+  const handleOpenAIUpload = () => {
+    if (studentId) { // Only navigate if we have a student context
+       console.log(`BottomNav: Opening AI upload for studentId: ${studentId}`) // Log
+       navigate(`/students/${studentId}/ai-upload`);
     } else {
-      console.warn("BottomNav: Cannot open file upload: No active student ID found in URL.");
+      console.warn("BottomNav: Cannot open AI upload: No active student ID found in URL.");
       // Optionally show a message to the user (e.g., using a Toast)
     }
   }
@@ -64,8 +59,8 @@ const BottomNav = () => {
             colorScheme="teal"
             rounded="full"
             size="lg"
-            onClick={handleOpenGlobalModal}
-            aria-label="Upload Evidence"
+            onClick={handleOpenAIUpload}
+            aria-label="AI Evidence Upload"
           />
         )}
         

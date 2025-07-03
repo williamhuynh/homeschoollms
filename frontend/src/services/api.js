@@ -520,6 +520,162 @@ export const generateAIDescription = async (files, contextDescription) => {
   }
 };
 
+// AI Image Analysis for Questions
+export const analyzeImageForQuestions = async (files) => {
+  try {
+    // Validate inputs
+    if (!files || files.length === 0) {
+      throw new Error('No files provided');
+    }
+    
+    // Log file details for debugging
+    if (files.length > 0) {
+      const firstFile = files[0];
+      console.log(`Analyzing ${files.length} file(s) for questions. First file details:`, {
+        name: firstFile.name,
+        type: firstFile.type,
+        size: firstFile.size,
+        lastModified: new Date(firstFile.lastModified).toISOString()
+      });
+    }
+    
+    // Create FormData
+    const formData = new FormData();
+    // Append all files with the key 'files'
+    files.forEach((file) => {
+      formData.append('files', file); 
+    });
+
+    // Log FormData contents for debugging
+    console.log('--- FormData for AI Image Analysis ---');
+    for (let [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
+      } else {
+        console.log(`${key}: ${value}`);
+      }
+    }
+    console.log('---------------------------------');
+    
+    console.log('Sending request to /api/v1/ai/analyze-image');
+    console.log('API base URL:', apiToUse.defaults.baseURL);
+
+    const response = await apiToUse.post('/api/v1/ai/analyze-image', formData, {
+      headers: {
+        'Content-Type': null, // Let axios set the correct multipart/form-data header
+      },
+    });
+    
+    console.log('AI Image Analysis Response:', response.data);
+    return response.data; // Should contain { questions: [...] }
+  } catch (error) {
+    console.error('Error analyzing image for questions:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL
+      }
+    });
+    
+    if (error.response?.data) {
+      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
+    }
+    
+    throw error; 
+  }
+};
+
+// AI Learning Outcome Suggestions
+export const suggestLearningOutcomes = async (files, questionAnswers, curriculumData, studentGrade) => {
+  try {
+    // Validate inputs
+    if (!files || files.length === 0) {
+      throw new Error('No files provided');
+    }
+    
+    if (!questionAnswers) {
+      throw new Error('No question answers provided');
+    }
+    
+    if (!curriculumData) {
+      throw new Error('No curriculum data provided');
+    }
+    
+    if (!studentGrade) {
+      throw new Error('No student grade provided');
+    }
+    
+    // Log file details for debugging
+    if (files.length > 0) {
+      const firstFile = files[0];
+      console.log(`Suggesting outcomes for ${files.length} file(s), grade: ${studentGrade}. First file details:`, {
+        name: firstFile.name,
+        type: firstFile.type,
+        size: firstFile.size,
+        lastModified: new Date(firstFile.lastModified).toISOString()
+      });
+    }
+    
+    // Create FormData
+    const formData = new FormData();
+    
+    // Append all files with the key 'files'
+    files.forEach((file) => {
+      formData.append('files', file); 
+    });
+    
+    // Append other data as JSON strings
+    formData.append('question_answers', JSON.stringify(questionAnswers));
+    formData.append('curriculum_data', JSON.stringify(curriculumData));
+    formData.append('student_grade', studentGrade);
+
+    // Log FormData contents for debugging
+    console.log('--- FormData for AI Outcome Suggestions ---');
+    for (let [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
+      } else {
+        console.log(`${key}: ${value.length > 100 ? value.substring(0, 100) + '...' : value}`);
+      }
+    }
+    console.log('---------------------------------');
+    
+    console.log('Sending request to /api/v1/ai/suggest-outcomes');
+    console.log('API base URL:', apiToUse.defaults.baseURL);
+
+    const response = await apiToUse.post('/api/v1/ai/suggest-outcomes', formData, {
+      headers: {
+        'Content-Type': null, // Let axios set the correct multipart/form-data header
+      },
+    });
+    
+    console.log('AI Outcome Suggestions Response:', response.data);
+    return response.data; // Should contain { outcomes: [...] }
+  } catch (error) {
+    console.error('Error suggesting learning outcomes:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL
+      }
+    });
+    
+    if (error.response?.data) {
+      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
+    }
+    
+    throw error; 
+  }
+};
+
 // New function for uploading evidence
 export const uploadEvidence = async (studentId, learningOutcomeId, formData) => {
   try {

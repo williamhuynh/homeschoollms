@@ -10,6 +10,7 @@ import StudentProgressPage from './pages/progress/StudentProgressPage'
 import SubjectContentPage from './pages/progress/SubjectContentPage'
 import LearningOutcomePage from './pages/progress/LearningOutcomePage'
 import ContentCreatePage from './pages/content/ContentCreatePage_LEGACY'
+import AIEvidenceUploadPage from './pages/evidence/AIEvidenceUploadPage'
 import AdminPage from './pages/admin/AdminPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import AvatarSettingsPage from './pages/profile/AvatarSettingsPage'
@@ -151,6 +152,14 @@ function App() {
                 element={
                   isAuthenticatedOverride || isAuthenticated ? 
                     <ContentCreatePage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/:studentId/ai-upload" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <AIEvidenceUploadPage /> : 
                     <Navigate to="/login" replace />
                 } 
               />

@@ -168,3 +168,339 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, # Use 500 for internal/API errors
             detail=f"Failed to generate description using AI due to an internal error."
         )
+
+async def analyze_image_for_questions(images: List[Dict[str, Union[bytes, str]]]) -> List[Dict[str, Union[str, List[str]]]]:
+    """
+    Analyzes one or more images and generates contextual questions to better understand the learning activity.
+
+    Args:
+        images: A list of dictionaries, each containing 'bytes' and 'mime_type' for an image.
+
+    Returns:
+        A list of dictionaries representing questions with their types and options.
+
+    Raises:
+        HTTPException: If the API key is not configured, the model failed to initialize,
+                       input validation fails, or the generation fails.
+    """
+    logger.info(f"Analyzing {len(images)} image(s) to generate contextual questions.")
+    
+    if not api_key:
+        error_msg = "Google AI API key is not configured."
+        logger.error(error_msg)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_msg
+        )
+        
+    if not model:
+        error_msg = f"Gemini model '{model_name}' failed to initialize."
+        logger.error(error_msg)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_msg
+        )
+        
+    if not images:
+         raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No valid images provided to analyze."
+        )
+
+    prepared_images = []
+    try:
+        # Validate and prepare images
+        for i, image_data in enumerate(images):
+            image_bytes = image_data.get("bytes")
+            image_mime_type = image_data.get("mime_type")
+
+            if not image_bytes or not image_mime_type:
+                 logger.warning(f"Skipping image {i+1} due to missing data.")
+                 continue
+
+            if not image_mime_type.startswith('image/'):
+                logger.warning(f"Skipping image {i+1} due to invalid MIME type: {image_mime_type}")
+                continue
+
+            try:
+                img = Image.open(io.BytesIO(image_bytes))
+                prepared_images.append(img)
+                logger.debug(f"Successfully prepared image {i+1}: {img.format}, {img.size}")
+            except Exception as img_error:
+                logger.warning(f"Failed to process image {i+1}: {img_error}. Skipping.")
+                continue 
+
+        if not prepared_images:
+            raise ValueError("No valid images could be processed.")
+            
+        # Construct the prompt for analyzing images and generating questions
+        prompt = f"""You are an image analyst. Analyze the provided photo(s) and then ask me questions so you can better interpret what is happening from the context of education. 
+
+        Based on what you see in the image(s), generate 4-6 specific questions that would help understand:
+        - The type of learning activity taking place
+        - The level of support or independence shown
+        - The educational context and goals
+        - Any specific skills being demonstrated
+
+        Examples of good questions include:
+        - Was the student reading aloud or silently?
+        - What was the task type?
+        - Was the text familiar or new?
+        - What was the goal?
+        - Was this independent, guided, or paired?
+
+        Return your response as a JSON array where each question is an object with:
+        - "question": the question text
+        - "type": either "radio" or "text"
+        - "options": array of options (only for radio type)
+
+        Only ask questions that are relevant to what you can observe in the image(s). Do not make up details."""
+
+        logger.info(f"Sending image analysis prompt to Gemini API")
+        
+        # Prepare the content parts (prompt followed by all images)
+        content_parts = [prompt] + prepared_images
+
+        # Generate content
+        response = await model.generate_content_async(content_parts)
+        logger.info("Received response from Gemini API for question generation")
+
+        # Extract and clean the text
+        generated_text = response.text.strip()
+        logger.info(f"Generated questions text length: {len(generated_text)}")
+        
+        # Try to parse as JSON
+        import json
+        try:
+            # Remove any markdown formatting if present
+            if generated_text.startswith('```json'):
+                generated_text = generated_text.replace('```json', '').replace('```', '').strip()
+            elif generated_text.startswith('```'):
+                generated_text = generated_text.replace('```', '').strip()
+            
+            questions_data = json.loads(generated_text)
+            
+            # Validate the structure
+            if not isinstance(questions_data, list):
+                raise ValueError("Response is not a list of questions")
+            
+            # Add IDs to questions and validate structure
+            for i, question in enumerate(questions_data):
+                question['id'] = f'ai_question_{i+1}'
+                if 'question' not in question or 'type' not in question:
+                    raise ValueError(f"Question {i+1} missing required fields")
+                if question['type'] == 'radio' and 'options' not in question:
+                    raise ValueError(f"Radio question {i+1} missing options")
+            
+            return questions_data
+            
+        except (json.JSONDecodeError, ValueError) as parse_error:
+            logger.error(f"Failed to parse questions JSON: {parse_error}")
+            logger.error(f"Raw response: {generated_text}")
+            
+            # Fallback to default questions if AI response can't be parsed
+            fallback_questions = [
+                {
+                    "id": "task_type",
+                    "question": "What type of learning activity is shown in the image?",
+                    "type": "radio",
+                    "options": ["Reading activity", "Writing task", "Math problem solving", "Creative activity", "Physical activity", "Group work"]
+                },
+                {
+                    "id": "support_level",
+                    "question": "What level of support did the student receive?",
+                    "type": "radio",
+                    "options": ["Independent work", "Guided support", "Paired work", "Group activity"]
+                },
+                {
+                    "id": "learning_goal",
+                    "question": "What was the main learning goal of this activity?",
+                    "type": "text",
+                    "placeholder": "Describe the intended learning outcome..."
+                }
+            ]
+            logger.info("Using fallback questions due to parsing error")
+            return fallback_questions
+
+    except ValueError as ve:
+        logger.error(f"Input validation error: {ve}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid input: {str(ve)}"
+        )
+    except Exception as e:
+        logger.error(f"ERROR during Gemini API call for questions: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate questions using AI due to an internal error."
+        )
+
+async def suggest_learning_outcomes(
+    images: List[Dict[str, Union[bytes, str]]], 
+    question_answers: Dict[str, str], 
+    curriculum_data: Dict,
+    student_grade: str
+) -> List[Dict[str, Union[str, int]]]:
+    """
+    Analyzes images and context answers to suggest appropriate learning outcomes with confidence scores.
+
+    Args:
+        images: A list of dictionaries, each containing 'bytes' and 'mime_type' for an image.
+        question_answers: Dictionary of question IDs to answers from the context form.
+        curriculum_data: The curriculum JSON data for the student's grade level.
+        student_grade: The student's grade level (e.g., "Stage 1", "Early Stage 1").
+
+    Returns:
+        A list of dictionaries representing suggested learning outcomes with confidence scores.
+
+    Raises:
+        HTTPException: If the API key is not configured, the model failed to initialize,
+                       input validation fails, or the generation fails.
+    """
+    logger.info(f"Suggesting learning outcomes for {len(images)} image(s) with grade {student_grade}")
+    
+    if not api_key:
+        error_msg = "Google AI API key is not configured."
+        logger.error(error_msg)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_msg
+        )
+        
+    if not model:
+        error_msg = f"Gemini model '{model_name}' failed to initialize."
+        logger.error(error_msg)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_msg
+        )
+        
+    if not images:
+         raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No valid images provided to analyze."
+        )
+
+    prepared_images = []
+    try:
+        # Validate and prepare images
+        for i, image_data in enumerate(images):
+            image_bytes = image_data.get("bytes")
+            image_mime_type = image_data.get("mime_type")
+
+            if not image_bytes or not image_mime_type:
+                 logger.warning(f"Skipping image {i+1} due to missing data.")
+                 continue
+
+            if not image_mime_type.startswith('image/'):
+                logger.warning(f"Skipping image {i+1} due to invalid MIME type: {image_mime_type}")
+                continue
+
+            try:
+                img = Image.open(io.BytesIO(image_bytes))
+                prepared_images.append(img)
+                logger.debug(f"Successfully prepared image {i+1}: {img.format}, {img.size}")
+            except Exception as img_error:
+                logger.warning(f"Failed to process image {i+1}: {img_error}. Skipping.")
+                continue 
+
+        if not prepared_images:
+            raise ValueError("No valid images could be processed.")
+            
+        # Format the context answers for the prompt
+        context_text = "\n".join([f"{key}: {value}" for key, value in question_answers.items()])
+        
+        # Format curriculum data for the prompt
+        import json
+        curriculum_json = json.dumps(curriculum_data, indent=2)
+        
+        # Construct the prompt for suggesting learning outcomes
+        prompt = f"""Given the image(s) and the additional information provided by the user, analyze the learning activity and suggest relevant Learning Outcomes with confidence percentages.
+
+        CONTEXT INFORMATION PROVIDED BY USER:
+        {context_text}
+
+        AVAILABLE LEARNING OUTCOMES FOR {student_grade}:
+        {curriculum_json}
+
+        Instructions:
+        1. Analyze the image(s) and context to understand what learning is taking place
+        2. Match this to the most appropriate learning outcomes from the curriculum provided
+        3. For each suggested outcome, provide a confidence percentage (0-100%)
+        4. Include reasoning for why each outcome was suggested
+        5. Only suggest outcomes where you have at least 50% confidence
+        6. Rank outcomes by confidence level (highest first)
+
+        Return your response as a JSON array where each suggestion is an object with:
+        - "code": the learning outcome code (e.g., "EN1-RECOM-01")
+        - "name": the learning outcome name
+        - "description": the learning outcome description  
+        - "confidence": confidence percentage as integer (50-100)
+        - "reasoning": brief explanation of why this outcome matches the evidence
+
+        If no outcomes reach 50% confidence, return an empty array."""
+
+        logger.info(f"Sending outcome suggestion prompt to Gemini API")
+        
+        # Prepare the content parts (prompt followed by all images)
+        content_parts = [prompt] + prepared_images
+
+        # Generate content
+        response = await model.generate_content_async(content_parts)
+        logger.info("Received response from Gemini API for outcome suggestions")
+
+        # Extract and clean the text
+        generated_text = response.text.strip()
+        logger.info(f"Generated outcomes text length: {len(generated_text)}")
+        
+        # Try to parse as JSON
+        try:
+            # Remove any markdown formatting if present
+            if generated_text.startswith('```json'):
+                generated_text = generated_text.replace('```json', '').replace('```', '').strip()
+            elif generated_text.startswith('```'):
+                generated_text = generated_text.replace('```', '').strip()
+            
+            outcomes_data = json.loads(generated_text)
+            
+            # Validate the structure
+            if not isinstance(outcomes_data, list):
+                raise ValueError("Response is not a list of outcomes")
+            
+            # Validate each outcome and filter by confidence
+            valid_outcomes = []
+            for outcome in outcomes_data:
+                if all(key in outcome for key in ['code', 'name', 'description', 'confidence', 'reasoning']):
+                    if isinstance(outcome['confidence'], int) and outcome['confidence'] >= 50:
+                        valid_outcomes.append(outcome)
+                    else:
+                        logger.warning(f"Filtering out low confidence outcome: {outcome.get('code', 'unknown')} ({outcome.get('confidence', 0)}%)")
+                else:
+                    logger.warning(f"Outcome missing required fields: {outcome}")
+            
+            # Sort by confidence (highest first)
+            valid_outcomes.sort(key=lambda x: x['confidence'], reverse=True)
+            
+            logger.info(f"Successfully generated {len(valid_outcomes)} valid outcome suggestions")
+            return valid_outcomes
+            
+        except (json.JSONDecodeError, ValueError) as parse_error:
+            logger.error(f"Failed to parse outcomes JSON: {parse_error}")
+            logger.error(f"Raw response: {generated_text}")
+            
+            # Return empty array if parsing fails
+            logger.info("Returning empty outcomes array due to parsing error")
+            return []
+
+    except ValueError as ve:
+        logger.error(f"Input validation error: {ve}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid input: {str(ve)}"
+        )
+    except Exception as e:
+        logger.error(f"ERROR during Gemini API call for outcomes: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to suggest learning outcomes using AI due to an internal error."
+        )
