@@ -50,11 +50,30 @@ const SignedImage = ({
       setError(null);
 
       console.log('[SignedImage] Processing src:', src);
-      console.log('[SignedImage] URL starts with http?', src?.startsWith('http'));
 
-      // Check if the src is already a full URL (public legacy images)
+      // Check if the src is already a Cloudinary authenticated URL
+      const isCloudinaryAuthenticated = src.includes('/image/authenticated/') && src.includes('s--') && src.includes('--');
+      
+      // Check if the src is a public Cloudinary URL
+      const isCloudinaryPublic = src.startsWith('http') && src.includes('res.cloudinary.com') && !isCloudinaryAuthenticated;
+
+      if (isCloudinaryAuthenticated) {
+        console.log('[SignedImage] Using Cloudinary authenticated URL (already signed):', src);
+        setImageUrl(src);
+        setLoading(false);
+        return;
+      }
+
+      if (isCloudinaryPublic) {
+        console.log('[SignedImage] Using public Cloudinary URL (legacy image):', src);
+        setImageUrl(src);
+        setLoading(false);
+        return;
+      }
+
+      // If it's any other http URL, use it directly
       if (src.startsWith('http')) {
-        console.log('[SignedImage] Using direct URL (public image):', src);
+        console.log('[SignedImage] Using direct URL (external image):', src);
         setImageUrl(src);
         setLoading(false);
         return;
