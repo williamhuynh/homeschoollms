@@ -140,21 +140,21 @@ class LearningOutcomeService:
                 if "file_path" in serialized_item:
                     file_path = serialized_item["file_path"]
                     
-                    # Try to generate fresh presigned URLs for better security (1 hour expiration)
+                    # Try to generate fresh presigned URLs for better security (4 hours expiration)
                     try:
                         from ..services.file_storage_service import file_storage_service
                         
-                        # Generate main image URL with 1-hour expiration
+                        # Generate main image URL with 4-hour expiration (reasonable session length)
                         image_url = file_storage_service.generate_presigned_url(
                             file_path, 
-                            expiration=3600  # 1 hour for security
+                            expiration=14400  # 4 hours - reasonable for typical user sessions
                         )
                         serialized_item["fileUrl"] = image_url
                         
-                        # Generate thumbnail URL with 1-hour expiration
+                        # Generate thumbnail URL with 4-hour expiration
                         thumbnail_url = file_storage_service.generate_presigned_url(
                             file_path, 
-                            expiration=3600,  # 1 hour for security
+                            expiration=14400,  # 4 hours - reasonable for typical user sessions
                             width=150, 
                             height=150, 
                             quality=80
@@ -280,21 +280,21 @@ class LearningOutcomeService:
                 if "file_path" in serialized_item:
                     file_path = serialized_item["file_path"]
                     
-                    # Try to generate fresh presigned URLs for better security (1 hour expiration)
+                    # Try to generate fresh presigned URLs for better security (4 hours expiration)
                     try:
                         from ..services.file_storage_service import file_storage_service
                         
-                        # Generate main image URL with 1-hour expiration
+                        # Generate main image URL with 4-hour expiration (reasonable session length)
                         image_url = file_storage_service.generate_presigned_url(
                             file_path, 
-                            expiration=3600  # 1 hour for security
+                            expiration=14400  # 4 hours - reasonable for typical user sessions
                         )
                         serialized_item["fileUrl"] = image_url
                         
-                        # Generate thumbnail URL with 1-hour expiration
+                        # Generate thumbnail URL with 4-hour expiration
                         thumbnail_url = file_storage_service.generate_presigned_url(
                             file_path, 
-                            expiration=3600,  # 1 hour for security
+                            expiration=14400,  # 4 hours - reasonable for typical user sessions
                             width=150, 
                             height=150, 
                             quality=80

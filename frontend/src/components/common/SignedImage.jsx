@@ -108,7 +108,7 @@ const SignedImage = ({
         width: width,
         height: height,
         quality: quality,
-        expiration: 3600 // 1 hour
+        expiration: 14400 // 4 hours - matches backend
       });
 
       console.log('[SignedImage] Signed URL response:', response);
