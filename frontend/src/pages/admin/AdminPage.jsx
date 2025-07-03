@@ -72,33 +72,6 @@ const AdminPage = () => {
             )}
           </TabPanels>
         </Tabs>
-
-        <div className="space-y-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">🔐 Authentication Status</h3>
-            <div className="space-y-2 text-sm">
-              <p><strong>Current Mode:</strong> {migrationStatus.migration_mode}</p>
-              <p><strong>Public Images:</strong> {migrationStatus.public_count}</p>
-              <p><strong>Private Images:</strong> {migrationStatus.private_count}</p>
-              {migrationStatus.migration_mode === 'hybrid' && (
-                <div className="bg-yellow-100 border border-yellow-300 rounded p-2 mt-2">
-                  <p className="text-yellow-800">
-                    <strong>In Hybrid Mode:</strong> New uploads go to authenticated storage. 
-                    URLs with <code>/image/authenticated/</code> and signatures (like <code>s--ABC123--</code>) are secured by Cloudinary.
-                  </p>
-                </div>
-              )}
-              {migrationStatus.migration_mode === 'private' && (
-                <div className="bg-green-100 border border-green-300 rounded p-2 mt-2">
-                  <p className="text-green-800">
-                    <strong>Full Private Mode:</strong> All images require authentication. 
-                    Only signed URLs with time-limited access tokens work.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       </VStack>
     </Container>
   )
