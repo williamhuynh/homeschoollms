@@ -58,7 +58,7 @@ app.include_router(progress_routes.router, prefix="/api", tags=["progress"])
 app.include_router(subject_routes.router, prefix="/api", tags=["subjects"])
 app.include_router(learning_outcome_routes.router, prefix="/api", tags=["learning-outcomes"])
 app.include_router(ai_routes.router, prefix="/api/v1/ai", tags=["ai"]) # Include the AI router with correct prefix
-app.include_router(file_routes.router, prefix="/api", tags=["files"]) # Include the file routes
+app.include_router(file_routes.router, prefix="/api/files", tags=["files"]) # Include the file routes
 
 
 # Add error handlers
