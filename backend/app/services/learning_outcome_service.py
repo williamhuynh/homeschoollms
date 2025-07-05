@@ -134,6 +134,9 @@ class LearningOutcomeService:
             for key, value in item.items():
                 if isinstance(value, ObjectId):
                     serialized_item[key] = str(value)
+                elif isinstance(value, list):
+                    # Handle arrays that might contain ObjectIds
+                    serialized_item[key] = [str(v) if isinstance(v, ObjectId) else v for v in value]
                 else:
                     serialized_item[key] = value
             
@@ -259,6 +262,9 @@ class LearningOutcomeService:
                 for key, value in item.items():
                     if isinstance(value, ObjectId):
                         serialized_item[key] = str(value)
+                    elif isinstance(value, list):
+                        # Handle arrays that might contain ObjectIds
+                        serialized_item[key] = [str(v) if isinstance(v, ObjectId) else v for v in value]
                     else:
                         serialized_item[key] = value
                 
@@ -386,6 +392,9 @@ class LearningOutcomeService:
                         serialized_item[k] = str(v)
                     elif isinstance(v, datetime):
                         serialized_item[k] = v.isoformat()
+                    elif isinstance(v, list):
+                        # Handle arrays that might contain ObjectIds
+                        serialized_item[k] = [str(item) if isinstance(item, ObjectId) else item for item in v]
                     else:
                         serialized_item[k] = v
                 
