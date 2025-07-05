@@ -341,36 +341,45 @@ const ImageViewerModal = ({
             learning_area_codes: image.learning_area_codes
           });
 
-          // Handle both old singular and new plural field names
+          // Handle both old singular and new plural field names for display
           const currentArea = image.learning_area_codes?.[0] || image.learning_area_code;
           const areaOption = formattedAreas.find(a => a.value === currentArea) || null;
           console.log('Matched area option:', areaOption);
           setSelectedLearningArea(areaOption);
 
-          if (areaOption) {
-            setIsLoadingOutcomes(true);
-            const outcomes = await curriculumService.getOutcomes(stage, areaOption.value);
-            const formattedOutcomes = outcomes.map(outcome => ({
-              value: outcome.code,
-              label: `${outcome.code}: ${outcome.name}`,
-              outcome
-            }));
-            setLearningOutcomesList(formattedOutcomes);
-            setIsLoadingOutcomes(false);
-
-            console.log('Loaded learning outcomes:', formattedOutcomes);
-            console.log('Image outcome fields:', {
-              learning_outcome_code: image.learning_outcome_code,
-              learning_outcome_codes: image.learning_outcome_codes,
-              learning_outcome: image.learning_outcome
-            });
-
-            // Handle both old singular and new plural field names
-            const currentOutcome = image.learning_outcome_codes?.[0] || image.learning_outcome_code || image.learning_outcome;
-            const outcomeOption = formattedOutcomes.find(o => o.value === currentOutcome) || null;
-            console.log('Matched outcome option:', outcomeOption);
-            setSelectedLearningOutcome(outcomeOption);
+          // Load outcomes for ALL areas (needed for edit mode multi-select)
+          setIsLoadingOutcomes(true);
+          const allOutcomes = [];
+          
+          for (const area of formattedAreas) {
+            try {
+              const outcomes = await curriculumService.getOutcomes(stage, area.value);
+              const formattedOutcomes = outcomes.map(outcome => ({
+                value: outcome.code,
+                label: `${outcome.code}: ${outcome.name}`,
+                outcome
+              }));
+              allOutcomes.push(...formattedOutcomes);
+            } catch (error) {
+              console.warn(`Failed to load outcomes for area ${area.value}:`, error);
+            }
           }
+          
+          setLearningOutcomesList(allOutcomes);
+          setIsLoadingOutcomes(false);
+
+          console.log('Loaded all learning outcomes:', allOutcomes.length, 'outcomes');
+          console.log('Image outcome fields:', {
+            learning_outcome_code: image.learning_outcome_code,
+            learning_outcome_codes: image.learning_outcome_codes,
+            learning_outcome: image.learning_outcome
+          });
+
+          // Find the current outcome for display purposes
+          const currentOutcome = image.learning_outcome_codes?.[0] || image.learning_outcome_code || image.learning_outcome;
+          const outcomeOption = allOutcomes.find(o => o.value === currentOutcome) || null;
+          console.log('Matched outcome option:', outcomeOption);
+          setSelectedLearningOutcome(outcomeOption);
         }
       };
       loadAreasAndOutcomes();
@@ -406,9 +415,16 @@ const ImageViewerModal = ({
     setEditErrors({});
     setIsSaving(false);
 
+    console.log('Starting edit mode...');
+    console.log('Available learning areas:', learningAreasList.length);
+    console.log('Available learning outcomes:', learningOutcomesList.length);
+
     // Populate multi-select arrays with current values
     const currentAreaCodes = image.learning_area_codes || (image.learning_area_code ? [image.learning_area_code] : []);
     const currentOutcomeCodes = image.learning_outcome_codes || (image.learning_outcome_code ? [image.learning_outcome_code] : []);
+    
+    console.log('Current area codes:', currentAreaCodes);
+    console.log('Current outcome codes:', currentOutcomeCodes);
     
     const selectedAreasOptions = currentAreaCodes.map(code => 
       learningAreasList.find(a => a.value === code)
@@ -417,6 +433,9 @@ const ImageViewerModal = ({
     const selectedOutcomesOptions = currentOutcomeCodes.map(code => 
       learningOutcomesList.find(o => o.value === code)
     ).filter(Boolean);
+    
+    console.log('Selected areas for edit:', selectedAreasOptions);
+    console.log('Selected outcomes for edit:', selectedOutcomesOptions);
     
     setEditLearningAreas(selectedAreasOptions);
     setEditLearningOutcomes(selectedOutcomesOptions);
@@ -603,43 +622,23 @@ const ImageViewerModal = ({
                   <FormControl isInvalid={!!editErrors.learningAreas} isRequired>
                     <FormLabel fontSize="sm" color="white">Learning Areas</FormLabel>
                     {isLoadingAreas ? <Spinner size="sm" /> : (
-                      <>
-                        <Select
-                          options={learningAreasList}
-                          value={null}
-                          onChange={option => {
-                            if (option && !editLearningAreas.find(area => area.value === option.value)) {
-                              setEditLearningAreas([...editLearningAreas, option]);
-                            }
-                          }}
-                          placeholder="Add a learning area..."
-                          isSearchable
-                          classNamePrefix="react-select"
-                          styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
-                        />
-                        <Box mt={2}>
-                          <Flex wrap="wrap" gap={2}>
-                            {editLearningAreas.map((area, index) => (
-                              <Badge 
-                                key={index} 
-                                colorScheme="blue" 
-                                variant="solid"
-                                fontSize="xs"
-                                px={2}
-                                py={1}
-                                cursor="pointer"
-                                onClick={() => setEditLearningAreas(editLearningAreas.filter((_, i) => i !== index))}
-                                title="Click to remove"
-                              >
-                                {area.subject.name} ×
-                              </Badge>
-                            ))}
-                            {editLearningAreas.length === 0 && (
-                              <Text fontSize="xs" color="gray.400">No areas selected</Text>
-                            )}
-                          </Flex>
-                        </Box>
-                      </>
+                      <Select
+                        options={learningAreasList}
+                        value={editLearningAreas}
+                        onChange={setEditLearningAreas}
+                        placeholder="Select learning areas..."
+                        isMulti
+                        isSearchable
+                        closeMenuOnSelect={false}
+                        classNamePrefix="react-select"
+                        styles={{ 
+                          menu: base => ({ ...base, zIndex: 9999 }),
+                          control: base => ({ ...base, backgroundColor: 'white', minHeight: '40px' }),
+                          multiValue: base => ({ ...base, backgroundColor: '#3182ce', color: 'white' }),
+                          multiValueLabel: base => ({ ...base, color: 'white' }),
+                          multiValueRemove: base => ({ ...base, color: 'white', ':hover': { backgroundColor: '#2c5aa0', color: 'white' } })
+                        }}
+                      />
                     )}
                     {editErrors.learningAreas && <FormErrorMessage>{editErrors.learningAreas}</FormErrorMessage>}
                   </FormControl>
@@ -680,50 +679,23 @@ const ImageViewerModal = ({
                   <FormControl isInvalid={!!editErrors.learningOutcomes} isRequired>
                     <FormLabel fontSize="sm" color="white">Learning Outcomes</FormLabel>
                     {isLoadingOutcomes ? <Spinner size="sm" /> : (
-                      <>
-                        <Select
-                          options={learningOutcomesList}
-                          value={null}
-                          onChange={option => {
-                            if (option && !editLearningOutcomes.find(outcome => outcome.value === option.value)) {
-                              setEditLearningOutcomes([...editLearningOutcomes, option]);
-                            }
-                          }}
-                          placeholder="Add a learning outcome..."
-                          isSearchable
-                          classNamePrefix="react-select"
-                          styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
-                        />
-                        <Box mt={2}>
-                          <VStack spacing={2} align="stretch">
-                            {editLearningOutcomes.map((outcome, index) => (
-                              <Box 
-                                key={index}
-                                bg="whiteAlpha.100"
-                                p={2}
-                                borderRadius="md"
-                                borderLeft="4px solid"
-                                borderLeftColor="green.400"
-                                position="relative"
-                                cursor="pointer"
-                                onClick={() => setEditLearningOutcomes(editLearningOutcomes.filter((_, i) => i !== index))}
-                                title="Click to remove"
-                                _hover={{ bg: 'whiteAlpha.200' }}
-                              >
-                                <Text fontSize="xs" fontWeight="bold" color="green.300" mb={1}>
-                                  {outcome.value} ×
-                                </Text>
-                                <Text fontSize="sm" color="white" lineHeight="1.3" noOfLines={2}>
-                                  {outcome.outcome.name}
-                                </Text>
-                              </Box>
-                            ))}
-                            {editLearningOutcomes.length === 0 && (
-                              <Text fontSize="xs" color="gray.400">No outcomes selected</Text>
-                            )}
-                          </VStack>
-                        </Box>
-                      </>
+                      <Select
+                        options={learningOutcomesList}
+                        value={editLearningOutcomes}
+                        onChange={setEditLearningOutcomes}
+                        placeholder="Select learning outcomes..."
+                        isMulti
+                        isSearchable
+                        closeMenuOnSelect={false}
+                        classNamePrefix="react-select"
+                        styles={{ 
+                          menu: base => ({ ...base, zIndex: 9999 }),
+                          control: base => ({ ...base, backgroundColor: 'white', minHeight: '40px' }),
+                          multiValue: base => ({ ...base, backgroundColor: '#38a169', color: 'white' }),
+                          multiValueLabel: base => ({ ...base, color: 'white' }),
+                          multiValueRemove: base => ({ ...base, color: 'white', ':hover': { backgroundColor: '#2f855a', color: 'white' } })
+                        }}
+                      />
                     )}
                     {editErrors.learningOutcomes && <FormErrorMessage>{editErrors.learningOutcomes}</FormErrorMessage>}
                   </FormControl>
