@@ -6,6 +6,7 @@ import {
   ModalCloseButton,
   Button,
   Flex,
+  VStack,
   useToast,
   AlertDialog,
   AlertDialogBody,
@@ -34,6 +35,7 @@ import {
   List,
   ListItem,
   Divider,
+  Badge,
 } from '@chakra-ui/react';
 import ResponsiveImage from './ResponsiveImage';
 import SignedImage from './SignedImage';
@@ -597,7 +599,32 @@ const ImageViewerModal = ({
                     {editErrors.learningArea && <FormErrorMessage>{editErrors.learningArea}</FormErrorMessage>}
                   </FormControl>
                 ) : (
-                  <Text fontSize="md" mt={1}><b>Learning Area:</b> {selectedLearningArea?.label || image.learning_area_codes?.[0] || image.learning_area_code || '-'}</Text>
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2} color="gray.300">Learning Areas</Text>
+                    <Flex wrap="wrap" gap={2}>
+                      {(() => {
+                        const areaCodes = image.learning_area_codes || (image.learning_area_code ? [image.learning_area_code] : []);
+                        if (areaCodes.length === 0) {
+                          return <Badge colorScheme="gray" variant="subtle">No areas specified</Badge>;
+                        }
+                        return areaCodes.map((areaCode, index) => {
+                          const areaOption = learningAreasList.find(a => a.value === areaCode);
+                          return (
+                            <Badge 
+                              key={index} 
+                              colorScheme="blue" 
+                              variant="solid"
+                              fontSize="xs"
+                              px={2}
+                              py={1}
+                            >
+                              {areaOption ? areaOption.subject.name : areaCode}
+                            </Badge>
+                          );
+                        });
+                      })()}
+                    </Flex>
+                  </Box>
                 )}
               </Box>
               <Box mt={3}>
@@ -618,7 +645,42 @@ const ImageViewerModal = ({
                     {editErrors.learningOutcome && <FormErrorMessage>{editErrors.learningOutcome}</FormErrorMessage>}
                   </FormControl>
                 ) : (
-                  <Text fontSize="md" mt={1}><b>Learning Outcome:</b> {selectedLearningOutcome?.label || image.learning_outcome_codes?.[0] || image.learning_outcome_code || image.learning_outcome || '-'}</Text>
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2} color="gray.300">Learning Outcomes</Text>
+                    <VStack spacing={2} align="stretch">
+                      {(() => {
+                        const outcomeCodes = image.learning_outcome_codes || (image.learning_outcome_code ? [image.learning_outcome_code] : []);
+                        if (outcomeCodes.length === 0) {
+                          return <Badge colorScheme="gray" variant="subtle">No outcomes specified</Badge>;
+                        }
+                        return outcomeCodes.map((outcomeCode, index) => {
+                          const outcomeOption = learningOutcomesList.find(o => o.value === outcomeCode);
+                          return (
+                            <Box 
+                              key={index}
+                              bg="whiteAlpha.100"
+                              p={3}
+                              borderRadius="md"
+                              borderLeft="4px solid"
+                              borderLeftColor="green.400"
+                            >
+                              <Text fontSize="xs" fontWeight="bold" color="green.300" mb={1}>
+                                {outcomeCode}
+                              </Text>
+                              <Text fontSize="sm" color="white" lineHeight="1.3">
+                                {outcomeOption ? outcomeOption.outcome.name : 'Auto-created learning outcome'}
+                              </Text>
+                              {outcomeOption && (
+                                <Text fontSize="xs" color="gray.400" mt={1} noOfLines={2}>
+                                  {outcomeOption.outcome.description}
+                                </Text>
+                              )}
+                            </Box>
+                          );
+                        });
+                      })()}
+                    </VStack>
+                  </Box>
                 )}
               </Box>
               {isEditing && (
