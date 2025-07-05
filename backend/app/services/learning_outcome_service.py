@@ -273,9 +273,16 @@ class LearningOutcomeService:
                     else:
                         serialized_item[key] = value
                 
-                # Ensure learning_area_code is present if it exists in the document
-                if 'learning_area_code' in item:
+                # Add backward-compatible singular field names for frontend
+                if 'learning_area_codes' in item and item['learning_area_codes']:
+                    serialized_item['learning_area_code'] = item['learning_area_codes'][0]
+                elif 'learning_area_code' in item:
                     serialized_item['learning_area_code'] = item['learning_area_code']
+                
+                if 'learning_outcome_codes' in item and item['learning_outcome_codes']:
+                    serialized_item['learning_outcome_code'] = item['learning_outcome_codes'][0]
+                elif 'learning_outcome_code' in item:
+                    serialized_item['learning_outcome_code'] = item['learning_outcome_code']
                 
                 # Handle file paths for Cloudinary or Backblaze
                 if "file_path" in serialized_item:
@@ -410,12 +417,23 @@ class LearningOutcomeService:
                     else:
                         serialized_item[k] = v
                 
-                # Normalize field names
+                # Normalize field names for frontend compatibility
                 if "file_url" in serialized_item and "fileUrl" not in serialized_item:
                     serialized_item["fileUrl"] = serialized_item["file_url"]
                 
                 if "thumbnail_url" in serialized_item and "thumbnailUrl" not in serialized_item:
                     serialized_item["thumbnailUrl"] = serialized_item["thumbnail_url"]
+                
+                # Add backward-compatible singular field names for frontend
+                if 'learning_area_codes' in evidence and evidence['learning_area_codes']:
+                    serialized_item['learning_area_code'] = evidence['learning_area_codes'][0]
+                elif 'learning_area_code' in evidence:
+                    serialized_item['learning_area_code'] = evidence['learning_area_code']
+                
+                if 'learning_outcome_codes' in evidence and evidence['learning_outcome_codes']:
+                    serialized_item['learning_outcome_code'] = evidence['learning_outcome_codes'][0]
+                elif 'learning_outcome_code' in evidence:
+                    serialized_item['learning_outcome_code'] = evidence['learning_outcome_code']
                 
                 # Get timestamp for comparison
                 current_timestamp = serialized_item.get("uploaded_at")

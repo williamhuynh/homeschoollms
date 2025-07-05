@@ -334,10 +334,12 @@ const ImageViewerModal = ({
 
           console.log('Loaded learning areas:', formattedAreas);
           console.log('Image area fields:', {
-            learning_area_code: image.learning_area_code
+            learning_area_code: image.learning_area_code,
+            learning_area_codes: image.learning_area_codes
           });
 
-          const currentArea = image.learning_area_code;
+          // Handle both old singular and new plural field names
+          const currentArea = image.learning_area_codes?.[0] || image.learning_area_code;
           const areaOption = formattedAreas.find(a => a.value === currentArea) || null;
           console.log('Matched area option:', areaOption);
           setSelectedLearningArea(areaOption);
@@ -356,10 +358,12 @@ const ImageViewerModal = ({
             console.log('Loaded learning outcomes:', formattedOutcomes);
             console.log('Image outcome fields:', {
               learning_outcome_code: image.learning_outcome_code,
+              learning_outcome_codes: image.learning_outcome_codes,
               learning_outcome: image.learning_outcome
             });
 
-            const currentOutcome = image.learning_outcome_code || image.learning_outcome;
+            // Handle both old singular and new plural field names
+            const currentOutcome = image.learning_outcome_codes?.[0] || image.learning_outcome_code || image.learning_outcome;
             const outcomeOption = formattedOutcomes.find(o => o.value === currentOutcome) || null;
             console.log('Matched outcome option:', outcomeOption);
             setSelectedLearningOutcome(outcomeOption);
@@ -435,8 +439,11 @@ const ImageViewerModal = ({
       if (updated) {
         image.title = updated.title;
         image.description = updated.description;
-        image.learningArea = updated.learning_area_code;
-        image.learningOutcome = updated.learning_outcome_code;
+        // Update both old and new field formats for compatibility
+        image.learning_area_code = updated.learning_area_code;
+        image.learning_area_codes = updated.learning_area_code ? [updated.learning_area_code] : [];
+        image.learning_outcome_code = updated.learning_outcome_code;
+        image.learning_outcome_codes = updated.learning_outcome_code ? [updated.learning_outcome_code] : [];
       }
       setIsEditing(false);
       toast({
@@ -590,7 +597,7 @@ const ImageViewerModal = ({
                     {editErrors.learningArea && <FormErrorMessage>{editErrors.learningArea}</FormErrorMessage>}
                   </FormControl>
                 ) : (
-                  <Text fontSize="md" mt={1}><b>Learning Area:</b> {selectedLearningArea?.label || image.learning_area_code || '-'}</Text>
+                  <Text fontSize="md" mt={1}><b>Learning Area:</b> {selectedLearningArea?.label || image.learning_area_codes?.[0] || image.learning_area_code || '-'}</Text>
                 )}
               </Box>
               <Box mt={3}>
