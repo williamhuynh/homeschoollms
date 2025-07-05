@@ -618,7 +618,7 @@ const ImageViewerModal = ({
                     {editErrors.learningOutcome && <FormErrorMessage>{editErrors.learningOutcome}</FormErrorMessage>}
                   </FormControl>
                 ) : (
-                  <Text fontSize="md" mt={1}><b>Learning Outcome:</b> {selectedLearningOutcome?.label || '-'}</Text>
+                  <Text fontSize="md" mt={1}><b>Learning Outcome:</b> {selectedLearningOutcome?.label || image.learning_outcome_codes?.[0] || image.learning_outcome_code || image.learning_outcome || '-'}</Text>
                 )}
               </Box>
               {isEditing && (
