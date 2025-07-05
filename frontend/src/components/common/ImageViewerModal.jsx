@@ -478,30 +478,45 @@ const ImageViewerModal = ({
     setIsSaving(false);
 
     console.log('Starting edit mode...');
-    console.log('Available learning areas:', learningAreasList.length);
-    console.log('Available learning outcomes:', learningOutcomesList.length);
+    console.log('Available learning areas (before loading):', learningAreasList.length);
+    console.log('Available learning outcomes (before loading):', learningOutcomesList.length);
     console.log('Props available:', { studentGrade, studentId: !!studentId });
 
-    // Always try to load curriculum data to ensure we have the latest
+    // Always reload curriculum data fresh for edit mode
     console.log('Loading curriculum data for edit mode...');
     const { areas, outcomes } = await loadCurriculumData();
     
-    // Use loaded data or fallback to existing state
+    // Use the fresh loaded data and update the state
     const availableAreas = areas.length > 0 ? areas : learningAreasList;
     const availableOutcomes = outcomes.length > 0 ? outcomes : learningOutcomesList;
 
-    console.log('Using areas:', availableAreas.length);
-    console.log('Using outcomes:', availableOutcomes.length);
+    // Update the state with the loaded data
+    if (areas.length > 0) {
+      setLearningAreasList(areas);
+    }
+    if (outcomes.length > 0) {
+      setLearningOutcomesList(outcomes);
+    }
+
+    console.log('Using areas (after loading):', availableAreas.length);
+    console.log('Using outcomes (after loading):', availableOutcomes.length);
+
+    // Wait a moment to ensure state is updated
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Populate multi-select arrays with current values
     const currentAreaCodes = image.learning_area_codes || (image.learning_area_code ? [image.learning_area_code] : []);
     const currentOutcomeCodes = image.learning_outcome_codes || (image.learning_outcome_code ? [image.learning_outcome_code] : []);
     
+    // Remove duplicate area codes
+    const uniqueAreaCodes = [...new Set(currentAreaCodes)];
+    
     console.log('Current area codes:', currentAreaCodes);
+    console.log('Unique area codes:', uniqueAreaCodes);
     console.log('Current outcome codes:', currentOutcomeCodes);
     console.log('Available areas for matching:', availableAreas.map(a => ({ value: a.value, label: a.label })));
     
-    const selectedAreasOptions = currentAreaCodes.map(code => {
+    const selectedAreasOptions = uniqueAreaCodes.map(code => {
       const found = availableAreas.find(a => a.value === code);
       console.log(`Looking for area code ${code}, found:`, found);
       return found;
