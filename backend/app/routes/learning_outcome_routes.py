@@ -271,7 +271,7 @@ async def upload_evidence_multi_outcome(
             upload_result = await file_storage_service.upload_file(
                 file, 
                 file_path,
-                generate_thumbnails=True
+                generate_thumbnail=True
             )
             
             # Get URLs from upload result
