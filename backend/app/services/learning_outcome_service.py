@@ -119,10 +119,13 @@ class LearningOutcomeService:
             else:
                 serialized_outcome[key] = value
                 
-        # Get student's evidence for this outcome (new schema only)
+        # Get student's evidence for this outcome (new schema only, case-insensitive)
+        import re
+        outcome_code = outcome.get("code", "")
+        outcome_code_pattern = re.compile(f"^{re.escape(outcome_code)}$", re.IGNORECASE)
         evidence_list = await db.student_evidence.find({
             "student_id": ObjectId(student_id),
-            "learning_outcome_codes": {"$in": [outcome.get("code", "")]},
+            "learning_outcome_codes": {"$elemMatch": {"$regex": outcome_code_pattern}},
             "deleted": {"$ne": True}
         }).to_list(None)
         
@@ -242,10 +245,12 @@ class LearningOutcomeService:
                 else:
                     logger.info(f"No learning outcome found with code: {learning_outcome_id}")
             
-            # Simple query using new array-based schema only
+            # Simple query using new array-based schema only (case-insensitive)
+            import re
+            outcome_code_pattern = re.compile(f"^{re.escape(outcome_code)}$", re.IGNORECASE)
             query = {
                 "student_id": student_obj_id,
-                "learning_outcome_codes": {"$in": [outcome_code]},
+                "learning_outcome_codes": {"$elemMatch": {"$regex": outcome_code_pattern}},
                 "deleted": {"$ne": True}
             }
             
@@ -361,10 +366,17 @@ class LearningOutcomeService:
             
             logger.info(f"Fetching batch evidence for student {student_obj_id} and {len(learning_outcome_codes)} outcomes")
             
-            # Simple query using new array-based schema only
+            # Simple query using new array-based schema only (case-insensitive)
+            import re
+            # Create case-insensitive regex conditions for each outcome code
+            outcome_conditions = []
+            for code in learning_outcome_codes:
+                pattern = re.compile(f"^{re.escape(code)}$", re.IGNORECASE)
+                outcome_conditions.append({"learning_outcome_codes": {"$elemMatch": {"$regex": pattern}}})
+            
             query = {
                 "student_id": student_obj_id,
-                "learning_outcome_codes": {"$in": learning_outcome_codes},
+                "$or": outcome_conditions,
                 "deleted": {"$ne": True}
             }
             
@@ -416,14 +428,21 @@ class LearningOutcomeService:
                     if isinstance(outcome_code, ObjectId):
                         outcome_code = str(outcome_code)
                     
-                    # Skip if this outcome wasn't in our request list
-                    if outcome_code not in learning_outcome_codes:
+                    # Skip if this outcome wasn't in our request list (case-insensitive check)
+                    matching_requested_code = None
+                    for requested_code in learning_outcome_codes:
+                        if outcome_code.lower() == requested_code.lower():
+                            matching_requested_code = requested_code
+                            break
+                    
+                    if not matching_requested_code:
                         continue
                     
+                    # Use the originally requested code as the key (maintain original case)
                     # If we don't have an item for this outcome yet, or this one is newer
-                    if (outcome_code not in outcome_to_evidence or 
-                        current_timestamp > outcome_to_evidence[outcome_code].get("uploaded_at", "")):
-                        outcome_to_evidence[outcome_code] = serialized_item
+                    if (matching_requested_code not in outcome_to_evidence or 
+                        current_timestamp > outcome_to_evidence[matching_requested_code].get("uploaded_at", "")):
+                        outcome_to_evidence[matching_requested_code] = serialized_item
             
             return outcome_to_evidence
         except Exception as e:
@@ -464,11 +483,13 @@ class LearningOutcomeService:
                 else:
                     logger.info(f"No learning outcome found with code: {learning_outcome_id}")
             
-            # Build a query that will match evidence using new array-based schema
+            # Build a query that will match evidence using new array-based schema (case-insensitive)
+            import re
+            outcome_code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
             query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
-                "learning_outcome_codes": {"$in": [learning_outcome_id]}
+                "learning_outcome_codes": {"$elemMatch": {"$regex": outcome_code_pattern}}
             }
                 
             logger.info(f"Querying evidence with: {query}")
@@ -514,11 +535,13 @@ class LearningOutcomeService:
             
             logger.info(f"Generating download URL: student_id={student_id}, learning_outcome_id={learning_outcome_id}, evidence_id={evidence_id}")
             
-            # Build a query that will match evidence using new array-based schema
+            # Build a query that will match evidence using new array-based schema (case-insensitive)
+            import re
+            outcome_code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
             query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
-                "learning_outcome_codes": {"$in": [learning_outcome_id]}
+                "learning_outcome_codes": {"$elemMatch": {"$regex": outcome_code_pattern}}
             }
                 
             logger.info(f"Querying evidence with: {query}")
@@ -579,11 +602,13 @@ class LearningOutcomeService:
             
             logger.info(f"Generating share URL: student_id={student_id}, learning_outcome_id={learning_outcome_id}, evidence_id={evidence_id}")
             
-            # Build a query that will match evidence using new array-based schema
+            # Build a query that will match evidence using new array-based schema (case-insensitive)
+            import re
+            outcome_code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
             query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
-                "learning_outcome_codes": {"$in": [learning_outcome_id]}
+                "learning_outcome_codes": {"$elemMatch": {"$regex": outcome_code_pattern}}
             }
                 
             logger.info(f"Querying evidence with: {query}")
@@ -665,11 +690,13 @@ class LearningOutcomeService:
                 raise HTTPException(status_code=400, detail="Learning outcome code not found")
             update_data['outcome_obj_ids'] = [outcome['_id']]
 
-        # Build the query to match the evidence using new array-based schema
+        # Build the query to match the evidence using new array-based schema (case-insensitive)
+        import re
+        outcome_code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
         query = {
             "_id": ObjectId(evidence_id),
             "student_id": ObjectId(student_id),
-            "learning_outcome_codes": {"$in": [learning_outcome_id]}
+            "learning_outcome_codes": {"$elemMatch": {"$regex": outcome_code_pattern}}
         }
         # Only update provided fields
         result = await db.student_evidence.update_one(query, {"$set": update_data})
