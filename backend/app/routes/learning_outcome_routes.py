@@ -520,25 +520,25 @@ async def upload_evidence(
             # Store file reference in database
             collection = db["student_evidence"]
             
-            # Create document for insertion
+            # Create document for insertion using new array-based schema
             evidence_doc = {
                 "student_id": ObjectId(resolved_student_id),
-                "learning_outcome_id": learning_outcome_id,
-                "learning_outcome_code": outcome_code_to_use, # Store the code used
-                "outcome_obj_id": outcome_obj_id, # Also store the ObjectId for future queries
-                "location": location, # New field
+                "learning_outcome_codes": [outcome_code_to_use], # Array format
+                "outcome_obj_ids": [outcome_obj_id],             # Array format
+                "learning_area_codes": [learning_area_code] if learning_area_code else [], # Array format
+                "location": location,
                 "file_path": file_path,
                 "file_type": file.content_type,
                 "file_size": file.size,
                 "original_filename": file.filename,
                 "thumbnail_path": file_path,
-                "file_url": original_url,  # Add the file_url field for consistency
-                "thumbnail_url": thumbnail_url,  # Add the thumbnail_url field for consistency
-                "title": title, # Title is now mandatory
+                "file_url": original_url,
+                "thumbnail_url": thumbnail_url,
+                "title": title,
                 "description": description,
                 "uploaded_at": datetime.now(),
                 "uploaded_by": ObjectId(current_user.id),
-                "learning_area_code": learning_area_code # <-- ensure this is always set
+                "deleted": False
             }
             
             # Insert the document

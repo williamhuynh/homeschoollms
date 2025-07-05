@@ -119,18 +119,10 @@ class LearningOutcomeService:
             else:
                 serialized_outcome[key] = value
                 
-        # Get student's evidence for this outcome (backwards compatible)
+        # Get student's evidence for this outcome (new schema only)
         evidence_list = await db.student_evidence.find({
             "student_id": ObjectId(student_id),
-            "$or": [
-                # New array-based schema
-                {"outcome_obj_ids": {"$in": [outcome["_id"]]}},
-                {"learning_outcome_codes": {"$in": [outcome.get("code", "")]}},
-                # Legacy single-field schema  
-                {"outcome_obj_id": outcome["_id"]},
-                {"learning_outcome_code": outcome.get("code", "")},
-                {"learning_outcome_id": outcome.get("code", "")}
-            ],
+            "learning_outcome_codes": {"$in": [outcome.get("code", "")]},
             "deleted": {"$ne": True}
         }).to_list(None)
         
@@ -250,16 +242,10 @@ class LearningOutcomeService:
                 else:
                     logger.info(f"No learning outcome found with code: {learning_outcome_id}")
             
-            # Build a query that will match evidence using both new array-based schema AND legacy single-field schema
+            # Simple query using new array-based schema only
             query = {
                 "student_id": student_obj_id,
-                "$or": [
-                    # New array-based schema
-                    {"learning_outcome_codes": {"$in": [outcome_code]}},
-                    # Legacy single-field schema
-                    {"learning_outcome_code": outcome_code},
-                    {"learning_outcome_id": outcome_code}
-                ],
+                "learning_outcome_codes": {"$in": [outcome_code]},
                 "deleted": {"$ne": True}
             }
             
@@ -375,16 +361,10 @@ class LearningOutcomeService:
             
             logger.info(f"Fetching batch evidence for student {student_obj_id} and {len(learning_outcome_codes)} outcomes")
             
-            # Build query to find all evidence for this student and the requested outcomes using both new and legacy schemas
+            # Simple query using new array-based schema only
             query = {
                 "student_id": student_obj_id,
-                "$or": [
-                    # New array-based schema
-                    {"learning_outcome_codes": {"$in": learning_outcome_codes}},
-                    # Legacy single-field schema
-                    {"learning_outcome_code": {"$in": learning_outcome_codes}},
-                    {"learning_outcome_id": {"$in": learning_outcome_codes}}
-                ],
+                "learning_outcome_codes": {"$in": learning_outcome_codes},
                 "deleted": {"$ne": True}
             }
             
@@ -431,7 +411,6 @@ class LearningOutcomeService:
                     continue
                 
                 # Process each outcome code this evidence is associated with
-                # Handle both new array format and legacy single field format
                 for outcome_code in outcome_codes:
                     # Convert ObjectId to string if needed
                     if isinstance(outcome_code, ObjectId):
@@ -445,20 +424,6 @@ class LearningOutcomeService:
                     if (outcome_code not in outcome_to_evidence or 
                         current_timestamp > outcome_to_evidence[outcome_code].get("uploaded_at", "")):
                         outcome_to_evidence[outcome_code] = serialized_item
-                
-                # Also check legacy single fields for backward compatibility
-                legacy_code = evidence.get("learning_outcome_code") or evidence.get("learning_outcome_id")
-                if legacy_code:
-                    # Convert ObjectId to string if needed
-                    if isinstance(legacy_code, ObjectId):
-                        legacy_code = str(legacy_code)
-                    
-                    # Only process if this outcome was in our request list
-                    if legacy_code in learning_outcome_codes:
-                        # If we don't have an item for this outcome yet, or this one is newer
-                        if (legacy_code not in outcome_to_evidence or 
-                            current_timestamp > outcome_to_evidence[legacy_code].get("uploaded_at", "")):
-                            outcome_to_evidence[legacy_code] = serialized_item
             
             return outcome_to_evidence
         except Exception as e:
