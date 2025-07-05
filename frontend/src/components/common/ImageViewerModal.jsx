@@ -311,78 +311,79 @@ const ImageViewerModal = ({
     }
   };
 
+  // Extract curriculum loading into reusable function
+  const loadCurriculumData = async () => {
+    if (!studentGrade || !image) return { areas: [], outcomes: [] };
+    
+    setIsLoadingAreas(true);
+    setIsLoadingOutcomes(true);
+    
+    const stage = curriculumService.getStageForGrade(studentGrade);
+    setCurrentStage(stage);
+    
+    if (stage) {
+      try {
+        const subjects = await curriculumService.getSubjects(studentGrade);
+        const formattedAreas = subjects.map(subject => ({
+          value: subject.code,
+          label: `${subject.name} (${subject.code})`,
+          subject
+        }));
+        setLearningAreasList(formattedAreas);
+        setIsLoadingAreas(false);
+
+        console.log('Loaded learning areas:', formattedAreas);
+
+        // Load outcomes for ALL areas (needed for edit mode multi-select)
+        const allOutcomes = [];
+        
+        for (const area of formattedAreas) {
+          try {
+            const outcomes = await curriculumService.getOutcomes(stage, area.value);
+            const formattedOutcomes = outcomes.map(outcome => ({
+              value: outcome.code,
+              label: `${outcome.code}: ${outcome.name}`,
+              outcome
+            }));
+            allOutcomes.push(...formattedOutcomes);
+          } catch (error) {
+            console.warn(`Failed to load outcomes for area ${area.value}:`, error);
+          }
+        }
+        
+        setLearningOutcomesList(allOutcomes);
+        setIsLoadingOutcomes(false);
+
+        console.log('Loaded all learning outcomes:', allOutcomes.length, 'outcomes');
+
+        // Set display selections for backward compatibility
+        const currentArea = image.learning_area_codes?.[0] || image.learning_area_code;
+        const areaOption = formattedAreas.find(a => a.value === currentArea) || null;
+        setSelectedLearningArea(areaOption);
+
+        const currentOutcome = image.learning_outcome_codes?.[0] || image.learning_outcome_code || image.learning_outcome;
+        const outcomeOption = allOutcomes.find(o => o.value === currentOutcome) || null;
+        setSelectedLearningOutcome(outcomeOption);
+        
+        return { areas: formattedAreas, outcomes: allOutcomes };
+        
+      } catch (error) {
+        console.error('Error loading curriculum data:', error);
+        setIsLoadingAreas(false);
+        setIsLoadingOutcomes(false);
+        return { areas: [], outcomes: [] };
+      }
+    } else {
+      setIsLoadingAreas(false);
+      setIsLoadingOutcomes(false);
+      return { areas: [], outcomes: [] };
+    }
+  };
+
   useEffect(() => {
     console.log('useEffect triggered', { isOpen, studentGrade, image });
     if (isOpen && studentGrade && image) {
-      const loadAreasAndOutcomes = async () => {
-        setIsLoadingAreas(true);
-        setLearningAreasList([]);
-        setSelectedLearningArea(null);
-        setLearningOutcomesList([]);
-        setSelectedLearningOutcome(null);
-        setIsLoadingOutcomes(false);
-        setCurrentStage(null);
-
-        const stage = curriculumService.getStageForGrade(studentGrade);
-        setCurrentStage(stage);
-        if (stage) {
-          const subjects = await curriculumService.getSubjects(studentGrade);
-          const formattedAreas = subjects.map(subject => ({
-            value: subject.code,
-            label: `${subject.name} (${subject.code})`,
-            subject
-          }));
-          setLearningAreasList(formattedAreas);
-          setIsLoadingAreas(false);
-
-          console.log('Loaded learning areas:', formattedAreas);
-          console.log('Image area fields:', {
-            learning_area_code: image.learning_area_code,
-            learning_area_codes: image.learning_area_codes
-          });
-
-          // Handle both old singular and new plural field names for display
-          const currentArea = image.learning_area_codes?.[0] || image.learning_area_code;
-          const areaOption = formattedAreas.find(a => a.value === currentArea) || null;
-          console.log('Matched area option:', areaOption);
-          setSelectedLearningArea(areaOption);
-
-          // Load outcomes for ALL areas (needed for edit mode multi-select)
-          setIsLoadingOutcomes(true);
-          const allOutcomes = [];
-          
-          for (const area of formattedAreas) {
-            try {
-              const outcomes = await curriculumService.getOutcomes(stage, area.value);
-              const formattedOutcomes = outcomes.map(outcome => ({
-                value: outcome.code,
-                label: `${outcome.code}: ${outcome.name}`,
-                outcome
-              }));
-              allOutcomes.push(...formattedOutcomes);
-            } catch (error) {
-              console.warn(`Failed to load outcomes for area ${area.value}:`, error);
-            }
-          }
-          
-          setLearningOutcomesList(allOutcomes);
-          setIsLoadingOutcomes(false);
-
-          console.log('Loaded all learning outcomes:', allOutcomes.length, 'outcomes');
-          console.log('Image outcome fields:', {
-            learning_outcome_code: image.learning_outcome_code,
-            learning_outcome_codes: image.learning_outcome_codes,
-            learning_outcome: image.learning_outcome
-          });
-
-          // Find the current outcome for display purposes
-          const currentOutcome = image.learning_outcome_codes?.[0] || image.learning_outcome_code || image.learning_outcome;
-          const outcomeOption = allOutcomes.find(o => o.value === currentOutcome) || null;
-          console.log('Matched outcome option:', outcomeOption);
-          setSelectedLearningOutcome(outcomeOption);
-        }
-      };
-      loadAreasAndOutcomes();
+      loadCurriculumData();
     } else if (!isOpen) {
       setLearningAreasList([]);
       setLearningOutcomesList([]);
@@ -419,6 +420,20 @@ const ImageViewerModal = ({
     console.log('Available learning areas:', learningAreasList.length);
     console.log('Available learning outcomes:', learningOutcomesList.length);
 
+    // Get curriculum data (load if not already loaded)
+    let availableAreas = learningAreasList;
+    let availableOutcomes = learningOutcomesList;
+    
+    if (learningAreasList.length === 0 || learningOutcomesList.length === 0) {
+      console.log('Curriculum data not loaded, loading now...');
+      const { areas, outcomes } = await loadCurriculumData();
+      availableAreas = areas;
+      availableOutcomes = outcomes;
+    }
+
+    console.log('Using areas:', availableAreas.length);
+    console.log('Using outcomes:', availableOutcomes.length);
+
     // Populate multi-select arrays with current values
     const currentAreaCodes = image.learning_area_codes || (image.learning_area_code ? [image.learning_area_code] : []);
     const currentOutcomeCodes = image.learning_outcome_codes || (image.learning_outcome_code ? [image.learning_outcome_code] : []);
@@ -427,11 +442,11 @@ const ImageViewerModal = ({
     console.log('Current outcome codes:', currentOutcomeCodes);
     
     const selectedAreasOptions = currentAreaCodes.map(code => 
-      learningAreasList.find(a => a.value === code)
+      availableAreas.find(a => a.value === code)
     ).filter(Boolean);
     
     const selectedOutcomesOptions = currentOutcomeCodes.map(code => 
-      learningOutcomesList.find(o => o.value === code)
+      availableOutcomes.find(o => o.value === code)
     ).filter(Boolean);
     
     console.log('Selected areas for edit:', selectedAreasOptions);
