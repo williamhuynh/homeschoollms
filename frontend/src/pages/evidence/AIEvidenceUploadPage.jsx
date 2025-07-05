@@ -30,7 +30,7 @@ import {
 import { ArrowLeft, Upload, Zap, CheckCircle } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStudents } from '../../contexts/StudentsContext'
-import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence, uploadEvidenceMultiOutcome } from '../../services/api'
+import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence, uploadEvidenceMultiOutcome, generateAIDescription } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
 import ResponsiveImage from '../../components/common/ResponsiveImage'
 
@@ -265,6 +265,52 @@ const AIEvidenceUploadPage = () => {
     }
   }
 
+  /**
+   * Helper function to build rich context for AI description generation
+   */
+  const buildRichContext = () => {
+    const contextParts = []
+    
+    // Add student context
+    if (student) {
+      contextParts.push(`Student: ${student.first_name} ${student.last_name}, Grade ${student.grade_level}`)
+    }
+    
+    // Add selected learning outcomes with descriptions
+    if (selectedOutcomes.length > 0) {
+      const selectedOutcomeObjects = suggestedOutcomes.filter(outcome => 
+        selectedOutcomes.includes(outcome.code)
+      )
+      
+      if (selectedOutcomeObjects.length > 0) {
+        contextParts.push('\nLearning Outcomes:')
+        selectedOutcomeObjects.forEach(outcome => {
+          const confidenceText = outcome.confidence ? ` (${outcome.confidence}% confidence)` : ''
+          contextParts.push(`• ${outcome.code}: ${outcome.description}${confidenceText}`)
+        })
+      }
+    }
+    
+    // Add question answers in natural language
+    if (analysisQuestions.length > 0 && Object.keys(questionAnswers).length > 0) {
+      contextParts.push('\nActivity Context:')
+      analysisQuestions.forEach(question => {
+        const answer = questionAnswers[question.id]
+        if (answer) {
+          contextParts.push(`• ${question.question}: ${answer}`)
+        }
+      })
+    }
+    
+    // Add learning areas if available
+    const learningAreas = selectedOutcomes.map(code => code.split('-')[0]).filter((area, index, self) => self.indexOf(area) === index)
+    if (learningAreas.length > 0) {
+      contextParts.push(`\nLearning Areas: ${learningAreas.join(', ')}`)
+    }
+    
+    return contextParts.length > 0 ? contextParts.join('\n') : 'Learning activity evidence upload'
+  }
+
   const handleFinalSubmit = async () => {
     setIsProcessing(true)
     try {
@@ -279,6 +325,31 @@ const AIEvidenceUploadPage = () => {
         throw new Error('Please select at least one learning outcome to proceed')
       }
 
+      // Generate rich AI description before upload
+      let aiGeneratedDescription = ''
+      try {
+        console.log('Generating AI description from analysis data...')
+        const richContext = buildRichContext()
+        console.log('Rich context built:', richContext)
+        
+        const fileObjects = selectedFiles.map(f => f.file)
+        const descriptionResult = await generateAIDescription(fileObjects, richContext)
+        
+        if (descriptionResult && descriptionResult.description) {
+          aiGeneratedDescription = descriptionResult.description
+          console.log('AI description generated:', aiGeneratedDescription)
+        } else {
+          console.warn('AI description generation returned empty result')
+        }
+      } catch (descError) {
+        console.error('Failed to generate AI description:', descError)
+        // Continue with upload even if description generation fails
+        aiGeneratedDescription = buildFallbackDescription()
+      }
+
+      // Use AI-generated description or fallback
+      const finalDescription = aiGeneratedDescription || buildFallbackDescription()
+
       // Create FormData for multi-outcome evidence upload
       const formData = new FormData()
       
@@ -289,7 +360,7 @@ const AIEvidenceUploadPage = () => {
       
       // Add metadata with ALL selected outcomes
       formData.append('title', `AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
-      formData.append('description', `Evidence analyzed by AI. Context: ${JSON.stringify(questionAnswers)}`)
+      formData.append('description', finalDescription)
       formData.append('learning_outcome_codes', selectedOutcomes.join(',')) // All outcomes as comma-separated
       formData.append('learning_area_codes', selectedOutcomes.map(code => code.split('-')[0]).join(',')) // Extract area codes
       
@@ -323,6 +394,38 @@ const AIEvidenceUploadPage = () => {
     } finally {
       setIsProcessing(false)
     }
+  }
+
+  /**
+   * Build fallback description when AI generation fails
+   */
+  const buildFallbackDescription = () => {
+    const parts = []
+    
+    // Add basic context
+    parts.push(`Evidence analyzed by AI on ${new Date().toLocaleDateString()}.`)
+    
+    // Add learning outcomes
+    if (selectedOutcomes.length > 0) {
+      parts.push(`Learning outcomes: ${selectedOutcomes.join(', ')}.`)
+    }
+    
+    // Add key answers
+    if (Object.keys(questionAnswers).length > 0) {
+      const keyAnswers = Object.entries(questionAnswers)
+        .filter(([, answer]) => answer && answer.trim())
+        .map(([questionId, answer]) => {
+          const question = analysisQuestions.find(q => q.id === questionId)
+          return question ? `${question.question}: ${answer}` : answer
+        })
+        .slice(0, 3) // Limit to first 3 answers
+      
+      if (keyAnswers.length > 0) {
+        parts.push(`Activity context: ${keyAnswers.join('; ')}.`)
+      }
+    }
+    
+    return parts.join(' ')
   }
 
   const handleAnswerChange = (questionId, value) => {
@@ -583,7 +686,7 @@ const AIEvidenceUploadPage = () => {
           leftIcon={<CheckCircle />}
           onClick={handleFinalSubmit}
           isLoading={isProcessing}
-          loadingText="Uploading..."
+          loadingText="Generating description & uploading..."
           isDisabled={selectedOutcomes.length === 0}
         >
           Upload Evidence ({selectedOutcomes.length} outcomes)
