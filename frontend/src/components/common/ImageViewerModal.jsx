@@ -313,30 +313,76 @@ const ImageViewerModal = ({
 
   // Extract curriculum loading into reusable function
   const loadCurriculumData = async () => {
-    console.log('loadCurriculumData called with:', { studentGrade, imageExists: !!image });
+    console.log('loadCurriculumData called with:', { studentGrade, imageExists: !!image, studentId });
     
-    if (!studentGrade || !image) {
-      console.log('Missing studentGrade or image, returning empty data');
+    if (!image) {
+      console.log('Missing image, returning empty data');
+      return { areas: [], outcomes: [] };
+    }
+
+    // Get student grade - try multiple sources for robustness
+    let gradeToUse = studentGrade;
+    
+    if (!gradeToUse && studentId) {
+      console.log('studentGrade not provided, fetching student data...');
+      try {
+        // Import the API functions to get student data
+        const { getStudents, getStudentBySlug } = await import('../../services/api');
+        
+        // First try to get student by slug (if studentId looks like a slug)
+        if (typeof studentId === 'string' && !studentId.match(/^[0-9a-fA-F]{24}$/)) {
+          console.log('Trying to fetch student by slug:', studentId);
+          const student = await getStudentBySlug(studentId);
+          if (student?.grade_level) {
+            gradeToUse = student.grade_level;
+            console.log('Fetched student grade from slug API:', gradeToUse);
+          }
+        }
+        
+        // If still no grade, try getting all students and find by ID or slug
+        if (!gradeToUse) {
+          console.log('Trying to fetch all students and find by ID/slug');
+          const students = await getStudents();
+          const student = students.find(s => 
+            s._id === studentId || 
+            s.id === studentId || 
+            s.slug === studentId
+          );
+          if (student?.grade_level) {
+            gradeToUse = student.grade_level;
+            console.log('Fetched student grade from students list:', gradeToUse);
+          } else {
+            console.log('Could not find student or grade from students list');
+            console.log('Available students:', students.map(s => ({ id: s._id || s.id, slug: s.slug, grade: s.grade_level })));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching student data:', error);
+      }
+    }
+
+    if (!gradeToUse) {
+      console.log('No student grade available, cannot load curriculum');
       return { areas: [], outcomes: [] };
     }
     
     setIsLoadingAreas(true);
     setIsLoadingOutcomes(true);
     
-    try {
-      const stage = curriculumService.getStageForGrade(studentGrade);
-      console.log('Stage for grade:', studentGrade, '→', stage);
-      setCurrentStage(stage);
-      
-      if (!stage) {
-        console.log('No stage found for grade:', studentGrade);
-        setIsLoadingAreas(false);
-        setIsLoadingOutcomes(false);
-        return { areas: [], outcomes: [] };
-      }
-      
-      console.log('Loading subjects for grade:', studentGrade);
-      const subjects = await curriculumService.getSubjects(studentGrade);
+          try {
+        const stage = curriculumService.getStageForGrade(gradeToUse);
+        console.log('Stage for grade:', gradeToUse, '→', stage);
+        setCurrentStage(stage);
+        
+        if (!stage) {
+          console.log('No stage found for grade:', gradeToUse);
+          setIsLoadingAreas(false);
+          setIsLoadingOutcomes(false);
+          return { areas: [], outcomes: [] };
+        }
+        
+        console.log('Loading subjects for grade:', gradeToUse);
+        const subjects = await curriculumService.getSubjects(gradeToUse);
       console.log('Raw subjects loaded:', subjects);
       
       const formattedAreas = subjects.map(subject => ({
@@ -395,8 +441,9 @@ const ImageViewerModal = ({
   };
 
   useEffect(() => {
-    console.log('useEffect triggered', { isOpen, studentGrade, image });
-    if (isOpen && studentGrade && image) {
+    console.log('useEffect triggered', { isOpen, studentGrade, image, studentId });
+    if (isOpen && image) {
+      // Load curriculum data - it will handle missing studentGrade by fetching student data
       loadCurriculumData();
     } else if (!isOpen) {
       setLearningAreasList([]);
@@ -405,7 +452,7 @@ const ImageViewerModal = ({
       setSelectedLearningOutcome(null);
       setCurrentStage(null);
     }
-  }, [isOpen, studentGrade, image]);
+  }, [isOpen, studentGrade, image, studentId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -433,17 +480,15 @@ const ImageViewerModal = ({
     console.log('Starting edit mode...');
     console.log('Available learning areas:', learningAreasList.length);
     console.log('Available learning outcomes:', learningOutcomesList.length);
+    console.log('Props available:', { studentGrade, studentId: !!studentId });
 
-    // Get curriculum data (load if not already loaded)
-    let availableAreas = learningAreasList;
-    let availableOutcomes = learningOutcomesList;
+    // Always try to load curriculum data to ensure we have the latest
+    console.log('Loading curriculum data for edit mode...');
+    const { areas, outcomes } = await loadCurriculumData();
     
-    if (learningAreasList.length === 0 || learningOutcomesList.length === 0) {
-      console.log('Curriculum data not loaded, loading now...');
-      const { areas, outcomes } = await loadCurriculumData();
-      availableAreas = areas;
-      availableOutcomes = outcomes;
-    }
+    // Use loaded data or fallback to existing state
+    const availableAreas = areas.length > 0 ? areas : learningAreasList;
+    const availableOutcomes = outcomes.length > 0 ? outcomes : learningOutcomesList;
 
     console.log('Using areas:', availableAreas.length);
     console.log('Using outcomes:', availableOutcomes.length);
