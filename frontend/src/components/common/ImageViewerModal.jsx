@@ -499,14 +499,19 @@ const ImageViewerModal = ({
     
     console.log('Current area codes:', currentAreaCodes);
     console.log('Current outcome codes:', currentOutcomeCodes);
+    console.log('Available areas for matching:', availableAreas.map(a => ({ value: a.value, label: a.label })));
     
-    const selectedAreasOptions = currentAreaCodes.map(code => 
-      availableAreas.find(a => a.value === code)
-    ).filter(Boolean);
+    const selectedAreasOptions = currentAreaCodes.map(code => {
+      const found = availableAreas.find(a => a.value === code);
+      console.log(`Looking for area code ${code}, found:`, found);
+      return found;
+    }).filter(Boolean);
     
-    const selectedOutcomesOptions = currentOutcomeCodes.map(code => 
-      availableOutcomes.find(o => o.value === code)
-    ).filter(Boolean);
+    const selectedOutcomesOptions = currentOutcomeCodes.map(code => {
+      const found = availableOutcomes.find(o => o.value === code);
+      console.log(`Looking for outcome code ${code}, found:`, found);
+      return found;
+    }).filter(Boolean);
     
     console.log('Selected areas for edit:', selectedAreasOptions);
     console.log('Selected outcomes for edit:', selectedOutcomesOptions);
@@ -710,7 +715,15 @@ const ImageViewerModal = ({
                           control: base => ({ ...base, backgroundColor: 'white', minHeight: '40px' }),
                           multiValue: base => ({ ...base, backgroundColor: '#3182ce', color: 'white' }),
                           multiValueLabel: base => ({ ...base, color: 'white' }),
-                          multiValueRemove: base => ({ ...base, color: 'white', ':hover': { backgroundColor: '#2c5aa0', color: 'white' } })
+                          multiValueRemove: base => ({ ...base, color: 'white', ':hover': { backgroundColor: '#2c5aa0', color: 'white' } }),
+                          option: (base, state) => ({
+                            ...base,
+                            color: state.isSelected ? 'white' : 'black',
+                            backgroundColor: state.isSelected ? '#3182ce' : state.isFocused ? '#f7fafc' : 'white'
+                          }),
+                          input: base => ({ ...base, color: 'black' }),
+                          placeholder: base => ({ ...base, color: 'gray' }),
+                          singleValue: base => ({ ...base, color: 'black' })
                         }}
                       />
                     )}
@@ -767,7 +780,15 @@ const ImageViewerModal = ({
                           control: base => ({ ...base, backgroundColor: 'white', minHeight: '40px' }),
                           multiValue: base => ({ ...base, backgroundColor: '#38a169', color: 'white' }),
                           multiValueLabel: base => ({ ...base, color: 'white' }),
-                          multiValueRemove: base => ({ ...base, color: 'white', ':hover': { backgroundColor: '#2f855a', color: 'white' } })
+                          multiValueRemove: base => ({ ...base, color: 'white', ':hover': { backgroundColor: '#2f855a', color: 'white' } }),
+                          option: (base, state) => ({
+                            ...base,
+                            color: state.isSelected ? 'white' : 'black',
+                            backgroundColor: state.isSelected ? '#38a169' : state.isFocused ? '#f7fafc' : 'white'
+                          }),
+                          input: base => ({ ...base, color: 'black' }),
+                          placeholder: base => ({ ...base, color: 'gray' }),
+                          singleValue: base => ({ ...base, color: 'black' })
                         }}
                       />
                     )}
