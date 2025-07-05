@@ -80,6 +80,49 @@ const ImageViewerModal = ({
   // Diagnostic log to confirm component mount
   console.log('ImageViewerModal mounted');
 
+  /**
+   * Helper function to detect and format old JSON descriptions
+   */
+  const formatDescription = (description) => {
+    if (!description || !description.trim()) {
+      return '';
+    }
+
+    // Check if the description looks like the old JSON format
+    if (description.includes('ai_question_') && description.includes('{')) {
+      try {
+        // Try to parse the JSON context
+        const contextMatch = description.match(/Context:\s*(\{.*\})/);
+        if (contextMatch) {
+          const contextJson = JSON.parse(contextMatch[1]);
+          
+          // Convert the JSON to readable format
+          const formattedAnswers = Object.entries(contextJson)
+            .filter(([key, value]) => value && value.trim())
+            .map(([key, value]) => {
+              // Clean up the question key
+              const questionNum = key.replace('ai_question_', '');
+              return `${value}`;
+            })
+            .join(', ');
+          
+          if (formattedAnswers) {
+            return `AI analyzed evidence showing: ${formattedAnswers}.`;
+          }
+        }
+        
+        // If we can't parse it properly, show a generic message
+        return 'Evidence analyzed by AI based on learning activity context.';
+      } catch (error) {
+        // If JSON parsing fails, show a generic message
+        return 'Evidence analyzed by AI based on learning activity context.';
+      }
+    }
+
+    // If it's not the old format, return as is
+    return description;
+  };
+
   const refreshToken = async () => {
     console.log('Refreshing token...');
     const { supabase } = await import('../../services/supabase');
@@ -419,6 +462,9 @@ const ImageViewerModal = ({
     return null;
   }
 
+  // Get formatted description
+  const displayDescription = formatDescription(image.description);
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} size="full" isCentered>
@@ -523,7 +569,7 @@ const ImageViewerModal = ({
                     />
                   </FormControl>
                 ) : (
-                  image.description && <Text fontSize="md" mt={1}>{image.description}</Text>
+                  displayDescription && <Text fontSize="md" mt={1}>{displayDescription}</Text>
                 )}
               </Box>
               <Box mt={3}>
