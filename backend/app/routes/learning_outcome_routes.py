@@ -172,6 +172,165 @@ async def get_batch_evidence(
         logger.error(f"Error fetching batch evidence: {str(e)}")
         return {}
 
+@router.post("/evidence/{student_id}")
+async def upload_evidence_multi_outcome(
+    student_id: str,
+    files: List[UploadFile] = File(...),
+    title: str = Form(...),
+    description: str = Form(""),
+    learning_outcome_codes: str = Form(...),  # Comma-separated codes
+    learning_area_codes: Optional[str] = Form(None),  # Comma-separated codes
+    location: Optional[str] = Form(None),
+    student_grade: Optional[str] = Form(None),
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Upload evidence linked to multiple learning outcomes.
+    """
+    # Verify user has content access to this student
+    await ensure_student_access(student_id, current_user, "content")
+    
+    db = Database.get_db()
+    resolved_student_id = await resolve_student_id(student_id, db)
+    
+    logger.info(f"Multi-outcome evidence upload - Student: {resolved_student_id}, Outcomes: {learning_outcome_codes}")
+    
+    # Parse comma-separated codes into arrays
+    outcome_codes = [code.strip() for code in learning_outcome_codes.split(',') if code.strip()]
+    area_codes = [code.strip() for code in learning_area_codes.split(',') if learning_area_codes] if learning_area_codes else []
+    
+    if not outcome_codes:
+        raise HTTPException(status_code=400, detail="At least one learning outcome code is required")
+    
+    logger.info(f"Parsed outcome codes: {outcome_codes}")
+    logger.info(f"Parsed area codes: {area_codes}")
+    
+    # Validate all outcome codes exist and get their ObjectIds
+    validated_obj_ids = []
+    for outcome_code in outcome_codes:
+        import re
+        code_pattern = re.compile(f"^{re.escape(outcome_code)}$", re.IGNORECASE)
+        outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+        
+        if not outcome:
+            logger.warning(f"Learning outcome not found: {outcome_code}. Creating auto-outcome.")
+            # Auto-create the learning outcome
+            try:
+                new_outcome = {
+                    "code": outcome_code,
+                    "name": f"Auto-created: {outcome_code}",
+                    "description": "Automatically created learning outcome for multi-outcome evidence upload",
+                    "subject_id": None,
+                    "grade_level": student_grade,
+                    "is_standard": True,
+                    "created_at": datetime.now()
+                }
+                
+                # Determine stage from grade if available
+                if student_grade:
+                    stage_mapping = {
+                        "Kindergarten": "Early Stage 1", "K": "Early Stage 1",
+                        "Year 1": "Stage 1", "Year 2": "Stage 1",
+                        "Year 3": "Stage 2", "Year 4": "Stage 2",
+                        "Year 5": "Stage 3", "Year 6": "Stage 3",
+                    }
+                    stage = stage_mapping.get(student_grade)
+                    if stage:
+                        new_outcome["stage"] = stage
+                
+                # Add learning area code if available
+                if area_codes:
+                    new_outcome["learning_area_code"] = area_codes[0]  # Use first area code
+                
+                insert_result = await db.learning_outcomes.insert_one(new_outcome)
+                validated_obj_ids.append(insert_result.inserted_id)
+                logger.info(f"Auto-created learning outcome: {outcome_code}")
+                
+            except Exception as e:
+                logger.error(f"Failed to auto-create learning outcome {outcome_code}: {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Learning outcome code '{outcome_code}' not found and could not be created")
+        else:
+            validated_obj_ids.append(outcome["_id"])
+            logger.info(f"Found existing learning outcome: {outcome_code}")
+    
+    # Upload files and create evidence documents
+    uploaded_files = []
+    
+    for file in files:
+        try:
+            logger.info(f"Processing file: {file.filename}")
+            
+            # Generate unique filename
+            file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+            unique_filename = f"{uuid.uuid4()}.{file_extension}"
+            
+            # Create file path for storage
+            file_path = f"students/{resolved_student_id}/evidence/{unique_filename}"
+            
+            # Upload file to storage
+            upload_result = await file_storage_service.upload_file(
+                file, 
+                file_path,
+                generate_thumbnails=True
+            )
+            
+            # Get URLs from upload result
+            original_url = upload_result.get("original_url", upload_result.get("file_url"))
+            thumbnail_url = upload_result.get("thumbnail_small_url")
+            
+            logger.info(f"File uploaded successfully to: {original_url}")
+            logger.info(f"Thumbnail generated at: {thumbnail_url}")
+            
+            # Create evidence document with new array-based schema
+            evidence_doc = {
+                "student_id": ObjectId(resolved_student_id),
+                "learning_outcome_codes": outcome_codes,  # Array of codes
+                "outcome_obj_ids": validated_obj_ids,     # Array of ObjectIds
+                "learning_area_codes": area_codes,        # Array of area codes
+                "location": location,
+                "file_path": file_path,
+                "file_type": file.content_type,
+                "file_size": file.size,
+                "original_filename": file.filename,
+                "thumbnail_path": file_path,
+                "file_url": original_url,
+                "thumbnail_url": thumbnail_url,
+                "title": title,
+                "description": description,
+                "uploaded_at": datetime.now(),
+                "uploaded_by": ObjectId(current_user.id),
+                "deleted": False
+            }
+            
+            # Insert the evidence document
+            collection = db["student_evidence"]
+            insert_result = await collection.insert_one(evidence_doc)
+            logger.info(f"Evidence record created with ID: {insert_result.inserted_id} for file {file.filename}")
+            
+            # Prepare response data
+            uploaded_files.append({
+                "id": str(insert_result.inserted_id),
+                "original_filename": file.filename,
+                "file_url": original_url,
+                "thumbnail_url": thumbnail_url,
+                "file_path": file_path,
+                "learning_outcome_codes": outcome_codes,
+                "learning_area_codes": area_codes
+            })
+            
+        except Exception as e:
+            logger.error(f"Error uploading file {file.filename}: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to upload file {file.filename}: {str(e)}")
+    
+    logger.info(f"Successfully uploaded {len(uploaded_files)} files with multi-outcome evidence")
+    
+    return {
+        "message": f"{len(uploaded_files)} file(s) uploaded successfully to {len(outcome_codes)} learning outcomes",
+        "uploaded_files": uploaded_files,
+        "learning_outcome_codes": outcome_codes,
+        "total_outcomes": len(outcome_codes)
+    }
+
 # Utility function to resolve student_id as ObjectId or slug
 async def resolve_student_id(student_id_or_slug, db):
     try:

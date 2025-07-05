@@ -742,6 +742,71 @@ export const uploadEvidence = async (studentId, learningOutcomeId, formData) => 
   }
 };
 
+// New function for uploading evidence to multiple outcomes
+export const uploadEvidenceMultiOutcome = async (studentId, formData) => {
+  try {
+    // Log FormData contents for debugging
+    console.log('--- FormData for Multi-Outcome Evidence Upload ---');
+    for (let [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
+      } else {
+        console.log(`${key}: ${value}`);
+      }
+    }
+    console.log('---------------------------------');
+    
+    console.log(`Sending request to /api/evidence/${studentId}`);
+    console.log('API base URL:', apiToUse.defaults.baseURL);
+
+    // Use the new multi-outcome endpoint
+    const response = await apiToUse.post(
+      `/api/evidence/${studentId}`, 
+      formData, 
+      {
+        headers: {
+          // Let browser set Content-Type for FormData
+          'Content-Type': null, 
+        },
+      }
+    );
+    
+    console.log('Multi-Outcome Evidence Upload Response:', response.data);
+    
+    // Transform the response data to match the expected format
+    const transformedData = {
+      ...response.data,
+      uploaded_files: response.data.uploaded_files.map(file => ({
+        ...file,
+        original_url: file.file_url,
+        thumbnail_small_url: file.thumbnail_url ? `${file.thumbnail_url}?width=150&height=150&quality=80` : null,
+        thumbnail_medium_url: file.thumbnail_url ? `${file.thumbnail_url}?width=600&height=450&quality=85` : null,
+        thumbnail_large_url: file.thumbnail_url ? `${file.thumbnail_url}?width=800&height=600&quality=85` : null
+      }))
+    };
+    
+    return transformedData;
+  } catch (error) {
+    console.error('Error uploading multi-outcome evidence:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL
+      }
+    });
+    
+    if (error.response?.data) {
+      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
+    }
+    
+    throw error; // Re-throw for component handling
+  }
+};
+
 export const updateEvidence = async (studentId, learningOutcomeId, evidenceId, data) => {
   try {
     const response = await apiToUse.patch(

@@ -30,7 +30,7 @@ import {
 import { ArrowLeft, Upload, Zap, CheckCircle } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStudents } from '../../contexts/StudentsContext'
-import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence } from '../../services/api'
+import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence, uploadEvidenceMultiOutcome } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
 import ResponsiveImage from '../../components/common/ResponsiveImage'
 
@@ -274,29 +274,12 @@ const AIEvidenceUploadPage = () => {
         answers: questionAnswers
       })
 
-      // For now, we'll upload to the first selected outcome or create a general evidence entry
-      // TODO: Modify the backend to support multiple outcomes per evidence upload
-      const primaryOutcomeCode = selectedOutcomes[0]
-      let learningOutcomeId = null
-
-      if (primaryOutcomeCode && curriculumData) {
-        // Find the learning outcome details
-        for (const area of curriculumData.learning_areas || []) {
-          const outcome = area.outcomes?.find(o => o.code === primaryOutcomeCode)
-          if (outcome) {
-            learningOutcomeId = outcome.code // Use the code as the ID for now
-            break
-          }
-        }
-      }
-
-      if (!learningOutcomeId) {
-        // If no outcome selected or found, we need to handle this case
-        // For now, show an error - in the future we might create general evidence
+      // Use ALL selected outcomes with new multi-outcome endpoint
+      if (selectedOutcomes.length === 0) {
         throw new Error('Please select at least one learning outcome to proceed')
       }
 
-      // Create FormData for evidence upload
+      // Create FormData for multi-outcome evidence upload
       const formData = new FormData()
       
       // Add files
@@ -304,22 +287,22 @@ const AIEvidenceUploadPage = () => {
         formData.append('files', file)
       })
       
-      // Add metadata
+      // Add metadata with ALL selected outcomes
       formData.append('title', `AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
       formData.append('description', `Evidence analyzed by AI. Context: ${JSON.stringify(questionAnswers)}`)
-      formData.append('learning_area_code', primaryOutcomeCode.split('-')[0]) // Extract area code
-      formData.append('learning_outcome_code', primaryOutcomeCode)
+      formData.append('learning_outcome_codes', selectedOutcomes.join(',')) // All outcomes as comma-separated
+      formData.append('learning_area_codes', selectedOutcomes.map(code => code.split('-')[0]).join(',')) // Extract area codes
       
       if (student?.grade_level) {
         formData.append('student_grade', student.grade_level)
       }
 
-      // Upload evidence
-      const result = await uploadEvidence(studentId, learningOutcomeId, formData)
+      // Upload evidence using new multi-outcome endpoint
+      const result = await uploadEvidenceMultiOutcome(studentId, formData)
 
       toast({
         title: 'Evidence uploaded successfully',
-        description: `Uploaded ${selectedFiles.length} file(s) with AI analysis`,
+        description: `Uploaded ${selectedFiles.length} file(s) to ${selectedOutcomes.length} learning outcome(s) with AI analysis`,
         status: 'success',
         duration: 5000,
         isClosable: true,

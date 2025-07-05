@@ -122,7 +122,8 @@ class LearningOutcomeService:
         # Get student's evidence for this outcome
         evidence_list = await db.student_evidence.find({
             "student_id": ObjectId(student_id),
-            "learning_outcome_id": outcome["_id"]
+            "outcome_obj_ids": {"$in": [outcome["_id"]]},
+            "deleted": {"$ne": True}
         }).to_list(None)
         
         # Convert evidence to serializable format
@@ -238,30 +239,12 @@ class LearningOutcomeService:
                 else:
                     logger.info(f"No learning outcome found with code: {learning_outcome_id}")
             
-            # Build a query that will match evidence regardless of how it was stored
+            # Build a query that will match evidence using new array-based schema
             query = {
                 "student_id": student_obj_id,
+                "learning_outcome_codes": {"$in": [outcome_code]},
+                "deleted": {"$ne": True}
             }
-            
-            # Add conditions to match either by ObjectId or by code string
-            id_conditions = []
-            if outcome_obj_id:
-                id_conditions.append({"learning_outcome_id": outcome_obj_id})
-            id_conditions.append({"learning_outcome_id": outcome_code})
-            id_conditions.append({"learning_outcome_code": outcome_code})
-            
-            # Combine deletion filter AND learning outcome conditions properly
-            query["$and"] = [
-                {
-                    "$or": [
-                        {"deleted": {"$exists": False}},
-                        {"deleted": False}
-                    ]
-                },
-                {
-                    "$or": id_conditions
-                }
-            ]
             
             logger.info(f"Querying evidence with: {query}")
             evidence = await db.student_evidence.find(query).to_list(None)
@@ -372,34 +355,11 @@ class LearningOutcomeService:
             
             logger.info(f"Fetching batch evidence for student {student_obj_id} and {len(learning_outcome_codes)} outcomes")
             
-            # Convert all outcome codes to a list of possible ObjectIds and string codes
-            outcome_conditions = []
-            for outcome_code in learning_outcome_codes:
-                try:
-                    # Try to convert to ObjectId if it's a valid ObjectId
-                    outcome_obj_id = ObjectId(outcome_code)
-                    outcome_conditions.append({"learning_outcome_id": outcome_obj_id})
-                    outcome_conditions.append({"outcome_obj_id": outcome_obj_id})
-                except:
-                    # Otherwise, use it as a string code
-                    pass
-                
-                # Always add the string code conditions
-                outcome_conditions.append({"learning_outcome_id": outcome_code})
-                outcome_conditions.append({"learning_outcome_code": outcome_code})
-            
-            # Build query to find all evidence for this student and the requested outcomes
+            # Build query to find all evidence for this student and the requested outcomes using new array-based schema
             query = {
                 "student_id": student_obj_id,
-                "$or": outcome_conditions,
-                "$and": [
-                    {
-                        "$or": [
-                            {"deleted": {"$exists": False}},
-                            {"deleted": False}
-                        ]
-                    }
-                ]
+                "learning_outcome_codes": {"$in": learning_outcome_codes},
+                "deleted": {"$ne": True}
             }
             
             logger.info(f"Querying evidence with: {query}")
@@ -412,22 +372,14 @@ class LearningOutcomeService:
             # Group by outcome code and find the latest for each
             outcome_to_evidence = {}
             for evidence in evidence_items:
-                # Get the outcome code (prefer learning_outcome_code if available)
-                outcome_code = evidence.get("learning_outcome_code", evidence.get("learning_outcome_id"))
+                # Get the outcome codes from the new array field
+                outcome_codes = evidence.get("learning_outcome_codes", [])
                 
-                # Skip if we can't determine the outcome code
-                if not outcome_code:
+                # Skip if we can't determine the outcome codes
+                if not outcome_codes:
                     continue
                 
-                # Convert ObjectId to string if needed
-                if isinstance(outcome_code, ObjectId):
-                    outcome_code = str(outcome_code)
-                
-                # Skip if this outcome wasn't in our request list
-                if outcome_code not in learning_outcome_codes:
-                    continue
-                
-                # Convert to serializable format
+                # Convert to serializable format first
                 serialized_item = {}
                 for k, v in evidence.items():
                     if isinstance(v, ObjectId):
@@ -444,15 +396,25 @@ class LearningOutcomeService:
                 if "thumbnail_url" in serialized_item and "thumbnailUrl" not in serialized_item:
                     serialized_item["thumbnailUrl"] = serialized_item["thumbnail_url"]
                 
-                # Determine if this is the latest evidence for this outcome
+                # Get timestamp for comparison
                 current_timestamp = serialized_item.get("uploaded_at")
                 if not current_timestamp:
                     continue
                 
-                # If we don't have an item for this outcome yet, or this one is newer
-                if (outcome_code not in outcome_to_evidence or 
-                    current_timestamp > outcome_to_evidence[outcome_code].get("uploaded_at", "")):
-                    outcome_to_evidence[outcome_code] = serialized_item
+                # Process each outcome code this evidence is associated with
+                for outcome_code in outcome_codes:
+                    # Convert ObjectId to string if needed
+                    if isinstance(outcome_code, ObjectId):
+                        outcome_code = str(outcome_code)
+                    
+                    # Skip if this outcome wasn't in our request list
+                    if outcome_code not in learning_outcome_codes:
+                        continue
+                    
+                    # If we don't have an item for this outcome yet, or this one is newer
+                    if (outcome_code not in outcome_to_evidence or 
+                        current_timestamp > outcome_to_evidence[outcome_code].get("uploaded_at", "")):
+                        outcome_to_evidence[outcome_code] = serialized_item
             
             return outcome_to_evidence
         except Exception as e:
@@ -493,22 +455,12 @@ class LearningOutcomeService:
                 else:
                     logger.info(f"No learning outcome found with code: {learning_outcome_id}")
             
-            # Build a query that will match evidence regardless of how it was stored
+            # Build a query that will match evidence using new array-based schema
             query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
+                "learning_outcome_codes": {"$in": [learning_outcome_id]}
             }
-            
-            # Add conditions to match either by ObjectId or by code string
-            id_conditions = []
-            if outcome_obj_id:
-                id_conditions.append({"learning_outcome_id": outcome_obj_id})
-                id_conditions.append({"outcome_obj_id": outcome_obj_id})
-            id_conditions.append({"learning_outcome_id": learning_outcome_id})
-            id_conditions.append({"learning_outcome_code": learning_outcome_id})
-            
-            if id_conditions:
-                query["$or"] = id_conditions
                 
             logger.info(f"Querying evidence with: {query}")
             
@@ -553,41 +505,12 @@ class LearningOutcomeService:
             
             logger.info(f"Generating download URL: student_id={student_id}, learning_outcome_id={learning_outcome_id}, evidence_id={evidence_id}")
             
-            # Try to find outcome by ObjectId first
-            outcome_obj_id = None
-            try:
-                outcome_obj_id = ObjectId(learning_outcome_id)
-                logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
-            except:
-                outcome_obj_id = None
-                logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
-                
-                # If conversion fails, look up by code (case-insensitive)
-                import re
-                code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
-                outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
-                if outcome:
-                    outcome_obj_id = outcome["_id"]
-                    logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
-                else:
-                    logger.info(f"No learning outcome found with code: {learning_outcome_id}")
-            
-            # Build a query that will match evidence regardless of how it was stored
+            # Build a query that will match evidence using new array-based schema
             query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
+                "learning_outcome_codes": {"$in": [learning_outcome_id]}
             }
-            
-            # Add conditions to match either by ObjectId or by code string
-            id_conditions = []
-            if outcome_obj_id:
-                id_conditions.append({"learning_outcome_id": outcome_obj_id})
-                id_conditions.append({"outcome_obj_id": outcome_obj_id})
-            id_conditions.append({"learning_outcome_id": learning_outcome_id})
-            id_conditions.append({"learning_outcome_code": learning_outcome_id})
-            
-            if id_conditions:
-                query["$or"] = id_conditions
                 
             logger.info(f"Querying evidence with: {query}")
             
@@ -647,41 +570,12 @@ class LearningOutcomeService:
             
             logger.info(f"Generating share URL: student_id={student_id}, learning_outcome_id={learning_outcome_id}, evidence_id={evidence_id}")
             
-            # Try to find outcome by ObjectId first
-            outcome_obj_id = None
-            try:
-                outcome_obj_id = ObjectId(learning_outcome_id)
-                logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
-            except:
-                outcome_obj_id = None
-                logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
-                
-                # If conversion fails, look up by code (case-insensitive)
-                import re
-                code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
-                outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
-                if outcome:
-                    outcome_obj_id = outcome["_id"]
-                    logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
-                else:
-                    logger.info(f"No learning outcome found with code: {learning_outcome_id}")
-            
-            # Build a query that will match evidence regardless of how it was stored
+            # Build a query that will match evidence using new array-based schema
             query = {
                 "_id": evidence_obj_id,
                 "student_id": student_obj_id,
+                "learning_outcome_codes": {"$in": [learning_outcome_id]}
             }
-            
-            # Add conditions to match either by ObjectId or by code string
-            id_conditions = []
-            if outcome_obj_id:
-                id_conditions.append({"learning_outcome_id": outcome_obj_id})
-                id_conditions.append({"outcome_obj_id": outcome_obj_id})
-            id_conditions.append({"learning_outcome_id": learning_outcome_id})
-            id_conditions.append({"learning_outcome_code": learning_outcome_id})
-            
-            if id_conditions:
-                query["$or"] = id_conditions
                 
             logger.info(f"Querying evidence with: {query}")
             
@@ -733,22 +627,40 @@ class LearningOutcomeService:
         db = Database.get_db()
         from bson import ObjectId
 
-        # If learning_outcome_code is being updated, look up the new outcome
+        # If learning_outcome_codes is being updated, validate the new outcome codes
+        if 'learning_outcome_codes' in update_data:
+            new_codes = update_data['learning_outcome_codes']
+            if not isinstance(new_codes, list):
+                raise HTTPException(status_code=400, detail="learning_outcome_codes must be a list")
+            
+            # Validate all outcome codes exist and get their ObjectIds
+            outcome_obj_ids = []
+            for code in new_codes:
+                import re
+                code_pattern = re.compile(f"^{re.escape(code)}$", re.IGNORECASE)
+                outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+                if not outcome:
+                    raise HTTPException(status_code=400, detail=f"Learning outcome code '{code}' not found")
+                outcome_obj_ids.append(outcome['_id'])
+            
+            update_data['outcome_obj_ids'] = outcome_obj_ids
+            
+        # Handle legacy single field updates
         if 'learning_outcome_code' in update_data:
             new_code = update_data['learning_outcome_code']
+            update_data['learning_outcome_codes'] = [new_code]
             import re
             code_pattern = re.compile(f"^{re.escape(new_code)}$", re.IGNORECASE)
             outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
             if not outcome:
                 raise HTTPException(status_code=400, detail="Learning outcome code not found")
-            update_data['learning_outcome_id'] = new_code  # Keep both fields in sync
-            update_data['outcome_obj_id'] = outcome['_id']
+            update_data['outcome_obj_ids'] = [outcome['_id']]
 
-        # Build the query to match the evidence
+        # Build the query to match the evidence using new array-based schema
         query = {
             "_id": ObjectId(evidence_id),
             "student_id": ObjectId(student_id),
-            "learning_outcome_id": learning_outcome_id
+            "learning_outcome_codes": {"$in": [learning_outcome_id]}
         }
         # Only update provided fields
         result = await db.student_evidence.update_one(query, {"$set": update_data})
