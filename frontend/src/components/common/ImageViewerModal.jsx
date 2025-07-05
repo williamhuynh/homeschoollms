@@ -392,6 +392,7 @@ const ImageViewerModal = ({
       }));
       
       console.log('Formatted areas:', formattedAreas);
+      console.log('Subject codes in curriculum:', subjects.map(s => s.code));
       setLearningAreasList(formattedAreas);
       setIsLoadingAreas(false);
 
@@ -515,9 +516,29 @@ const ImageViewerModal = ({
     console.log('Unique area codes:', uniqueAreaCodes);
     console.log('Current outcome codes:', currentOutcomeCodes);
     console.log('Available areas for matching:', availableAreas.map(a => ({ value: a.value, label: a.label })));
+    console.log('All available area codes:', availableAreas.map(a => a.value));
     
     const selectedAreasOptions = uniqueAreaCodes.map(code => {
-      const found = availableAreas.find(a => a.value === code);
+      // First try direct match
+      let found = availableAreas.find(a => a.value === code);
+      
+      // If not found, try to find subject by outcome prefix
+      // (e.g., ENE outcomes are in ENG subject)
+      if (!found) {
+        console.log(`Direct match failed for ${code}, trying outcome prefix match...`);
+        found = availableAreas.find(a => {
+          // Check if this subject contains outcomes that start with the code prefix
+          if (a.subject && a.subject.outcomes) {
+            const hasMatchingOutcomes = a.subject.outcomes.some(outcome => 
+              outcome.code.startsWith(code + '-')
+            );
+            console.log(`Subject ${a.subject.code} has outcomes starting with ${code}-:`, hasMatchingOutcomes);
+            return hasMatchingOutcomes;
+          }
+          return false;
+        });
+      }
+      
       console.log(`Looking for area code ${code}, found:`, found);
       return found;
     }).filter(Boolean);
