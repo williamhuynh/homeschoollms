@@ -18,6 +18,7 @@ import {
   Box,
   Text,
   FormControl,
+  FormLabel,
   FormErrorMessage,
   Input,
   Textarea,
@@ -64,8 +65,8 @@ const ImageViewerModal = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editLearningArea, setEditLearningArea] = useState(null);
-  const [editLearningOutcome, setEditLearningOutcome] = useState(null);
+  const [editLearningAreas, setEditLearningAreas] = useState([]);
+  const [editLearningOutcomes, setEditLearningOutcomes] = useState([]);
   const [learningAreasList, setLearningAreasList] = useState([]);
   const [learningOutcomesList, setLearningOutcomesList] = useState([]);
   const [isLoadingAreas, setIsLoadingAreas] = useState(false);
@@ -387,11 +388,12 @@ const ImageViewerModal = ({
       setIsEditing(false);
       setEditErrors({});
       setEditTitle(image?.title || image?.file_name || '');
-      setEditDescription(image?.description || '');
-      setEditLearningArea(null);
-      setEditLearningOutcome(null);
+      // Use the formatted description, not the raw one
+      setEditDescription(formatDescription(image?.description) || '');
+      setEditLearningAreas([]);
+      setEditLearningOutcomes([]);
     }
-  }, [isOpen]);
+  }, [isOpen, image]);
 
   const findAreaOption = (code, list) => list.find(a => a.value === code) || null;
   const findOutcomeOption = (code, list) => list.find(o => o.value === code) || null;
@@ -399,12 +401,25 @@ const ImageViewerModal = ({
   const startEdit = async () => {
     setIsEditing(true);
     setEditTitle(image.title || image.file_name || '');
-    setEditDescription(image.description || '');
+    // Use the formatted description, not the raw one
+    setEditDescription(formatDescription(image.description) || '');
     setEditErrors({});
     setIsSaving(false);
 
-    setEditLearningArea(selectedLearningArea);
-    setEditLearningOutcome(selectedLearningOutcome);
+    // Populate multi-select arrays with current values
+    const currentAreaCodes = image.learning_area_codes || (image.learning_area_code ? [image.learning_area_code] : []);
+    const currentOutcomeCodes = image.learning_outcome_codes || (image.learning_outcome_code ? [image.learning_outcome_code] : []);
+    
+    const selectedAreasOptions = currentAreaCodes.map(code => 
+      learningAreasList.find(a => a.value === code)
+    ).filter(Boolean);
+    
+    const selectedOutcomesOptions = currentOutcomeCodes.map(code => 
+      learningOutcomesList.find(o => o.value === code)
+    ).filter(Boolean);
+    
+    setEditLearningAreas(selectedAreasOptions);
+    setEditLearningOutcomes(selectedOutcomesOptions);
   };
 
   const cancelEdit = () => {
@@ -415,8 +430,8 @@ const ImageViewerModal = ({
   const validateEdit = () => {
     const errors = {};
     if (!editTitle.trim()) errors.title = 'Title is required';
-    if (!editLearningArea) errors.learningArea = 'Learning Area is required';
-    if (!editLearningOutcome) errors.learningOutcome = 'Learning Outcome is required';
+    if (editLearningAreas.length === 0) errors.learningAreas = 'At least one Learning Area is required';
+    if (editLearningOutcomes.length === 0) errors.learningOutcomes = 'At least one Learning Outcome is required';
     setEditErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -428,8 +443,8 @@ const ImageViewerModal = ({
       const payload = {
         title: editTitle,
         description: editDescription,
-        learning_area_code: editLearningArea?.value,
-        learning_outcome_code: editLearningOutcome?.value,
+        learning_area_codes: editLearningAreas.map(area => area.value),
+        learning_outcome_codes: editLearningOutcomes.map(outcome => outcome.value),
       };
       const updated = await updateEvidence(
         studentId,
@@ -442,10 +457,12 @@ const ImageViewerModal = ({
         image.title = updated.title;
         image.description = updated.description;
         // Update both old and new field formats for compatibility
-        image.learning_area_code = updated.learning_area_code;
-        image.learning_area_codes = updated.learning_area_code ? [updated.learning_area_code] : [];
-        image.learning_outcome_code = updated.learning_outcome_code;
-        image.learning_outcome_codes = updated.learning_outcome_code ? [updated.learning_outcome_code] : [];
+        image.learning_area_codes = updated.learning_area_codes || [];
+        image.learning_area_code = updated.learning_area_codes?.[0] || null;
+        image.learning_outcome_codes = updated.learning_outcome_codes || [];
+        image.learning_outcome_code = updated.learning_outcome_codes?.[0] || null;
+        // Clear cached outcome details so they refresh from server
+        image.learning_outcome_details = null;
       }
       setIsEditing(false);
       toast({
@@ -581,22 +598,50 @@ const ImageViewerModal = ({
                   displayDescription && <Text fontSize="md" mt={1}>{displayDescription}</Text>
                 )}
               </Box>
-              <Box mt={3}>
+                            <Box mt={3}>
                 {isEditing ? (
-                  <FormControl isInvalid={!!editErrors.learningArea} isRequired>
+                  <FormControl isInvalid={!!editErrors.learningAreas} isRequired>
+                    <FormLabel fontSize="sm" color="white">Learning Areas</FormLabel>
                     {isLoadingAreas ? <Spinner size="sm" /> : (
-                      <Select
-                        options={learningAreasList}
-                        value={editLearningArea}
-                        onChange={option => setEditLearningArea(option)}
-                        placeholder="Select a learning area..."
-                        isClearable
-                        isSearchable
-                        classNamePrefix="react-select"
-                        styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
-                      />
+                      <>
+                        <Select
+                          options={learningAreasList}
+                          value={null}
+                          onChange={option => {
+                            if (option && !editLearningAreas.find(area => area.value === option.value)) {
+                              setEditLearningAreas([...editLearningAreas, option]);
+                            }
+                          }}
+                          placeholder="Add a learning area..."
+                          isSearchable
+                          classNamePrefix="react-select"
+                          styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
+                        />
+                        <Box mt={2}>
+                          <Flex wrap="wrap" gap={2}>
+                            {editLearningAreas.map((area, index) => (
+                              <Badge 
+                                key={index} 
+                                colorScheme="blue" 
+                                variant="solid"
+                                fontSize="xs"
+                                px={2}
+                                py={1}
+                                cursor="pointer"
+                                onClick={() => setEditLearningAreas(editLearningAreas.filter((_, i) => i !== index))}
+                                title="Click to remove"
+                              >
+                                {area.subject.name} ×
+                              </Badge>
+                            ))}
+                            {editLearningAreas.length === 0 && (
+                              <Text fontSize="xs" color="gray.400">No areas selected</Text>
+                            )}
+                          </Flex>
+                        </Box>
+                      </>
                     )}
-                    {editErrors.learningArea && <FormErrorMessage>{editErrors.learningArea}</FormErrorMessage>}
+                    {editErrors.learningAreas && <FormErrorMessage>{editErrors.learningAreas}</FormErrorMessage>}
                   </FormControl>
                 ) : (
                   <Box>
@@ -604,10 +649,13 @@ const ImageViewerModal = ({
                     <Flex wrap="wrap" gap={2}>
                       {(() => {
                         const areaCodes = image.learning_area_codes || (image.learning_area_code ? [image.learning_area_code] : []);
-                        if (areaCodes.length === 0) {
+                        // Remove duplicates by converting to Set and back to Array
+                        const uniqueAreaCodes = [...new Set(areaCodes)];
+                        
+                        if (uniqueAreaCodes.length === 0) {
                           return <Badge colorScheme="gray" variant="subtle">No areas specified</Badge>;
                         }
-                        return areaCodes.map((areaCode, index) => {
+                        return uniqueAreaCodes.map((areaCode, index) => {
                           const areaOption = learningAreasList.find(a => a.value === areaCode);
                           return (
                             <Badge 
@@ -629,30 +677,96 @@ const ImageViewerModal = ({
               </Box>
               <Box mt={3}>
                 {isEditing ? (
-                  <FormControl isInvalid={!!editErrors.learningOutcome} isRequired>
+                  <FormControl isInvalid={!!editErrors.learningOutcomes} isRequired>
+                    <FormLabel fontSize="sm" color="white">Learning Outcomes</FormLabel>
                     {isLoadingOutcomes ? <Spinner size="sm" /> : (
-                      <Select
-                        options={learningOutcomesList}
-                        value={editLearningOutcome}
-                        onChange={option => setEditLearningOutcome(option)}
-                        placeholder="Select a learning outcome..."
-                        isClearable
-                        isSearchable
-                        classNamePrefix="react-select"
-                        styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
-                      />
+                      <>
+                        <Select
+                          options={learningOutcomesList}
+                          value={null}
+                          onChange={option => {
+                            if (option && !editLearningOutcomes.find(outcome => outcome.value === option.value)) {
+                              setEditLearningOutcomes([...editLearningOutcomes, option]);
+                            }
+                          }}
+                          placeholder="Add a learning outcome..."
+                          isSearchable
+                          classNamePrefix="react-select"
+                          styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
+                        />
+                        <Box mt={2}>
+                          <VStack spacing={2} align="stretch">
+                            {editLearningOutcomes.map((outcome, index) => (
+                              <Box 
+                                key={index}
+                                bg="whiteAlpha.100"
+                                p={2}
+                                borderRadius="md"
+                                borderLeft="4px solid"
+                                borderLeftColor="green.400"
+                                position="relative"
+                                cursor="pointer"
+                                onClick={() => setEditLearningOutcomes(editLearningOutcomes.filter((_, i) => i !== index))}
+                                title="Click to remove"
+                                _hover={{ bg: 'whiteAlpha.200' }}
+                              >
+                                <Text fontSize="xs" fontWeight="bold" color="green.300" mb={1}>
+                                  {outcome.value} ×
+                                </Text>
+                                <Text fontSize="sm" color="white" lineHeight="1.3" noOfLines={2}>
+                                  {outcome.outcome.name}
+                                </Text>
+                              </Box>
+                            ))}
+                            {editLearningOutcomes.length === 0 && (
+                              <Text fontSize="xs" color="gray.400">No outcomes selected</Text>
+                            )}
+                          </VStack>
+                        </Box>
+                      </>
                     )}
-                    {editErrors.learningOutcome && <FormErrorMessage>{editErrors.learningOutcome}</FormErrorMessage>}
+                    {editErrors.learningOutcomes && <FormErrorMessage>{editErrors.learningOutcomes}</FormErrorMessage>}
                   </FormControl>
                 ) : (
                   <Box>
                     <Text fontSize="sm" fontWeight="semibold" mb={2} color="gray.300">Learning Outcomes</Text>
                     <VStack spacing={2} align="stretch">
                       {(() => {
+                        // Use the rich outcome details from backend if available, otherwise fallback to codes
+                        const outcomeDetails = image.learning_outcome_details || [];
                         const outcomeCodes = image.learning_outcome_codes || (image.learning_outcome_code ? [image.learning_outcome_code] : []);
-                        if (outcomeCodes.length === 0) {
+                        
+                        if (outcomeDetails.length === 0 && outcomeCodes.length === 0) {
                           return <Badge colorScheme="gray" variant="subtle">No outcomes specified</Badge>;
                         }
+                        
+                        // If we have rich details, use them
+                        if (outcomeDetails.length > 0) {
+                          return outcomeDetails.map((outcome, index) => (
+                            <Box 
+                              key={index}
+                              bg="whiteAlpha.100"
+                              p={3}
+                              borderRadius="md"
+                              borderLeft="4px solid"
+                              borderLeftColor="green.400"
+                            >
+                              <Text fontSize="xs" fontWeight="bold" color="green.300" mb={1}>
+                                {outcome.code}
+                              </Text>
+                              <Text fontSize="sm" color="white" lineHeight="1.3">
+                                {outcome.name || 'Learning outcome'}
+                              </Text>
+                              {outcome.description && (
+                                <Text fontSize="xs" color="gray.400" mt={1} noOfLines={2}>
+                                  {outcome.description}
+                                </Text>
+                              )}
+                            </Box>
+                          ));
+                        }
+                        
+                        // Fallback to old logic for backward compatibility
                         return outcomeCodes.map((outcomeCode, index) => {
                           const outcomeOption = learningOutcomesList.find(o => o.value === outcomeCode);
                           return (

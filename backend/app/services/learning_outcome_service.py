@@ -284,6 +284,44 @@ class LearningOutcomeService:
                 elif 'learning_outcome_code' in item:
                     serialized_item['learning_outcome_code'] = item['learning_outcome_code']
                 
+                # Fetch learning outcome details from database for rich display
+                outcome_details = []
+                outcome_codes = item.get('learning_outcome_codes', [])
+                if outcome_codes:
+                    for outcome_code in outcome_codes:
+                        try:
+                            import re
+                            code_pattern = re.compile(f"^{re.escape(outcome_code)}$", re.IGNORECASE)
+                            outcome_doc = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+                            if outcome_doc:
+                                outcome_details.append({
+                                    "code": outcome_doc.get("code", outcome_code),
+                                    "name": outcome_doc.get("name", ""),
+                                    "description": outcome_doc.get("description", ""),
+                                    "stage": outcome_doc.get("stage", ""),
+                                    "grade_level": outcome_doc.get("grade_level", "")
+                                })
+                            else:
+                                # Fallback for missing outcomes
+                                outcome_details.append({
+                                    "code": outcome_code,
+                                    "name": "Learning outcome not found",
+                                    "description": "This learning outcome was not found in the database",
+                                    "stage": "",
+                                    "grade_level": ""
+                                })
+                        except Exception as e:
+                            logger.warning(f"Error fetching outcome details for {outcome_code}: {str(e)}")
+                            outcome_details.append({
+                                "code": outcome_code,
+                                "name": "Error loading outcome",
+                                "description": "Unable to load outcome details",
+                                "stage": "",
+                                "grade_level": ""
+                            })
+                
+                serialized_item['learning_outcome_details'] = outcome_details
+                
                 # Handle file paths for Cloudinary or Backblaze
                 if "file_path" in serialized_item:
                     file_path = serialized_item["file_path"]
@@ -434,6 +472,44 @@ class LearningOutcomeService:
                     serialized_item['learning_outcome_code'] = evidence['learning_outcome_codes'][0]
                 elif 'learning_outcome_code' in evidence:
                     serialized_item['learning_outcome_code'] = evidence['learning_outcome_code']
+                
+                # Fetch learning outcome details from database for rich display
+                outcome_details = []
+                outcome_codes = evidence.get('learning_outcome_codes', [])
+                if outcome_codes:
+                    for outcome_code in outcome_codes:
+                        try:
+                            import re
+                            code_pattern = re.compile(f"^{re.escape(outcome_code)}$", re.IGNORECASE)
+                            outcome_doc = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
+                            if outcome_doc:
+                                outcome_details.append({
+                                    "code": outcome_doc.get("code", outcome_code),
+                                    "name": outcome_doc.get("name", ""),
+                                    "description": outcome_doc.get("description", ""),
+                                    "stage": outcome_doc.get("stage", ""),
+                                    "grade_level": outcome_doc.get("grade_level", "")
+                                })
+                            else:
+                                # Fallback for missing outcomes
+                                outcome_details.append({
+                                    "code": outcome_code,
+                                    "name": "Learning outcome not found",
+                                    "description": "This learning outcome was not found in the database",
+                                    "stage": "",
+                                    "grade_level": ""
+                                })
+                        except Exception as e:
+                            logger.warning(f"Error fetching outcome details for {outcome_code}: {str(e)}")
+                            outcome_details.append({
+                                "code": outcome_code,
+                                "name": "Error loading outcome",
+                                "description": "Unable to load outcome details",
+                                "stage": "",
+                                "grade_level": ""
+                            })
+                
+                serialized_item['learning_outcome_details'] = outcome_details
                 
                 # Get timestamp for comparison
                 current_timestamp = serialized_item.get("uploaded_at")
@@ -707,6 +783,13 @@ class LearningOutcomeService:
             if not outcome:
                 raise HTTPException(status_code=400, detail="Learning outcome code not found")
             update_data['outcome_obj_ids'] = [outcome['_id']]
+        
+        # Handle learning area codes updates
+        if 'learning_area_codes' in update_data:
+            area_codes = update_data['learning_area_codes']
+            if not isinstance(area_codes, list):
+                raise HTTPException(status_code=400, detail="learning_area_codes must be a list")
+            # Just store the codes directly - no need to validate against curriculum as they can be auto-created
 
         # Build the query to match the evidence using new array-based schema (case-insensitive)
         import re
