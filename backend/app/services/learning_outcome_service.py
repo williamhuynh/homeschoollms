@@ -241,10 +241,6 @@ class LearningOutcomeService:
             # Build a query that will match evidence regardless of how it was stored
             query = {
                 "student_id": student_obj_id,
-                "$or": [
-                    {"deleted": {"$exists": False}},
-                    {"deleted": False}
-                ]
             }
             
             # Add conditions to match either by ObjectId or by code string
@@ -254,7 +250,18 @@ class LearningOutcomeService:
             id_conditions.append({"learning_outcome_id": outcome_code})
             id_conditions.append({"learning_outcome_code": outcome_code})
             
-            query["$or"] = id_conditions
+            # Combine deletion filter AND learning outcome conditions properly
+            query["$and"] = [
+                {
+                    "$or": [
+                        {"deleted": {"$exists": False}},
+                        {"deleted": False}
+                    ]
+                },
+                {
+                    "$or": id_conditions
+                }
+            ]
             
             logger.info(f"Querying evidence with: {query}")
             evidence = await db.student_evidence.find(query).to_list(None)

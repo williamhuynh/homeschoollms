@@ -80,74 +80,25 @@ const ImageGallery = ({
   // Calculate aspect ratio from width/height if provided
   const effectiveAspectRatio = (width && height) ? width / height : aspectRatio;
   
-  // DEBUG: Add comprehensive logging to track the processing chain
-  console.log('ImageGallery DEBUG - Raw images received:', images.length, images);
-  
-  const filteredImages = images.filter(image => !image.deleted);
-  console.log('ImageGallery DEBUG - After filter (remove deleted):', filteredImages.length, filteredImages.map(img => ({
-    id: img.id || img._id,
-    deleted: img.deleted,
-    hasFileUrl: !!(img.fileUrl || img.file_url)
-  })));
-  
-  const slicedImages = filteredImages.slice();
-  console.log('ImageGallery DEBUG - After slice (copy):', slicedImages.length);
-  
-  const reversedImages = slicedImages.reverse();
-  console.log('ImageGallery DEBUG - After reverse (latest first):', reversedImages.length, reversedImages.map(img => ({
-    id: img.id || img._id,
-    title: img.title,
-    fileUrl: img.fileUrl || img.file_url
-  })));
-  
-  // DEBUG: Check for duplicate keys that could cause React rendering issues
-  const keys = reversedImages.map(img => img.id || img._id);
-  const uniqueKeys = [...new Set(keys)];
-  console.log('ImageGallery DEBUG - Key analysis:', {
-    totalItems: reversedImages.length,
-    totalKeys: keys.length,
-    uniqueKeys: uniqueKeys.length,
-    duplicateKeys: keys.length !== uniqueKeys.length,
-    keys: keys
-  });
-  
   return (
     <>
       <Grid 
         templateColumns={`repeat(${columnCount}, 1fr)`} 
         gap={spacing}
       >
-        {reversedImages.map((image) => {
-          console.log('ImageGallery processing image:', {
-            id: image.id || image._id,
-            fileUrl: image.fileUrl,
-            file_url: image.file_url,
-            thumbnailUrl: image.thumbnailUrl,
-            thumbnail_url: image.thumbnail_url,
-            availableProps: Object.keys(image)
-          });
+        {images
+          .filter(image => !image.deleted) // Filter out deleted images (defensive)
+          .slice() // Create a copy to avoid mutating the original array
+          .reverse() // Reverse the order to show latest images first
+          .map((image) => {
           
           // Get the image URL
           const originalUrl = image.file_url || image.fileUrl;
-          
-          // DEBUG: Check if this image has valid data for rendering
           const imageKey = image.id || image._id;
-          const hasValidUrl = !!(originalUrl);
-          console.log('ImageGallery DEBUG - Image render check:', {
-            key: imageKey,
-            hasValidUrl: hasValidUrl,
-            originalUrl: originalUrl,
-            willRender: !!(imageKey && hasValidUrl)
-          });
           
-          // Early return if no valid data
-          if (!imageKey) {
-            console.warn('ImageGallery WARNING - Skipping image with no ID:', image);
-            return null;
-          }
-          
-          if (!hasValidUrl) {
-            console.warn('ImageGallery WARNING - Skipping image with no URL:', image);
+          // Skip images without valid data
+          if (!imageKey || !originalUrl) {
+            console.warn('ImageGallery: Skipping image with missing ID or URL:', image);
             return null;
           }
           
