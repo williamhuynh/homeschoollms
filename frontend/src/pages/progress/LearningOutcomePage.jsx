@@ -27,7 +27,7 @@ const LearningOutcomePage = () => {
   const [error, setError] = useState(null)
   const { students } = useStudents()
   const location = useLocation()
-  const student = students.find(s => s._id === studentId)
+  const student = students.find(s => s._id === studentId || s.id === studentId || s.slug === studentId)
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
 
   // Track online/offline status
@@ -152,6 +152,12 @@ const LearningOutcomePage = () => {
 
   console.log('Student ID:', studentId)
   console.log('Learning Outcome ID:', learningOutcomeId)
+  console.log('LearningOutcomePage Debug:', { 
+    studentId, 
+    studentsCount: students.length, 
+    student: student ? { id: student._id || student.id, slug: student.slug, grade: student.grade_level } : 'NOT FOUND',
+    allStudents: students.map(s => ({ id: s._id || s.id, slug: s.slug, grade: s.grade_level }))
+  })
 
   if (loading) {
     return (
