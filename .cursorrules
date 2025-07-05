@@ -1,0 +1,163 @@
+You are an expert in TypeScript, Node.js, Next.js 14 App Router, React, Vite, Viem v2, Wagmi v2, Shadcn UI, Radix UI, and Tailwind Aria,Python, FastAPI.
+
+ 
+Key Principles:
+
+Frontend- 
+- Write concise, technical responses with accurate TypeScript examples.
+- Use functional, declarative programming. Avoid classes.
+- Prefer iteration and modularization over duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading).
+- Use lowercase with dashes for directories (e.g., components/auth-wizard).
+- Favor named exports for components.
+- Use the Receive an Object, Return an Object (RORO) pattern.
+
+Backend-
+- Write concise, technical responses with accurate Python examples.
+- Use functional, declarative programming; avoid classes where possible.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., is_active, has_permission).
+- Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
+- Favor named exports for routes and utility functions.
+- Use the Receive an Object, Return an Object (RORO) pattern.
+
+JavaScript/TypeScript:
+
+- Use "function" keyword for pure functions. Omit semicolons.
+- Use TypeScript for all code. Prefer interfaces over types. Avoid enums, use maps.
+- File structure: Exported component, subcomponents, helpers, static content, types.
+- Avoid unnecessary curly braces in conditional statements.
+- For single-line statements in conditionals, omit curly braces.
+- Use concise, one-line syntax for simple conditional statements (e.g., if (condition) doSomething()).
+- Prioritize error handling and edge cases:
+  - Handle errors and edge cases at the beginning of functions.
+  - Use early returns for error conditions to avoid deeply nested if statements.
+  - Place the happy path last in the function for improved readability.
+  - Avoid unnecessary else statements; use if-return pattern instead.
+  - Use guard clauses to handle preconditions and invalid states early.
+  - Implement proper error logging and user-friendly error messages.
+  - Consider using custom error types or error factories for consistent error handling.
+
+Dependencies:
+
+- Next.js 14 App Router
+- Wagmi v2
+- Viem v2
+- FastAPI
+- Pydantic v2
+- Async database libraries like asyncpg or aiomysql
+- SQLAlchemy 2.0 (if using ORM features)
+
+
+React/Next.js:
+
+- Use functional components and TypeScript interfaces.
+- Use declarative JSX.
+- Use function, not const, for components.
+- Use Shadcn UI, Radix, and Tailwind Aria for components and styling.
+- Implement responsive design with Tailwind CSS.
+- Use mobile-first approach for responsive design.
+- Place static content and interfaces at file end.
+- Use content variables for static content outside render functions.
+- Minimize 'use client', 'useEffect', and 'setState'. Favor RSC.
+- Use Zod for form validation.
+- Wrap client components in Suspense with fallback.
+- Use dynamic loading for non-critical components.
+- Optimize images: WebP format, size data, lazy loading.
+- Model expected errors as return values: Avoid using try/catch for expected errors in Server Actions. Use useActionState to manage these errors and return them to the client.
+- Use error boundaries for unexpected errors: Implement error boundaries using error.tsx and global-error.tsx files to handle unexpected errors and provide a fallback UI.
+- Use useActionState with react-hook-form for form validation.
+- Code in services/ dir always throw user-friendly errors that tanStackQuery can catch and show to the user.
+- Use next-safe-action for all server actions:
+  - Implement type-safe server actions with proper validation.
+  - Utilize the `action` function from next-safe-action for creating actions.
+  - Define input schemas using Zod for robust type checking and validation.
+  - Handle errors gracefully and return appropriate responses.
+  - Use import type { ActionResponse } from '@/types/actions'
+  - Ensure all server actions return the ActionResponse type
+  - Implement consistent error handling and success responses using ActionResponse
+  - Example:
+    ```typescript
+    'use server'
+    import { createSafeActionClient } from 'next-safe-action'
+    import { z } from 'zod'
+    import type { ActionResponse } from '@/app/actions/actions'
+    const schema = z.object({
+      value: z.string()
+    })
+    export const someAction = createSafeActionClient()
+      .schema(schema)
+      .action(async (input): Promise => {
+        try {
+          // Action logic here
+          return { success: true, data: /* result */ }
+        } catch (error) {
+          return { success: false, error: error instanceof AppError ? error : appErrors.UNEXPECTED_ERROR, }
+        }
+      })
+    ```
+
+
+Python/FastAPI
+
+- Use def for pure functions and async def for asynchronous operations.
+- Use type hints for all function signatures. Prefer Pydantic models over raw dictionaries for input validation.
+- File structure: exported router, sub-routes, utilities, static content, types (models, schemas).
+- Avoid unnecessary curly braces in conditional statements.
+- For single-line statements in conditionals, omit curly braces.
+- Use concise, one-line syntax for simple conditional statements (e.g., if condition: do_something()).
+
+Key Conventions:
+
+1. Rely on Next.js App Router for state changes.
+2. Prioritize Web Vitals (LCP, CLS, FID).
+3. Minimize 'use client' usage:
+  - Prefer server components and Next.js SSR features.
+  - Use 'use client' only for Web API access in small components.
+  - Avoid using 'use client' for data fetching or state management.
+4. Rely on FastAPI’s dependency injection system for managing state and shared resources.
+5. Prioritize API performance metrics (response time, latency, throughput).
+6. Limit blocking operations in routes:
+   - Favor asynchronous and non-blocking flows.
+   - Use dedicated async functions for database and external API operations.
+   - Structure routes and dependencies clearly to optimize readability and maintainability.
+
+
+Refer to Next.js documentation for Data Fetching, Rendering, and Routing best practices.
+Refer to FastAPI documentation for Data Models, Path Operations, and Middleware for best practices.
+
+
+Error Handling and Validation
+
+- Prioritize error handling and edge cases:
+  - Handle errors and edge cases at the beginning of functions.
+  - Use early returns for error conditions to avoid deeply nested if statements.
+  - Place the happy path last in the function for improved readability.
+  - Avoid unnecessary else statements; use the if-return pattern instead.
+  - Use guard clauses to handle preconditions and invalid states early.
+  - Implement proper error logging and user-friendly error messages.
+  - Use custom error types or error factories for consistent error handling.
+
+To deploy the backend and front end even for testing purposes, we push to git from the project director.
+- git add .
+- git commit -m "deploy bug fix"
+- git push
+
+FastAPI-Specific Guidelines
+
+- Use functional components (plain functions) and Pydantic models for input validation and response schemas.
+- Use declarative route definitions with clear return type annotations.
+- Use def for synchronous operations and async def for asynchronous ones.
+- Minimize @app.on_event("startup") and @app.on_event("shutdown"); prefer lifespan context managers for managing startup and shutdown events.
+- Use middleware for logging, error monitoring, and performance optimization.
+- Optimize for performance using async functions for I/O-bound tasks, caching strategies, and lazy loading.
+- Use HTTPException for expected errors and model them as specific HTTP responses.
+- Use middleware for handling unexpected errors, logging, and error monitoring.
+- Use Pydantic's BaseModel for consistent input/output validation and response schemas.
+
+Performance Optimization
+
+- Minimize blocking I/O operations; use asynchronous operations for all database calls and external API requests.
+- Implement caching for static and frequently accessed data using tools like Redis or in-memory stores.
+- Optimize data serialization and deserialization with Pydantic.
+- Use lazy loading techniques for large datasets and substantial API responses.
