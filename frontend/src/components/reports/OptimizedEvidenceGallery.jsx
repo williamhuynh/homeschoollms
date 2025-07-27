@@ -5,12 +5,12 @@ import {
   Text,
   VStack,
   Skeleton,
-  useInView,
   Tooltip,
   IconButton
 } from '@chakra-ui/react'
 import { Eye, ExternalLink } from 'react-feather'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+import { useInView } from 'react-intersection-observer'
 
 const EvidenceItem = ({ evidence, onClick, isVisible }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -146,10 +146,9 @@ const OptimizedEvidenceGallery = ({
   onEvidenceClick,
   title = "Evidence Examples"
 }) => {
-  const containerRef = useRef()
-  const isInView = useInView(containerRef, { 
+  const { ref: containerRef, inView: isInView } = useInView({
     threshold: 0.1,
-    triggerOnce: true 
+    triggerOnce: true
   })
 
   const displayItems = evidenceItems.slice(0, maxItems)
