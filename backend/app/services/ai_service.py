@@ -504,3 +504,138 @@ async def suggest_learning_outcomes(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to suggest learning outcomes using AI due to an internal error."
         )
+
+async def generate_learning_area_report(
+    student_id: str,
+    learning_area_code: str,
+    learning_area_name: str,
+    evidence_items: List[Dict],
+    report_period: str,
+    grade_level: str
+) -> str:
+    """
+    Generates a comprehensive summary for a learning area based on evidence collected.
+
+    Args:
+        student_id: The student's ID
+        learning_area_code: Code of the learning area (e.g., "EN" for English)
+        learning_area_name: Full name of the learning area
+        evidence_items: List of evidence documents for this learning area
+        report_period: The report period (annual, term_1, etc.)
+        grade_level: The student's grade level
+
+    Returns:
+        A 2-paragraph summary of the student's progress in this learning area.
+
+    Raises:
+        HTTPException: If the API key is not configured or generation fails.
+    """
+    logger.info(f"Generating learning area report for {learning_area_name} with {len(evidence_items)} evidence items")
+    
+    if not api_key:
+        error_msg = "Google AI API key is not configured."
+        logger.error(error_msg)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_msg
+        )
+        
+    if not model:
+        error_msg = f"Gemini model '{model_name}' failed to initialize."
+        logger.error(error_msg)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=error_msg
+        )
+    
+    try:
+        # Extract key information from evidence
+        evidence_summaries = []
+        learning_outcomes_covered = set()
+        
+        for item in evidence_items[:10]:  # Limit to 10 most recent items
+            evidence_summaries.append({
+                "title": item.get("title", ""),
+                "description": item.get("description", ""),
+                "date": str(item.get("uploaded_at", ""))[:10],
+                "outcomes": item.get("learning_outcome_codes", [])
+            })
+            
+            # Track which outcomes were covered
+            for outcome in item.get("learning_outcome_codes", []):
+                learning_outcomes_covered.add(outcome)
+        
+        # Format evidence information for the prompt
+        evidence_text = ""
+        for i, evidence in enumerate(evidence_summaries, 1):
+            evidence_text += f"\n{i}. {evidence['title']} ({evidence['date']})"
+            if evidence['description']:
+                evidence_text += f"\n   Description: {evidence['description']}"
+            if evidence['outcomes']:
+                evidence_text += f"\n   Learning Outcomes: {', '.join(evidence['outcomes'])}"
+            evidence_text += "\n"
+        
+        # Map report period to human-readable text
+        period_map = {
+            "annual": "this academic year",
+            "term_1": "Term 1",
+            "term_2": "Term 2",
+            "term_3": "Term 3",
+            "term_4": "Term 4",
+            "custom": "this period"
+        }
+        period_text = period_map.get(report_period, "this period")
+        
+        # Construct the prompt
+        prompt = f"""You are writing an educational report summary for a {grade_level} student's progress in {learning_area_name}.
+
+Based on the evidence collected during {period_text}, create a 2-paragraph summary that:
+
+1. First paragraph: Describe the main activities and learning experiences the child engaged in, drawing connections between different pieces of evidence. Focus on what the child DID and EXPLORED.
+
+2. Second paragraph: Highlight the skills developed and progress made, referencing specific examples from the evidence. Focus on what the child LEARNED and ACHIEVED.
+
+Evidence collected for {learning_area_name}:
+{evidence_text}
+
+Total learning outcomes addressed: {len(learning_outcomes_covered)}
+
+Guidelines:
+- Write in past tense as this is a period report
+- Use warm, professional language suitable for parent-teacher communication
+- Be specific and reference actual activities from the evidence
+- Keep each paragraph 2-3 sentences maximum
+- Focus on facts and observations, not speculation
+- Use the child's work as concrete examples
+- Total length should be under 1000 characters
+
+Do not include any preamble or closing statements. Just provide the two paragraphs."""
+
+        logger.info(f"Sending report generation prompt to Gemini API")
+        
+        # Generate content
+        response = await model.generate_content_async(prompt)
+        logger.info("Received response from Gemini API for report generation")
+
+        # Extract and clean the text
+        generated_text = response.text.strip()
+        
+        # Basic length validation
+        if len(generated_text) > 1500:
+            # Truncate if too long
+            generated_text = generated_text[:1497] + "..."
+        
+        logger.info(f"Generated report summary length: {len(generated_text)} characters")
+        
+        return generated_text
+
+    except Exception as e:
+        logger.error(f"ERROR during report generation: {e}", exc_info=True)
+        # Return a fallback summary if generation fails
+        return (
+            f"During {period_text}, the student engaged with various activities in {learning_area_name}. "
+            f"Evidence has been collected across {len(evidence_items)} learning experiences covering "
+            f"{len(learning_outcomes_covered)} different learning outcomes. "
+            f"\n\nThe submitted work demonstrates active participation in {learning_area_name} activities. "
+            f"Please review the individual evidence items for detailed insights into specific skills and achievements."
+        )

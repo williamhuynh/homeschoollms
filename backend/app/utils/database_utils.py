@@ -58,6 +58,15 @@ class Database:
             ("student_id", 1), 
             ("content_id", 1)
         ], unique=True)
+        
+        # Student Reports collection
+        await db.student_reports.create_index([("student_id", 1), ("created_at", -1)])
+        await db.student_reports.create_index([
+            ("student_id", 1),
+            ("academic_year", 1),
+            ("report_period", 1)
+        ], unique=True)
+        await db.student_reports.create_index("status")
 
 # Make sure to export the Database class
 __all__ = ['Database']
