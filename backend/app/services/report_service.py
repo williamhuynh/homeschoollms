@@ -117,39 +117,62 @@ class ReportService:
         
         try:
             # Get curriculum data for the student's grade
+            logger.info(f"Loading curriculum data for grade level: {student.grade_level}")
             curriculum = await ReportService._get_curriculum_data(student.grade_level)
+            logger.info(f"Loaded curriculum with {len(curriculum.get('subjects', []))} subjects")
+            
+            # Log the subjects found
+            for subject in curriculum.get("subjects", []):
+                logger.info(f"Available subject: {subject.get('name', 'Unknown')} ({subject.get('code', 'No code')})")
             
             # Filter learning areas if specific ones requested
             if request.learning_area_codes:
+                logger.info(f"Filtering to specific learning areas: {request.learning_area_codes}")
+                original_count = len(curriculum["subjects"])
                 curriculum["subjects"] = [
                     s for s in curriculum["subjects"] 
                     if s["code"] in request.learning_area_codes
                 ]
+                logger.info(f"Filtered from {original_count} to {len(curriculum['subjects'])} subjects")
             
             # Generate summaries for each learning area
             summaries = []
-            for subject in curriculum["subjects"]:
+            logger.info(f"Starting summary generation for {len(curriculum['subjects'])} subjects")
+            
+            for i, subject in enumerate(curriculum["subjects"]):
                 try:
+                    logger.info(f"[{i+1}/{len(curriculum['subjects'])}] Generating summary for {subject['name']} ({subject['code']})")
                     summary = await ReportService._generate_learning_area_summary(
                         student_obj_id, 
                         subject,
                         request.report_period,
                         student.grade_level
                     )
+                    logger.info(f"Successfully generated summary for {subject['name']}: {len(summary.ai_generated_summary)} chars, {summary.evidence_count} evidence items")
                     summaries.append(summary)
                 except Exception as e:
-                    logger.error(f"Failed to generate summary for {subject['code']}: {str(e)}")
+                    logger.error(f"Failed to generate summary for {subject['code']}: {str(e)}", exc_info=True)
                     # Continue with other subjects even if one fails
             
             # Calculate generation time
             generation_time = (datetime.utcnow() - start_time).total_seconds()
             
+            logger.info(f"Report generation completed in {generation_time:.2f} seconds")
+            logger.info(f"Generated {len(summaries)} learning area summaries")
+            
+            # Log summary of what was generated
+            for summary in summaries:
+                logger.info(f"  Summary for {summary.learning_area_name}: {summary.evidence_count} evidence, {summary.outcomes_with_evidence}/{summary.total_outcomes} outcomes, {len(summary.ai_generated_summary)} chars")
+            
             # Update report with generated summaries
-            await db.student_reports.update_one(
+            summaries_data = [s.dict() for s in summaries]
+            logger.info(f"Updating report {report_id} with {len(summaries_data)} summaries")
+            
+            update_result = await db.student_reports.update_one(
                 {"_id": report_id},
                 {
                     "$set": {
-                        "learning_area_summaries": [s.dict() for s in summaries],
+                        "learning_area_summaries": summaries_data,
                         "status": ReportStatus.DRAFT,
                         "generated_at": datetime.utcnow(),
                         "generation_time_seconds": generation_time
@@ -157,8 +180,15 @@ class ReportService:
                 }
             )
             
+            logger.info(f"Report update result: matched={update_result.matched_count}, modified={update_result.modified_count}")
+            
             # Return the updated report
             updated_report = await db.student_reports.find_one({"_id": report_id})
+            if updated_report:
+                logger.info(f"Retrieved updated report with {len(updated_report.get('learning_area_summaries', []))} summaries")
+            else:
+                logger.error(f"Failed to retrieve updated report {report_id}")
+            
             return StudentReport(**updated_report)
             
         except Exception as e:
@@ -253,9 +283,39 @@ class ReportService:
             "deleted": {"$ne": True}
         }
         
-        logger.debug(f"Searching for evidence with learning area code: {subject_code}")
+        logger.info(f"Searching for evidence with learning area code: {subject_code}")
+        logger.info(f"Evidence query: {evidence_query}")
+        
         all_evidence = await db.student_evidence.find(evidence_query).sort("uploaded_at", -1).to_list(None)
-        logger.debug(f"Found {len(all_evidence)} evidence items for {subject['name']} ({subject_code})")
+        logger.info(f"Found {len(all_evidence)} evidence items for {subject['name']} ({subject_code})")
+        
+        # Log details about evidence found
+        if all_evidence:
+            logger.info(f"Sample evidence items:")
+            for i, evidence in enumerate(all_evidence[:3]):  # Log first 3 items
+                logger.info(f"  Evidence {i+1}: {evidence.get('title', 'No title')} - Areas: {evidence.get('learning_area_codes', [])} - Outcomes: {evidence.get('learning_outcome_codes', [])}")
+        else:
+            logger.warning(f"No evidence found for {subject['name']} ({subject_code})")
+            
+            # Let's also check what evidence exists for this student regardless of learning area
+            all_student_evidence = await db.student_evidence.find({
+                "student_id": student_id,
+                "deleted": {"$ne": True}
+            }).to_list(None)
+            logger.info(f"Total evidence for student: {len(all_student_evidence)} items")
+            
+            if all_student_evidence:
+                logger.info("Sample of all student evidence:")
+                for i, evidence in enumerate(all_student_evidence[:5]):
+                    logger.info(f"  Evidence {i+1}: {evidence.get('title', 'No title')} - Areas: {evidence.get('learning_area_codes', [])} - Type: {type(evidence.get('learning_area_codes'))}")
+            
+            # Check for evidence with any learning area codes
+            evidence_with_areas = await db.student_evidence.find({
+                "student_id": student_id,
+                "learning_area_codes": {"$exists": True, "$ne": None, "$ne": []},
+                "deleted": {"$ne": True}
+            }).to_list(None)
+            logger.info(f"Evidence with learning_area_codes: {len(evidence_with_areas)} items")
         
         # Get learning outcomes for this subject
         outcomes = subject.get("outcomes", [])
@@ -300,6 +360,7 @@ class ReportService:
         # Generate AI summary if evidence exists
         ai_summary = ""
         if all_evidence:
+            logger.info(f"Generating AI summary for {subject['name']} with {len(all_evidence)} evidence items (using top {min(10, len(all_evidence))})")
             try:
                 ai_summary = await generate_learning_area_report(
                     student_id=str(student_id),
@@ -309,10 +370,12 @@ class ReportService:
                     report_period=report_period,
                     grade_level=grade_level
                 )
+                logger.info(f"Successfully generated AI summary for {subject['name']}: {len(ai_summary)} characters")
             except Exception as e:
-                logger.error(f"AI generation failed for {subject['code']}: {str(e)}")
+                logger.error(f"AI generation failed for {subject['code']}: {str(e)}", exc_info=True)
                 ai_summary = f"Unable to generate summary for {subject['name']}."
         else:
+            logger.info(f"No evidence found for {subject['name']}, using default message")
             ai_summary = f"No evidence has been uploaded for {subject['name']} during this period."
         
         return LearningAreaSummary(
@@ -329,12 +392,10 @@ class ReportService:
     @staticmethod
     async def _get_curriculum_data(grade_level: str) -> Dict:
         """Load curriculum data for a grade level."""
-        # This would typically load from the curriculum JSON files
-        # For now, we'll use a simplified version
-        # In production, this should load from the actual curriculum files
-        
         import os
         import json
+        
+        logger.info(f"Loading curriculum data for grade level: {grade_level}")
         
         # Map grade level to curriculum file
         grade_to_stage = {
@@ -352,14 +413,26 @@ class ReportService:
         }
         
         stage = grade_to_stage.get(grade_level, "stage-1")
+        logger.info(f"Mapped grade level '{grade_level}' to stage: {stage}")
+        
         curriculum_path = f"frontend/public/curriculum/{stage}-curriculum.json"
+        logger.info(f"Looking for curriculum file at: {curriculum_path}")
+        
+        # Check if file exists
+        if not os.path.exists(curriculum_path):
+            logger.error(f"Curriculum file does not exist: {curriculum_path}")
+            logger.info(f"Current working directory: {os.getcwd()}")
+            logger.info(f"Files in frontend/public/curriculum/: {os.listdir('frontend/public/curriculum/') if os.path.exists('frontend/public/curriculum/') else 'Directory not found'}")
         
         try:
             with open(curriculum_path, 'r') as f:
-                return json.load(f)
+                curriculum_data = json.load(f)
+                logger.info(f"Successfully loaded curriculum data: {len(curriculum_data.get('subjects', []))} subjects found")
+                return curriculum_data
         except Exception as e:
-            logger.error(f"Failed to load curriculum for {grade_level}: {str(e)}")
+            logger.error(f"Failed to load curriculum for {grade_level} from {curriculum_path}: {str(e)}", exc_info=True)
             # Return a default structure
+            logger.warning(f"Returning empty curriculum structure for {grade_level}")
             return {
                 "stage": stage,
                 "subjects": []
