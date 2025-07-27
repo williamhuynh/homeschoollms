@@ -13,6 +13,7 @@ from ..models.schemas.user import UserInDB
 from ..services.ai_service import generate_learning_area_report
 from ..services.learning_outcome_service import LearningOutcomeService
 from ..services.student_service import StudentService
+from ..services.curriculum_service import CurriculumService
 from fastapi import HTTPException
 from bson import ObjectId
 from typing import List, Optional, Dict
@@ -118,7 +119,7 @@ class ReportService:
         try:
             # Get curriculum data for the student's grade
             logger.info(f"Loading curriculum data for grade level: {student.grade_level}")
-            curriculum = await ReportService._get_curriculum_data(student.grade_level)
+            curriculum = await CurriculumService.load_curriculum(student.grade_level)
             logger.info(f"Loaded curriculum with {len(curriculum.get('subjects', []))} subjects")
             
             # Log the subjects found
@@ -389,51 +390,4 @@ class ReportService:
             progress_percentage=progress
         )
     
-    @staticmethod
-    async def _get_curriculum_data(grade_level: str) -> Dict:
-        """Load curriculum data for a grade level."""
-        import os
-        import json
-        
-        logger.info(f"Loading curriculum data for grade level: {grade_level}")
-        
-        # Map grade level to curriculum file
-        grade_to_stage = {
-            "Kindergarten": "early-stage-1",
-            "Year 1": "stage-1",
-            "Year 2": "stage-1",
-            "Year 3": "stage-2",
-            "Year 4": "stage-2",
-            "Year 5": "stage-3",
-            "Year 6": "stage-3",
-            "Year 7": "stage-4",
-            "Year 8": "stage-4",
-            "Year 9": "stage-5",
-            "Year 10": "stage-5"
-        }
-        
-        stage = grade_to_stage.get(grade_level, "stage-1")
-        logger.info(f"Mapped grade level '{grade_level}' to stage: {stage}")
-        
-        curriculum_path = f"frontend/public/curriculum/{stage}-curriculum.json"
-        logger.info(f"Looking for curriculum file at: {curriculum_path}")
-        
-        # Check if file exists
-        if not os.path.exists(curriculum_path):
-            logger.error(f"Curriculum file does not exist: {curriculum_path}")
-            logger.info(f"Current working directory: {os.getcwd()}")
-            logger.info(f"Files in frontend/public/curriculum/: {os.listdir('frontend/public/curriculum/') if os.path.exists('frontend/public/curriculum/') else 'Directory not found'}")
-        
-        try:
-            with open(curriculum_path, 'r') as f:
-                curriculum_data = json.load(f)
-                logger.info(f"Successfully loaded curriculum data: {len(curriculum_data.get('subjects', []))} subjects found")
-                return curriculum_data
-        except Exception as e:
-            logger.error(f"Failed to load curriculum for {grade_level} from {curriculum_path}: {str(e)}", exc_info=True)
-            # Return a default structure
-            logger.warning(f"Returning empty curriculum structure for {grade_level}")
-            return {
-                "stage": stage,
-                "subjects": []
-            } 
+ 
