@@ -9,8 +9,7 @@ import {
   IconButton
 } from '@chakra-ui/react'
 import { Eye, ExternalLink } from 'react-feather'
-import { useState, useCallback } from 'react'
-import { useInView } from 'react-intersection-observer'
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 const EvidenceItem = ({ evidence, onClick, isVisible }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -146,10 +145,31 @@ const OptimizedEvidenceGallery = ({
   onEvidenceClick,
   title = "Evidence Examples"
 }) => {
-  const { ref: containerRef, inView: isInView } = useInView({
-    threshold: 0.1,
-    triggerOnce: true
-  })
+  const containerRef = useRef(null)
+  const [isInView, setIsInView] = useState(false)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+          observer.disconnect() // Only trigger once
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current)
+      }
+      observer.disconnect()
+    }
+  }, [])
 
   const displayItems = evidenceItems.slice(0, maxItems)
 
