@@ -236,13 +236,26 @@ class ReportService:
         db = Database.get_db()
         
         # Get all evidence for this learning area
+        # Handle both array-based (new) and string-based (legacy) storage formats
+        # Use case-insensitive matching for robustness
+        subject_code = subject["code"]
         evidence_query = {
             "student_id": student_id,
-            "learning_area_codes": subject["code"],
+            "$or": [
+                # New array-based format: learning_area_codes contains the subject code
+                {"learning_area_codes": {"$in": [subject_code]}},
+                # Case-insensitive array matching
+                {"learning_area_codes": {"$elemMatch": {"$regex": f"^{subject_code}$", "$options": "i"}}},
+                # Legacy string-based format (backward compatibility)
+                {"learning_area_codes": subject_code},
+                {"learning_area_codes": {"$regex": f"^{subject_code}$", "$options": "i"}}
+            ],
             "deleted": {"$ne": True}
         }
         
+        logger.debug(f"Searching for evidence with learning area code: {subject_code}")
         all_evidence = await db.student_evidence.find(evidence_query).sort("uploaded_at", -1).to_list(None)
+        logger.debug(f"Found {len(all_evidence)} evidence items for {subject['name']} ({subject_code})")
         
         # Get learning outcomes for this subject
         outcomes = subject.get("outcomes", [])
