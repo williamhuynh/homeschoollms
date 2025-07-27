@@ -14,6 +14,8 @@ import AIEvidenceUploadPage from './pages/evidence/AIEvidenceUploadPage'
 import AdminPage from './pages/admin/AdminPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import AvatarSettingsPage from './pages/profile/AvatarSettingsPage'
+import ReportsPage from './pages/reports/ReportsPage'
+import ReportViewPage from './pages/reports/ReportViewPage'
 import BottomNav from './components/navigation/BottomNav'
 import AddStudent from './pages/students/AddStudent'
 import { StudentsProvider } from './contexts/StudentsContext'
@@ -160,6 +162,28 @@ function App() {
                 element={
                   isAuthenticatedOverride || isAuthenticated ? 
                     <AIEvidenceUploadPage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/:studentId/reports" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <>
+                      <ReportsPage />
+                      <BottomNav />
+                    </> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/:studentId/reports/:reportId" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <>
+                      <ReportViewPage />
+                      <BottomNav />
+                    </> : 
                     <Navigate to="/login" replace />
                 } 
               />

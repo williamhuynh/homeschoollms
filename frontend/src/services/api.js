@@ -924,4 +924,66 @@ export const deleteAllCloudinaryImages = () => apiToUse.post('/api/files/migrati
   confirm_delete_all: 'YES_DELETE_EVERYTHING_FROM_CLOUDINARY' 
 });
 
+// Student Report Functions
+export const getStudentReports = async (studentId, params = {}) => {
+  try {
+    console.log('Fetching reports for student:', studentId, params);
+    const response = await apiToUse.get(`/api/reports/${studentId}`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Get Student Reports Error:', error);
+    throw error;
+  }
+};
+
+export const getReportById = async (studentId, reportId) => {
+  try {
+    console.log('Fetching report:', reportId, 'for student:', studentId);
+    const response = await apiToUse.get(`/api/reports/${studentId}/${reportId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Get Report Error:', error);
+    throw error;
+  }
+};
+
+export const generateReport = async (studentId, reportData) => {
+  try {
+    console.log('Generating report for student:', studentId, reportData);
+    const response = await apiToUse.post(`/api/reports/${studentId}/generate`, reportData);
+    return response.data;
+  } catch (error) {
+    console.error('Generate Report Error:', error);
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw error;
+  }
+};
+
+export const updateLearningAreaSummary = async (studentId, reportId, learningAreaCode, summaryData) => {
+  try {
+    console.log('Updating learning area summary:', { studentId, reportId, learningAreaCode, summaryData });
+    const response = await apiToUse.put(
+      `/api/reports/${studentId}/${reportId}/learning-area/${learningAreaCode}`,
+      summaryData
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Update Learning Area Summary Error:', error);
+    throw error;
+  }
+};
+
+export const deleteReport = async (studentId, reportId) => {
+  try {
+    console.log('Deleting report:', reportId, 'for student:', studentId);
+    const response = await apiToUse.delete(`/api/reports/${studentId}/${reportId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Delete Report Error:', error);
+    throw error;
+  }
+};
+
 export default apiToUse;

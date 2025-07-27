@@ -1,6 +1,6 @@
 // src/components/navigation/BottomNav.jsx
 import { Box, Flex, IconButton } from '@chakra-ui/react'
-import { Home, Plus, User } from 'react-feather' // Changed Settings to User
+import { Home, Plus, User, FileText } from 'react-feather' // Added FileText for reports
 import { useNavigate, useLocation, useParams, useMatch } from 'react-router-dom'
 
 const BottomNav = () => {
@@ -61,6 +61,16 @@ const BottomNav = () => {
             size="lg"
             onClick={handleOpenAIUpload}
             aria-label="AI Evidence Upload"
+          />
+        )}
+        
+        {/* Reports button - only show if we have a student context */}
+        {studentId && (
+          <IconButton
+            icon={<FileText />}
+            variant="ghost"
+            onClick={() => navigate(`/students/${studentId}/reports`)}
+            aria-label="Reports"
           />
         )}
         
