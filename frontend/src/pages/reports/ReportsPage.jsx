@@ -100,7 +100,7 @@ const ReportsPage = () => {
         isClosable: true,
       })
       onClose()
-      navigate(`/students/${studentId}/reports/${report.id}`)
+      navigate(`/students/${studentId}/reports/${report.id || report._id}`)
     } catch (error) {
       console.error('Error generating report:', error)
       toast({
@@ -230,10 +230,10 @@ const ReportsPage = () => {
           <VStack spacing={3}>
             {reports.map((report) => (
               <Card 
-                key={report.id} 
+                key={report.id || report._id} 
                 cursor="pointer"
                 _hover={{ shadow: 'md' }}
-                onClick={() => navigate(`/students/${studentId}/reports/${report.id}`)}
+                onClick={() => navigate(`/students/${studentId}/reports/${report.id || report._id}`)}
               >
                 <CardBody>
                   <HStack justify="space-between">
@@ -269,7 +269,7 @@ const ReportsPage = () => {
                           icon={<Eye size={16} />}
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/students/${studentId}/reports/${report.id}`)
+                            navigate(`/students/${studentId}/reports/${report.id || report._id}`)
                           }}
                         >
                           View Report
@@ -279,7 +279,7 @@ const ReportsPage = () => {
                           color="red.500"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDeleteReport(report.id)
+                            handleDeleteReport(report.id || report._id)
                           }}
                         >
                           Delete Report
