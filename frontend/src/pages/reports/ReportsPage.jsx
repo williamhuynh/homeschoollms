@@ -73,11 +73,6 @@ const ReportsPage = () => {
     try {
       setLoading(true)
       const data = await getStudentReports(studentId)
-      console.log('Fetched reports:', data)
-      if (data && data.length > 0) {
-        console.log('First report structure:', data[0])
-        console.log('First report ID fields:', { id: data[0].id, _id: data[0]._id })
-      }
       setReports(data)
     } catch (error) {
       console.error('Error fetching reports:', error)
@@ -97,8 +92,6 @@ const ReportsPage = () => {
     try {
       setGenerating(true)
       const report = await generateReport(studentId, formData)
-      console.log('Generated report:', report)
-      console.log('Generated report ID fields:', { id: report.id, _id: report._id })
       toast({
         title: 'Report generated successfully',
         description: 'Your report has been created and is ready to view.',
