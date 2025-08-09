@@ -455,7 +455,7 @@ const AIEvidenceUploadPage = () => {
   const renderStep1 = () => (
     <VStack spacing={6} align="stretch">
       <Box textAlign="center">
-        <Heading size="lg" mb={2}>Upload Images for Analysis</Heading>
+        <Heading size="lg" mb={2}>Upload Education Moment</Heading>
         <Text color="gray.600">
           Upload one or more images and let AI help identify the learning outcomes
         </Text>
