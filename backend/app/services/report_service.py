@@ -404,6 +404,16 @@ class ReportService:
         
         # Get learning outcomes for this subject
         outcomes = subject.get("outcomes", [])
+        # If outcomes are missing (e.g., subject discovered from evidence without full curriculum data),
+        # try to hydrate from the curriculum using the subject code for this student's grade level
+        if not outcomes:
+            try:
+                hydrated = await CurriculumService.get_subject_by_code(grade_level, subject.get("code"))
+                if hydrated:
+                    outcomes = hydrated.get("outcomes", [])
+            except Exception:
+                # If hydration fails, proceed with empty outcomes list
+                pass
         outcomes_with_evidence = set()
         
         # Count outcomes with evidence
@@ -444,6 +454,15 @@ class ReportService:
         
         # Generate AI summary if evidence exists
         ai_summary = ""
+        # Resolve student's name for placeholder replacement
+        student_first_name = None
+        student_last_name = None
+        try:
+            student_obj = await StudentService.get_student_by_id(str(student_id))
+            student_first_name = getattr(student_obj, "first_name", None) or None
+            student_last_name = getattr(student_obj, "last_name", None) or None
+        except Exception:
+            pass
         if all_evidence:
             logger.info(f"Generating AI summary for {subject['name']} with {len(all_evidence)} evidence items (using top {min(10, len(all_evidence))})")
             try:
@@ -455,6 +474,21 @@ class ReportService:
                     report_period=report_period,
                     grade_level=grade_level
                 )
+                # Normalize any template placeholders with the student's name
+                if ai_summary and student_first_name:
+                    # Common placeholders we may see
+                    placeholder_patterns = [
+                        r"\[\s*Child\s*'?s\s*name\s*\]",
+                        r"\[\s*Student\s*'?s\s*name\s*\]",
+                        r"\{\s*Child\s*'?s\s*name\s*\}",
+                        r"\{\s*Student\s*'?s\s*name\s*\}",
+                    ]
+                    display_name = student_first_name if not student_last_name else f"{student_first_name} {student_last_name}"
+                    for pattern in placeholder_patterns:
+                        try:
+                            ai_summary = re.sub(pattern, display_name, ai_summary, flags=re.IGNORECASE)
+                        except Exception:
+                            pass
                 logger.info(f"Successfully generated AI summary for {subject['name']}: {len(ai_summary)} characters")
             except Exception as e:
                 logger.error(f"AI generation failed for {subject['code']}: {str(e)}", exc_info=True)
@@ -463,6 +497,13 @@ class ReportService:
         else:
             logger.info(f"No evidence found for {subject['name']}, using default message")
             ai_summary = f"No evidence has been uploaded for {subject['name']} during this period."
+            # Also normalize placeholders in case future templates introduce them
+            if ai_summary and student_first_name:
+                display_name = student_first_name if not student_last_name else f"{student_first_name} {student_last_name}"
+                try:
+                    ai_summary = re.sub(r"\[\s*Child\s*'?s\s*name\s*\]", display_name, ai_summary, flags=re.IGNORECASE)
+                except Exception:
+                    pass
         
         return LearningAreaSummary(
             learning_area_code=subject["code"],
@@ -521,14 +562,64 @@ class ReportService:
         subjects: List[Dict] = []
         curriculum = await CurriculumService.load_curriculum(grade_level)
         curriculum_subjects = {s.get("code"): s for s in curriculum.get("subjects", [])}
-        
+
+        # Build a resilient alias map to handle stage/code variations and outcome-prefix aliases
+        # Map alias -> list of candidate canonical subject codes. We'll pick the first present in the current curriculum.
+        alias_to_candidates: Dict[str, List[str]] = {
+            # English
+            "ENG": ["ENG"], "EN": ["ENG"], "EN1": ["ENG"], "EN2": ["ENG"], "EN3": ["ENG"], "ENE": ["ENG"],
+            # Mathematics
+            "MAT": ["MAT", "MATH"], "MATH": ["MATH", "MAT"], "MA": ["MATH", "MAT"],
+            "MAE": ["MATH", "MAT"], "MA1": ["MATH", "MAT"], "MA2": ["MATH", "MAT"], "MA3": ["MATH", "MAT"],
+            # HSIE
+            "HSIE": ["HSIE", "HSE"], "HSE": ["HSIE", "HSE"], "HS": ["HSIE", "HSE"], "HS1": ["HSIE", "HSE"],
+            # Science and Technology
+            "SCI": ["SCI", "STE"], "STE": ["SCI", "STE"], "ST": ["SCI", "STE"], "ST1": ["SCI", "STE"],
+            # Creative Arts
+            "CRA": ["CRA", "CART"], "CART": ["CART", "CRA"], "CA": ["CRA", "CART"], "CAE": ["CRA", "CART"], "CA1": ["CRA", "CART"],
+            # PDH/PDHPE
+            "PDH": ["PDH", "PHE"], "PDHPE": ["PDH", "PHE"], "PHE": ["PDH", "PHE"], "PH": ["PDH", "PHE"], "PH1": ["PDH", "PHE"],
+            # Languages variants
+            "ABL": ["ABL", "ALE"], "ALE": ["ABL", "ALE"],
+            "AUS": ["AUS", "AUE"], "AUE": ["AUS", "AUE"],
+            "CLA": ["CLA", "CLE"], "CLE": ["CLA", "CLE"],
+            "MOD": ["MOD", "MLE"], "MLE": ["MOD", "MLE"],
+        }
+
+        def resolve_subject_for_code(raw_code: str) -> Dict:
+            if not raw_code:
+                return None
+            code_upper = str(raw_code).upper()
+            # Direct match first
+            if code_upper in curriculum_subjects:
+                return curriculum_subjects[code_upper]
+            # Try alias resolution: take token before '-' if present
+            token = code_upper.split("-")[0]
+            # Also strip trailing digits to handle forms like EN1, MA1
+            token_no_digits = token.rstrip("0123456789") or token
+
+            candidate_keys: List[str] = []
+            if token in alias_to_candidates:
+                candidate_keys.extend(alias_to_candidates[token])
+            if token_no_digits in alias_to_candidates:
+                candidate_keys.extend(alias_to_candidates[token_no_digits])
+            # As a last heuristic, try the first three letters
+            if len(token) >= 3 and token[:3] in alias_to_candidates:
+                candidate_keys.extend(alias_to_candidates[token[:3]])
+            # Pick the first that exists in current curriculum
+            for candidate in candidate_keys:
+                if candidate in curriculum_subjects:
+                    return curriculum_subjects[candidate]
+            return None
+
         for code in codes:
-            subject = curriculum_subjects.get(code)
+            subject = resolve_subject_for_code(code)
             if subject:
                 subjects.append(subject)
             else:
+                # Fallback with code as name to keep visibility, but outcomes will be empty
                 subjects.append({"code": code, "name": code, "outcomes": []})
-        
+
         return subjects
     
  
