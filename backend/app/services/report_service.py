@@ -138,6 +138,28 @@ class ReportService:
             )
         
         # Create new report document
+        # Compute default title using student's first name, grade, and period label
+        try:
+            report_period_enum = request.report_period if isinstance(request.report_period, ReportPeriod) else ReportPeriod(request.report_period)
+        except Exception:
+            report_period_enum = ReportPeriod.ANNUAL
+        period_label_map = {
+            ReportPeriod.ANNUAL: "Annual Report",
+            ReportPeriod.TERM_1: "Term 1 Report",
+            ReportPeriod.TERM_2: "Term 2 Report",
+            ReportPeriod.TERM_3: "Term 3 Report",
+            ReportPeriod.TERM_4: "Term 4 Report",
+            ReportPeriod.CUSTOM: "Custom Period",
+        }
+        period_label = period_label_map.get(
+            report_period_enum,
+            (report_period_enum.value if hasattr(report_period_enum, "value") else str(report_period_enum))
+        )
+        if report_period_enum == ReportPeriod.CUSTOM and request.custom_period_name:
+            period_label = request.custom_period_name
+        selected_grade_for_title = request.grade_level or getattr(student, "grade_level", "") or ""
+        default_title = f"{getattr(student, 'first_name', '').strip()}'s {selected_grade_for_title} {period_label}".strip()
+
         report = StudentReport(
             student_id=student_obj_id,
             academic_year=request.academic_year,
@@ -146,7 +168,8 @@ class ReportService:
             created_by=ObjectId(current_user.id),
             status=ReportStatus.GENERATING,
             learning_area_summaries=[],
-            grade_level=request.grade_level or student.grade_level
+            grade_level=request.grade_level or student.grade_level,
+            title=default_title
         )
         
         # Insert the report in generating status ensuring correct BSON/primitive types
