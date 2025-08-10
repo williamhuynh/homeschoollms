@@ -32,7 +32,7 @@ const REPORT_TEMPLATES = [
   },
   {
     id: 'summary',
-    name: 'Executive Summary',
+    name: 'Executive Summary (Coming soon)',
     description: 'Condensed report focusing on key achievements and overall progress',
     icon: Star,
     features: [
@@ -41,11 +41,12 @@ const REPORT_TEMPLATES = [
       'Concise format',
       'Administrator-friendly'
     ],
-    preview: 'Brief overview emphasizing major accomplishments and progress milestones.'
+    preview: 'Brief overview emphasizing major accomplishments and progress milestones.',
+    comingSoon: true
   },
   {
     id: 'detailed',
-    name: 'Detailed Academic Report',
+    name: 'Detailed Academic Report (Coming soon)',
     description: 'Comprehensive report with extended analysis and all evidence',
     icon: Award,
     features: [
@@ -54,11 +55,12 @@ const REPORT_TEMPLATES = [
       'Detailed outcome mapping',
       'Curriculum alignment notes'
     ],
-    preview: 'In-depth academic assessment with complete evidence documentation.'
+    preview: 'In-depth academic assessment with complete evidence documentation.',
+    comingSoon: true
   },
   {
     id: 'portfolio',
-    name: 'Learning Portfolio',
+    name: 'Learning Portfolio (Coming soon)',
     description: 'Visual report emphasizing student work and creative achievements',
     icon: Users,
     features: [
@@ -67,7 +69,8 @@ const REPORT_TEMPLATES = [
       'Creative work highlights',
       'Student voice included'
     ],
-    preview: 'Visual showcase of student work with emphasis on creative and practical achievements.'
+    preview: 'Visual showcase of student work with emphasis on creative and practical achievements.',
+    comingSoon: true
   }
 ]
 
@@ -79,7 +82,8 @@ const ReportTemplateSelector = ({
   const [hoveredTemplate, setHoveredTemplate] = useState(null)
 
   const handleTemplateSelect = (templateId) => {
-    if (disabled) return
+    const target = REPORT_TEMPLATES.find(t => t.id === templateId)
+    if (disabled || target?.comingSoon) return
     onTemplateChange?.(templateId)
   }
 
@@ -97,13 +101,13 @@ const ReportTemplateSelector = ({
           {REPORT_TEMPLATES.map((template) => (
             <Card
               key={template.id}
-              cursor={disabled ? 'not-allowed' : 'pointer'}
-              opacity={disabled ? 0.6 : 1}
+              cursor={(disabled || template.comingSoon) ? 'not-allowed' : 'pointer'}
+              opacity={(disabled || template.comingSoon) ? 0.6 : 1}
               onClick={() => handleTemplateSelect(template.id)}
               onMouseEnter={() => setHoveredTemplate(template.id)}
               onMouseLeave={() => setHoveredTemplate(null)}
               variant="outline"
-              _hover={disabled ? {} : {
+              _hover={(disabled || template.comingSoon) ? {} : {
                 borderColor: 'blue.300',
                 shadow: 'md'
               }}
@@ -118,7 +122,7 @@ const ReportTemplateSelector = ({
                       <Icon as={template.icon} boxSize={5} color="blue.500" />
                       <Radio 
                         value={template.id} 
-                        isDisabled={disabled}
+                        isDisabled={disabled || template.comingSoon}
                         colorScheme="blue"
                       />
                     </HStack>
