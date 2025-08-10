@@ -45,14 +45,35 @@ class ReportService:
             else:
                 raise HTTPException(status_code=404, detail=f"Student not found: {student_id}")
         
-        query = {"student_id": student_obj_id}
+        # Backward-compatible match for reports that may have stored student_id as a string
+        query: Dict = {
+            "$or": [
+                {"student_id": student_obj_id},
+                {"student_id": str(student_obj_id)}
+            ]
+        }
         if academic_year:
             query["academic_year"] = academic_year
+        # Store and query enums as their string values
         if status:
-            query["status"] = status
+            query["status"] = status.value if hasattr(status, "value") else str(status)
             
         reports = await db.student_reports.find(query).sort("created_at", -1).to_list(None)
-        return [StudentReport(**report) for report in reports]
+        # Normalize enums from stored strings for response model
+        normalized = []
+        for doc in reports:
+            if isinstance(doc.get("status"), str):
+                try:
+                    doc["status"] = ReportStatus(doc["status"])
+                except Exception:
+                    pass
+            if isinstance(doc.get("report_period"), str):
+                try:
+                    doc["report_period"] = ReportPeriod(doc["report_period"])
+                except Exception:
+                    pass
+            normalized.append(StudentReport(**doc))
+        return normalized
     
     @staticmethod
     async def get_report_by_id(report_id: str) -> StudentReport:
@@ -105,15 +126,23 @@ class ReportService:
         report = StudentReport(
             student_id=student_obj_id,
             academic_year=request.academic_year,
-            report_period=request.report_period,
+            report_period=request.report_period if isinstance(request.report_period, ReportPeriod) else ReportPeriod(request.report_period),
             custom_period_name=request.custom_period_name,
             created_by=ObjectId(current_user.id),
             status=ReportStatus.GENERATING,
             learning_area_summaries=[]
         )
         
-        # Insert the report in generating status
-        result = await db.student_reports.insert_one(report.dict())
+        # Insert the report in generating status ensuring correct BSON/primitive types
+        report_doc = report.model_dump(by_alias=True)
+        # Ensure ObjectId and enum string values are stored
+        report_doc["student_id"] = student_obj_id
+        report_doc["created_by"] = ObjectId(current_user.id)
+        report_doc["status"] = ReportStatus.GENERATING.value
+        if isinstance(report_doc.get("report_period"), ReportPeriod):
+            report_doc["report_period"] = report_doc["report_period"].value
+
+        result = await db.student_reports.insert_one(report_doc)
         report_id = result.inserted_id
         
         try:
@@ -182,7 +211,7 @@ class ReportService:
                 {
                     "$set": {
                         "learning_area_summaries": summaries_data,
-                        "status": ReportStatus.DRAFT,
+                        "status": ReportStatus.DRAFT.value,
                         "generated_at": datetime.utcnow(),
                         "generation_time_seconds": generation_time
                     }
@@ -198,13 +227,24 @@ class ReportService:
             else:
                 logger.error(f"Failed to retrieve updated report {report_id}")
             
+            # Normalize fields before returning
+            if isinstance(updated_report.get("status"), str):
+                try:
+                    updated_report["status"] = ReportStatus(updated_report["status"])
+                except Exception:
+                    pass
+            if isinstance(updated_report.get("report_period"), str):
+                try:
+                    updated_report["report_period"] = ReportPeriod(updated_report["report_period"])
+                except Exception:
+                    pass
             return StudentReport(**updated_report)
             
         except Exception as e:
             # If generation fails, update status to draft with error
             await db.student_reports.update_one(
                 {"_id": report_id},
-                {"$set": {"status": ReportStatus.DRAFT}}
+                {"$set": {"status": ReportStatus.DRAFT.value}}
             )
             logger.error(f"Report generation failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
