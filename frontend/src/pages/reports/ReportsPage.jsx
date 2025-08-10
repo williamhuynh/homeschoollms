@@ -53,7 +53,8 @@ const ReportsPage = () => {
     academic_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
     report_period: 'annual',
     custom_period_name: '',
-    template: 'standard'
+    template: 'standard',
+    grade_level: ''
   })
 
   // Normalize various id shapes to a string
@@ -80,6 +81,8 @@ const ReportsPage = () => {
     try {
       const data = await getStudentBySlug(studentId)
       setStudent(data)
+      // Default grade selection to the student's current grade if not already set
+      setFormData(prev => ({ ...prev, grade_level: prev.grade_level || data?.grade_level || '' }))
     } catch (error) {
       console.error('Error fetching student:', error)
     }
@@ -337,11 +340,11 @@ const ReportsPage = () => {
                   onChange={(e) => setFormData({ ...formData, report_period: e.target.value })}
                 >
                   <option value="annual">Annual Report</option>
-                  <option value="term_1">Term 1</option>
-                  <option value="term_2">Term 2</option>
-                  <option value="term_3">Term 3</option>
-                  <option value="term_4">Term 4</option>
-                  <option value="custom">Custom Period</option>
+                  <option value="term_1" disabled>Term 1 (soon)</option>
+                  <option value="term_2" disabled>Term 2 (soon)</option>
+                  <option value="term_3" disabled>Term 3 (soon)</option>
+                  <option value="term_4" disabled>Term 4 (soon)</option>
+                  <option value="custom" disabled>Custom Period (soon)</option>
                 </Select>
               </FormControl>
 
@@ -355,6 +358,29 @@ const ReportsPage = () => {
                   />
                 </FormControl>
               )}
+
+              <FormControl isRequired>
+                <FormLabel>Grade</FormLabel>
+                <Select
+                  value={formData.grade_level || ''}
+                  onChange={(e) => setFormData({ ...formData, grade_level: e.target.value })}
+                  placeholder={student?.grade_level ? `Current: ${student.grade_level}` : 'Select grade'}
+                  isDisabled={generating}
+                >
+                  <option value="1">1st Grade</option>
+                  <option value="2">2nd Grade</option>
+                  <option value="3">3rd Grade</option>
+                  <option value="4">4th Grade</option>
+                  <option value="5">5th Grade</option>
+                  <option value="6">6th Grade</option>
+                  <option value="7">7th Grade</option>
+                  <option value="8">8th Grade</option>
+                  <option value="9">9th Grade</option>
+                  <option value="10">10th Grade</option>
+                  <option value="11">11th Grade</option>
+                  <option value="12">12th Grade</option>
+                </Select>
+              </FormControl>
 
               <ReportTemplateSelector
                 selectedTemplate={formData.template}
