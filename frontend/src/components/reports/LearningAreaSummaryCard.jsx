@@ -188,7 +188,9 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
                 variant="outline"
                 size="sm"
                 rightIcon={<ExternalLink size={16} />}
-                onClick={() => navigate(`/students/${studentId}/subjects/${summary.learning_area_code}`)}
+                onClick={() => navigate(`/students/${studentId}/subjects/${summary.learning_area_code}`, {
+                  state: { subject: { code: summary.learning_area_code, name: summary.learning_area_name } }
+                })}
               >
                 View All Evidence for {summary.learning_area_name}
               </Button>
