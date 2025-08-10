@@ -45,11 +45,13 @@ class ReportService:
             else:
                 raise HTTPException(status_code=404, detail=f"Student not found: {student_id}")
         
-        # Backward-compatible match for reports that may have stored student_id as a string
+        # Backward-compatible match for reports that may have stored different field names/types
         query: Dict = {
             "$or": [
                 {"student_id": student_obj_id},
-                {"student_id": str(student_obj_id)}
+                {"student_id": str(student_obj_id)},
+                {"studentId": student_obj_id},
+                {"studentId": str(student_obj_id)}
             ]
         }
         if academic_year:
