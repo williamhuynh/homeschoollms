@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { 
   Box, 
   Button, 
@@ -41,6 +41,7 @@ import ReportTemplateSelector from '../../components/reports/ReportTemplateSelec
 const ReportsPage = () => {
   const navigate = useNavigate()
   const { studentId } = useParams()
+  const location = useLocation()
   const toast = useToast()
   const { isOpen, onOpen, onClose } = useDisclosure()
   
@@ -59,6 +60,11 @@ const ReportsPage = () => {
     fetchReports()
     fetchStudent()
   }, [studentId])
+
+  // Refresh reports when navigating back to this page (location.key changes on navigation)
+  useEffect(() => {
+    fetchReports()
+  }, [location.key])
 
   const fetchStudent = async () => {
     try {
