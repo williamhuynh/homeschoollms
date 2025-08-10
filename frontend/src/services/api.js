@@ -37,8 +37,15 @@ api.interceptors.request.use(addAuthToken);
 productionApi.interceptors.request.use(addAuthToken);
 
 // Determine which API to use based on the environment
-// Always use the env-configured API instance to avoid brittle hostname checks
-const apiToUse = api;
+// Prefer env-configured API. Fallback to production API when not running locally.
+const apiToUse = import.meta.env.VITE_API_URL
+  ? api
+  : (typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+    ? productionApi
+    : api;
+
+// Helpful debug log
+console.log('Using API base URL:', (apiToUse === productionApi ? productionApi.defaults.baseURL : api.defaults.baseURL));
 
 export const login = async (credentials) => {
   try {
