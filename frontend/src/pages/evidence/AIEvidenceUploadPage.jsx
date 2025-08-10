@@ -27,7 +27,7 @@ import {
   CardBody,
   Progress
 } from '@chakra-ui/react'
-import { ArrowLeft, Upload, Zap, CheckCircle } from 'react-feather'
+import { ArrowLeft, Upload, CheckCircle } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStudents } from '../../contexts/StudentsContext'
 import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence, uploadEvidenceMultiOutcome, generateAIDescription } from '../../services/api'
@@ -540,7 +540,6 @@ const AIEvidenceUploadPage = () => {
 
       {selectedFiles.length > 0 && (
         <Button
-          leftIcon={<Zap />}
           colorScheme="blue"
           size="lg"
           onClick={handleUploadAndAnalyze}
@@ -548,7 +547,7 @@ const AIEvidenceUploadPage = () => {
           loadingText="Analyzing..."
           isDisabled={isOffline}
         >
-          Upload and Analyze
+          Upload
         </Button>
       )}
 
@@ -564,9 +563,9 @@ const AIEvidenceUploadPage = () => {
   const renderStep2 = () => (
     <VStack spacing={6} align="stretch">
       <Box textAlign="center">
-        <Heading size="lg" mb={2}>Help AI Understand the Context</Heading>
+        <Heading size="lg" mb={2}>Provide some additional information and context</Heading>
         <Text color="gray.600">
-          Answer these questions to help AI better analyze the learning activity
+          This will will be stored alongside your images so you can be reminded of what happened
         </Text>
       </Box>
 
@@ -617,7 +616,7 @@ const AIEvidenceUploadPage = () => {
           isLoading={isProcessing}
           loadingText="Analyzing..."
         >
-          Analyze Learning Outcomes
+          Next
         </Button>
       </HStack>
     </VStack>
