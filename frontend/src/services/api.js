@@ -37,7 +37,8 @@ api.interceptors.request.use(addAuthToken);
 productionApi.interceptors.request.use(addAuthToken);
 
 // Determine which API to use based on the environment
-const apiToUse = window.location.hostname === 'localhost' ? api : productionApi;
+// Always use the env-configured API instance to avoid brittle hostname checks
+const apiToUse = api;
 
 export const login = async (credentials) => {
   try {
@@ -60,7 +61,7 @@ export const login = async (credentials) => {
 
 export const healthCheck = async () => {
   try {
-    const response = await apiToUse.get('/api/health');
+    const response = await apiToUse.get('/health');
     return response.data;
   } catch (error) {
     console.error('API Health Check Error:', error);
