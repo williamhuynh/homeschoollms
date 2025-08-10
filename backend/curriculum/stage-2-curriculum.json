@@ -1,0 +1,459 @@
+{
+  "stage": "Stage 2",
+  "subjects": [
+    {
+      "name": "Aboriginal Languages",
+      "code": "ABL",
+      "description": "Learning area for Aboriginal Languages",
+      "outcomes": [
+        {
+          "code": "AL2-INT-01",
+          "name": "Interacting",
+          "description": "uses the target language to share information",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "AL2-RES-01",
+          "name": "Responding",
+          "description": "locates and responds to key words and information in texts",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "AL2-COM-01",
+          "name": "Composing",
+          "description": "composes texts in the target language using familiar words and expressions",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "AL2-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "recognises how terms and expressions reflect aspects of culture",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "AL2-LAB-01",
+          "name": "Language awareness and building",
+          "description": "recognises ways of maintaining, reviving and strengthening Aboriginal Languages",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "Auslan",
+      "code": "AUS",
+      "description": "Learning area for Auslan",
+      "outcomes": [
+        {
+          "code": "AU2-INT-01",
+          "name": "Interacting in Auslan",
+          "description": "exchanges meaning and information in guided interactions using familiar signs and common protocols",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "AU2-UND-01",
+          "name": "Understanding texts in Auslan",
+          "description": "identifies key information and some details in simple texts and responds in Auslan and/or English",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "AU2-CRE-01",
+          "name": "Creating texts in Auslan",
+          "description": "creates simple informative and imaginative texts on known topics using familiar language",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "AU2-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "identifies connections between language, culture and identity",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "Classical Languages",
+      "code": "CLA",
+      "description": "Learning area for Classical Languages",
+      "outcomes": [
+        {
+          "code": "CL2-UND-01",
+          "name": "Understanding texts",
+          "description": "identifies and responds to information to demonstrate understanding of texts with familiar vocabulary and language",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "CL2-UND-02",
+          "name": "Understanding texts",
+          "description": "translates modelled vocabulary and phrases into English",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "CL2-ICU-01",
+          "name": "Intercultural understanding",
+          "description": "compares aspects of the target language and culture, and their own language(s) and culture(s)",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "Creative Arts",
+      "code": "CRA",
+      "description": "Learning area for Creative Arts",
+      "outcomes": [
+        {
+          "code": "CA2-DAN-01",
+          "name": "Dance",
+          "description": "composes and performs dance to communicate ideas to an audience, and describes ways the elements of dance are used to convey ideas through movement",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "CA2-DRA-01",
+          "name": "Drama",
+          "description": "makes and performs drama to embody and enact characters, ideas and stories for an audience, and describes ways the dramatic elements are used to convey meaning",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "CA2-MUS-01",
+          "name": "Music",
+          "description": "performs, uses listening skills and composes to communicate musical ideas, and describes ways the elements of music are used to convey musical ideas",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "CA2-VIS-01",
+          "name": "Visual Arts",
+          "description": "makes artworks using art forms to represent subject matter and ideas, and describes ways artists convey ideas about their world to audiences through artworks",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "English",
+      "code": "ENG",
+      "description": "Learning area for English",
+      "outcomes": [
+        {
+          "code": "EN2-OLC-01",
+          "name": "Oral language and communication",
+          "description": "communicates with familiar audiences for social and learning purposes, by interacting, understanding and presenting",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-VOCAB-01",
+          "name": "Vocabulary",
+          "description": "builds knowledge and use of Tier 1, Tier 2 and Tier 3 vocabulary through interacting, wide reading and writing, and by defining and analysing words",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-REFLU-01",
+          "name": "Reading fluency",
+          "description": "sustains independent reading with accuracy, automaticity, rate and prosody suited to purpose, audience and meaning",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-RECOM-01",
+          "name": "Reading comprehension",
+          "description": "reads and comprehends texts for wide purposes using knowledge of text structures and language, and by monitoring comprehension",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-CWT-01",
+          "name": "Creating written texts (imaginative)",
+          "description": "plans, creates and revises written texts for imaginative purposes, using text features, sentence-level grammar, punctuation and word-level language for a target audience",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-CWT-02",
+          "name": "Creating written texts (informative)",
+          "description": "plans, creates and revises written texts for informative purposes, using text features, sentence-level grammar, punctuation and word-level language for a target audience",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-CWT-03",
+          "name": "Creating written texts (persuasive)",
+          "description": "plans, creates and revises written texts for persuasive purposes, using text features, sentence-level grammar, punctuation and word-level language for a target audience",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-SPELL-01",
+          "name": "Spelling",
+          "description": "selects, applies and describes appropriate phonological, orthographic and morphological generalisations and strategies when spelling in a range of contexts",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-HANDW-01",
+          "name": "Handwriting",
+          "description": "forms legible joined letters to develop handwriting fluency",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-HANDW-02",
+          "name": "Digital transcription",
+          "description": "uses digital technologies to create texts",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "EN2-UARL-01",
+          "name": "Understanding and responding to literature",
+          "description": "identifies and describes how ideas are represented in literature and strategically uses similar representations when creating texts",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "Human Society and its Environment",
+      "code": "HSIE",
+      "description": "Learning area for Human Society and its Environment",
+      "outcomes": [
+        {
+          "code": "HS2-ACH-01",
+          "name": "Aboriginal and Torres Strait Islander histories and cultures",
+          "description": "describes Aboriginal Peoples’ obligations to Country, Culture and Community",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "HS2-GEO-01",
+          "name": "Geography",
+          "description": "explains how people care for Australia’s environments and participate in Australian society, using geographical information",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "HS2-HIS-01",
+          "name": "History",
+          "description": "explains how people lived in the past, how navigation connected the world, and what life was like in the Sydney Cove penal settlement, using sources as evidence",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "Mathematics",
+      "code": "MAT",
+      "description": "Learning area for Mathematics",
+      "outcomes": [
+        {
+          "code": "MAO-WM-01",
+          "name": "Working mathematically",
+          "description": "develops understanding and fluency in mathematics through exploring and connecting mathematical concepts, choosing and applying mathematical techniques to solve problems, and communicating their thinking and reasoning coherently and clearly",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-RN-01",
+          "name": "Representing numbers",
+          "description": "applies an understanding of place value and the role of zero to represent numbers to at least tens of thousands",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-RN-02",
+          "name": "Representing numbers",
+          "description": "represents and compares decimals up to 2 decimal places using place value",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-AR-01",
+          "name": "Additive relations",
+          "description": "selects and uses mental and written strategies for addition and subtraction involving 2- and 3-digit numbers",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-AR-02",
+          "name": "Additive relations",
+          "description": "completes number sentences involving addition and subtraction by finding missing values",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-MR-01",
+          "name": "Multiplicative relations",
+          "description": "represents and uses the structure of multiplicative relations to 10 × 10 to solve problems",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-MR-02",
+          "name": "Multiplicative relations",
+          "description": "completes number sentences involving multiplication and division by finding missing values",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-PF-01",
+          "name": "Fractions",
+          "description": "represents and compares halves, quarters, thirds and fifths as lengths on a number line and their related fractions formed by halving (eighths, sixths and tenths)",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-GM-01",
+          "name": "Geometric measure",
+          "description": "uses grid maps and directional language to locate positions and follow routes",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-GM-02",
+          "name": "Geometric measure",
+          "description": "measures and estimates lengths in metres, centimetres and millimetres",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-GM-03",
+          "name": "Geometric measure",
+          "description": "identifies angles and classifies them by comparing to a right angle",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-2DS-01",
+          "name": "Two-dimensional spatial structure",
+          "description": "compares two-dimensional shapes and describes their features",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-2DS-02",
+          "name": "Two-dimensional spatial structure",
+          "description": "performs transformations by combining and splitting two-dimensional shapes",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-2DS-03",
+          "name": "Two-dimensional spatial structure",
+          "description": "estimates, measures and compares areas using square centimetres and square metres",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-3DS-01",
+          "name": "Three-dimensional spatial structure",
+          "description": "makes and sketches models and nets of three-dimensional objects including prisms and pyramids",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-3DS-02",
+          "name": "Three-dimensional spatial structure",
+          "description": "estimates, measures and compares capacities (internal volumes) using litres, millilitres and volumes using cubic centimetres",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-NSM-01",
+          "name": "Non-spatial measure",
+          "description": "estimates, measures and compares the masses of objects using kilograms and grams",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-NSM-02",
+          "name": "Non-spatial measure",
+          "description": "represents and interprets analog and digital time in hours, minutes and seconds",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-DATA-01",
+          "name": "Data",
+          "description": "collects discrete data and constructs graphs using a given scale",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-DATA-02",
+          "name": "Data",
+          "description": "interprets data in tables, dot plots and column graphs",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "MA2-CHAN-01",
+          "name": "Chance",
+          "description": "records and compares the results of chance experiments",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "Modern Languages",
+      "code": "MOD",
+      "description": "Learning area for Modern Languages",
+      "outcomes": [
+        {
+          "code": "ML2-INT-01",
+          "name": "Interacting",
+          "description": "exchanges information in familiar contexts by selecting culturally appropriate modelled language",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "ML2-UND-01",
+          "name": "Understanding texts",
+          "description": "identifies and responds to information in texts to demonstrate understanding",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "ML2-CRT-01",
+          "name": "Creating texts",
+          "description": "creates texts for familiar communicative purposes by selecting culturally appropriate modelled language",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "Personal Development, Health and Physical Education",
+      "code": "PDH",
+      "description": "Learning area for Personal Development, Health and Physical Education",
+      "outcomes": [
+        {
+          "code": "PH2-MSP-01",
+          "name": "Movement skill and physical activity",
+          "description": "applies movement skills, strategies and teamwork in physical activities",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "PH2-RRS-01",
+          "name": "Respectful relationships and safety",
+          "description": "describes and applies skills and strategies to strengthen respectful relationships",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "PH2-RRS-02",
+          "name": "Respectful relationships and safety",
+          "description": "describes and applies skills and strategies to interact safely in offline and online contexts",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "PH2-IHW-01",
+          "name": "Identity, health and wellbeing",
+          "description": "explains how related factors influence identity, health and wellbeing",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "PH2-SMI-01",
+          "name": "Self-management and interpersonal skills",
+          "description": "explains and applies self-management and interpersonal skills in a range of contexts",
+          "grade_level": "Stage 2"
+        }
+      ]
+    },
+    {
+      "name": "Science and Technology",
+      "code": "SCI",
+      "description": "Learning area for Science and Technology",
+      "outcomes": [
+        {
+          "code": "ST2-SCI-01",
+          "name": "Science",
+          "description": "uses information to investigate the solar system and the effects of energy on living, physical and geological systems",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "ST2-PQU-01",
+          "name": "Planning and conducting investigations",
+          "description": "poses questions to create fair tests that investigate the effects of energy on living things and physical systems",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "ST2-DAT-01",
+          "name": "Data",
+          "description": "uses and interprets data to describe patterns and relationships",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "ST2-DDT-01",
+          "name": "Design and digital technologies",
+          "description": "uses a design process to create products to address user needs or opportunities",
+          "grade_level": "Stage 2"
+        },
+        {
+          "code": "ST2-DDT-02",
+          "name": "Design and digital technologies",
+          "description": "designs and uses algorithms, represents data and uses digital systems for a purpose",
+          "grade_level": "Stage 2"
+        }
+      ]
+    }
+  ]
+}
