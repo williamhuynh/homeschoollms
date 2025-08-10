@@ -1,0 +1,425 @@
+{
+  "stage": "Stage 5",
+  "subjects": [
+    {
+      "name": "Aboriginal Languages",
+      "code": "ABL",
+      "description": "Learning area for Aboriginal Languages",
+      "outcomes": [
+        {
+          "code": "AL5-INT-01",
+          "name": "Interacting",
+          "description": "manipulates the target language in sustained interactions to exchange information, ideas and opinions",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "AL5-RES-01",
+          "name": "Responding",
+          "description": "responds to information, ideas and perspectives in a range of texts",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "AL5-COM-01",
+          "name": "Composing",
+          "description": "composes texts in the target language, applying a range of linguistic structures for a variety of contexts, purposes and audiences",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "AL5-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "explains the interrelationship between language, culture and identity",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "AL5-LAB-01",
+          "name": "Language awareness and building",
+          "description": "analyses and evaluates protocols, programs and techniques to maintain and build Aboriginal Languages",
+          "grade_level": "Stage 5"
+        }
+      ]
+    },
+    {
+      "name": "Auslan",
+      "code": "AUS",
+      "description": "Learning area for Auslan",
+      "outcomes": [
+        {
+          "code": "AU5-INT-01",
+          "name": "Interacting in Auslan",
+          "description": "exchanges information, opinions, ideas and perspectives by manipulating linguistic structures and using protocols appropriate for different audiences",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "AU5-UND-01",
+          "name": "Understanding texts in Auslan",
+          "description": "analyses how texts represent information and/or perspectives and responds in Auslan and/or English",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "AU5-CRE-01",
+          "name": "Creating texts in Auslan",
+          "description": "creates informative and imaginative texts for different contexts and audiences using complex linguistic structures",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "AU5-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "analyses the interrelationship between language, culture and identity",
+          "grade_level": "Stage 5"
+        }
+      ]
+    },
+    {
+      "name": "Classical Languages",
+      "code": "CLA",
+      "description": "Learning area for Classical Languages",
+      "outcomes": [
+        {
+          "code": "CL5-UND-01",
+          "name": "Understanding texts",
+          "description": "analyses and responds to information to demonstrate understanding of a range of moderately complex texts",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "CL5-UND-02",
+          "name": "Understanding texts",
+          "description": "translates a range of moderately complex texts into English",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "CL5-ICU-01",
+          "name": "Intercultural understanding",
+          "description": "analyses the relationship between contemporary and target languages, culture(s) and identity",
+          "grade_level": "Stage 5"
+        }
+      ]
+    },
+    {
+      "name": "English",
+      "code": "ENG",
+      "description": "Learning area for English",
+      "outcomes": [
+        {
+          "code": "EN5-RVL-01",
+          "name": "Reading, viewing and listening to texts",
+          "description": "uses a range of personal, creative and critical strategies to interpret complex texts",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "EN5-URA-01",
+          "name": "Understanding and responding to texts A",
+          "description": "analyses how meaning is created through the use and interpretation of increasingly complex language forms, features and structures",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "EN5-URB-01",
+          "name": "Understanding and responding to texts B",
+          "description": "evaluates how texts represent ideas and experiences, and how they can affirm or challenge values and attitudes",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "EN5-URC-01",
+          "name": "Understanding and responding to texts C",
+          "description": "investigates and explains ways of valuing texts and the relationships between them",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "EN5-ECA-01",
+          "name": "Expressing ideas and composing texts A",
+          "description": "crafts personal, creative and critical texts for a range of audiences by experimenting with and controlling language forms and features to shape meaning",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "EN5-ECB-01",
+          "name": "Expressing ideas and composing texts B",
+          "description": "uses processes of planning, monitoring, revising and reflecting to purposefully develop and refine composition of texts",
+          "grade_level": "Stage 5"
+        }
+      ]
+    },
+    {
+      "name": "Mathematics",
+      "code": "MAT",
+      "description": "Learning area for Mathematics",
+      "outcomes": [
+        {
+          "code": "MAO-WM-01",
+          "name": "Working mathematically",
+          "description": "develops understanding and fluency in mathematics through exploring and connecting mathematical concepts, choosing and applying mathematical techniques to solve problems, and communicating their thinking and reasoning coherently and clearly",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-FIN-C-01",
+          "name": "Financial mathematics",
+          "description": "solves financial problems involving simple interest, earning money and spending money",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-FIN-C-02",
+          "name": "Financial mathematics",
+          "description": "solves financial problems involving compound interest and depreciation",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-ALG-C-01",
+          "name": "Algebraic techniques",
+          "description": "simplifies algebraic fractions with numerical denominators and expands algebraic expressions",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-ALG-P-01",
+          "name": "Algebraic techniques (Advanced)",
+          "description": "simplifies algebraic fractions involving indices, and expands and factorises algebraic expressions",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-ALG-P-02",
+          "name": "Algebraic techniques (Advanced)",
+          "description": "selects and applies appropriate algebraic techniques to operate with algebraic fractions, and expands, factorises and simplifies algebraic expressions",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-IND-C-01",
+          "name": "Indices",
+          "description": "simplifies algebraic expressions involving positive‑integer and zero indices, and establishes the meaning of negative indices for numerical bases",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-IND-P-01",
+          "name": "Indices (Advanced)",
+          "description": "applies the index laws to operate with algebraic expressions involving negative‑integer indices",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-IND-P-02",
+          "name": "Indices (Advanced)",
+          "description": "describes and performs operations with surds and fractional indices",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-EQU-C-01",
+          "name": "Equations",
+          "description": "solves linear equations of up to 3 steps, limited to one algebraic fraction",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-EQU-P-01",
+          "name": "Equations (Advanced)",
+          "description": "solves monic quadratic equations, linear inequalities and cubic equations of the form x³ = k",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-EQU-P-02",
+          "name": "Equations (Advanced)",
+          "description": "solves linear equations of more than 3 steps, monic and non‑monic quadratic equations, and linear simultaneous equations",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-LIN-C-01",
+          "name": "Linear relationships",
+          "description": "determines the midpoint, gradient and length of an interval, and graphs linear relationships, with and without digital tools",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-LIN-C-02",
+          "name": "Linear relationships",
+          "description": "graphs and interprets linear relationships using the gradient/slope‑intercept form",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-LIN-P-01",
+          "name": "Linear relationships (Advanced)",
+          "description": "describes and applies transformations, the midpoint, gradient/slope and distance formulas, and equations of lines to solve problems",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-NLI-C-01",
+          "name": "Non‑linear relationships",
+          "description": "identifies connections between algebraic and graphical representations of quadratic and exponential relationships in various contexts",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-NLI-C-02",
+          "name": "Non‑linear relationships",
+          "description": "identifies and compares features of parabolas and exponential curves in various contexts",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-NLI-P-01",
+          "name": "Non‑linear relationships (Advanced)",
+          "description": "interprets and compares non‑linear relationships and their transformations, both algebraically and graphically",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-MAG-C-01",
+          "name": "Numbers of any magnitude",
+          "description": "solves measurement problems by using scientific notation to represent numbers and rounding to a given number of significant figures",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-RAT-P-01",
+          "name": "Ratios and rates (Standard/Advanced)",
+          "description": "identifies and solves problems involving direct and inverse variation and their graphical representations",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-RAT-P-02",
+          "name": "Ratios and rates (Standard/Advanced)",
+          "description": "analyses and constructs graphs relating to rates of change",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-TRG-C-01",
+          "name": "Trigonometry",
+          "description": "applies trigonometric ratios to solve right‑angled triangle problems",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-TRG-C-02",
+          "name": "Trigonometry",
+          "description": "applies trigonometry to solve problems, including bearings and angles of elevation and depression",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-TRG-P-01",
+          "name": "Trigonometry (Standard/Advanced)",
+          "description": "applies Pythagoras’ theorem and trigonometry to solve 3‑dimensional problems and applies the sine, cosine and area rules to solve 2‑dimensional problems, including bearings",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-TRG-P-02",
+          "name": "Trigonometry (Advanced)",
+          "description": "establishes and applies the properties of trigonometric functions and finds solutions to trigonometric equations",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-ARE-C-01",
+          "name": "Area and surface area",
+          "description": "solves problems involving the surface area of right prisms and practical problems involving the area of composite shapes and solids",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-ARE-P-01",
+          "name": "Area and surface area (Standard/Advanced)",
+          "description": "applies knowledge of the surface area of right pyramids and cones, spheres and composite solids to solve problems",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-VOL-C-01",
+          "name": "Volume",
+          "description": "solves problems involving the volume of composite solids consisting of right prisms and cylinders",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-VOL-P-01",
+          "name": "Volume (Standard/Advanced)",
+          "description": "applies knowledge of the volume of right pyramids, cones and spheres to solve problems involving related composite solids",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-GEO-C-01",
+          "name": "Properties of geometrical figures",
+          "description": "identifies and applies the properties of similar figures and scale drawings to solve problems",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-GEO-P-01",
+          "name": "Properties of geometrical figures (Extension)",
+          "description": "establishes conditions for congruent triangles and similar triangles and solves problems relating to properties of similar figures and plane shapes",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-GEO-P-02",
+          "name": "Properties of geometrical figures (Extension)",
+          "description": "constructs proofs involving congruent triangles and similar triangles and proves properties of plane shapes",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-DAT-C-01",
+          "name": "Data analysis",
+          "description": "compares and analyses datasets using summary statistics and graphical representations",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-DAT-C-02",
+          "name": "Data analysis",
+          "description": "displays and interprets datasets involving bivariate data",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-DAT-P-01",
+          "name": "Data analysis (Standard/Advanced)",
+          "description": "plans, conducts and reviews a statistical inquiry into a question of interest",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-PRO-C-01",
+          "name": "Probability",
+          "description": "solves problems involving probabilities in multistage chance experiments and simulations",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-PRO-P-01",
+          "name": "Probability (Advanced)",
+          "description": "solves problems involving Venn diagrams, 2‑way tables and conditional probability",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-POL-P-01",
+          "name": "Polynomials (Advanced/Extension)",
+          "description": "defines, operates with and graphs polynomials and applies the factor and remainder theorems to solve problems",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-LOG-P-01",
+          "name": "Logarithms (Advanced)",
+          "description": "establishes and applies the laws of logarithms to solve problems",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-FNC-P-01",
+          "name": "Functions and other graphs (Advanced)",
+          "description": "uses function notation to describe and graph functions of one variable and graphs inequalities in one and 2 variables",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-CIR-P-01",
+          "name": "Circle geometry (Extension)",
+          "description": "applies deductive reasoning to prove circle theorems and solve related problems",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "MA5-NET-P-01",
+          "name": "Introduction to networks (Standard)",
+          "description": "solves problems involving the characteristics of graphs/networks, planar graphs and Eulerian trails and circuits",
+          "grade_level": "Stage 5"
+        }
+      ]
+    },
+    {
+      "name": "Modern Languages",
+      "code": "MOD",
+      "description": "Learning area for Modern Languages",
+      "outcomes": [
+        {
+          "code": "ML5-INT-01",
+          "name": "Interacting",
+          "description": "exchanges information, ideas and perspectives in a range of contexts by manipulating culturally appropriate language",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "ML5-UND-01",
+          "name": "Understanding texts",
+          "description": "analyses and responds to information, ideas and perspectives in a range of texts to demonstrate understanding",
+          "grade_level": "Stage 5"
+        },
+        {
+          "code": "ML5-CRT-01",
+          "name": "Creating texts",
+          "description": "creates a range of texts for diverse communicative purposes by manipulating culturally appropriate language",
+          "grade_level": "Stage 5"
+        }
+      ]
+    }
+  ]
+}

@@ -34,10 +34,21 @@ class CurriculumService:
             "Year 7": "stage-4",
             "Year 8": "stage-4",
             "Year 9": "stage-5",
-            "Year 10": "stage-5"
+            "Year 10": "stage-5",
+            "Year 11": "stage-6",
+            "Year 12": "stage-6",
+            "11": "stage-6",
+            "12": "stage-6",
         }
         
-        stage = grade_to_stage.get(grade_level, "stage-1")
+        stage = grade_to_stage.get(grade_level)
+        if not stage:
+            # Try a few normalized keys
+            normalized = str(grade_level).strip()
+            stage = grade_to_stage.get(normalized)
+        if not stage:
+            logger.warning(f"Unknown grade level '{grade_level}'. Defaulting to 'stage-1'.")
+            stage = "stage-1"
         logger.info(f"Mapped grade level '{grade_level}' to stage: {stage}")
         return stage
     

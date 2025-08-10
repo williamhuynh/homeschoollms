@@ -1,0 +1,405 @@
+{
+  "stage": "Stage 1",
+  "subjects": [
+    {
+      "name": "Aboriginal Languages",
+      "code": "ABL",
+      "description": "Learning area for Aboriginal Languages",
+      "outcomes": [
+        {
+          "code": "AL1-INT-01",
+          "name": "Interacting",
+          "description": "uses modelled target language to share information in familiar contexts",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "AL1-RES-01",
+          "name": "Responding",
+          "description": "recognises and responds to key words and known phrases in texts",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "AL1-COM-01",
+          "name": "Composing",
+          "description": "composes texts in the target language using modelled language",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "AL1-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "recognises relationships between languages and cultures",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "AL1-LAB-01",
+          "name": "Language awareness and building",
+          "description": "recognises resources available to maintain, revive and strengthen Aboriginal Languages",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "Auslan",
+      "code": "AUS",
+      "description": "Learning area for Auslan",
+      "outcomes": [
+        {
+          "code": "AU1-INT-01",
+          "name": "Interacting in Auslan",
+          "description": "exchanges meaning in guided interactions using high-frequency signs and common protocols",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "AU1-UND-01",
+          "name": "Understanding texts in Auslan",
+          "description": "identifies key information in simple texts and responds in a variety of ways",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "AU1-CRE-01",
+          "name": "Creating texts in Auslan",
+          "description": "creates simple informative and imaginative texts on known topics using high-frequency signs",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "AU1-RLC-01",
+          "name": "Role of language, culture and identity",
+          "description": "identifies ways of communicating which reflect culture",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "Classical Languages",
+      "code": "CLA",
+      "description": "Learning area for Classical Languages",
+      "outcomes": [
+        {
+          "code": "CL1-UND-01",
+          "name": "Understanding texts",
+          "description": "recognises and responds to information to demonstrate understanding of simple texts with modelled language",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "CL1-ICU-01",
+          "name": "Intercultural understanding",
+          "description": "identifies aspects of the target language and culture, and their own language(s) and culture(s)",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "Creative Arts",
+      "code": "CRA",
+      "description": "Learning area for Creative Arts",
+      "outcomes": [
+        {
+          "code": "CA1-DAN-01",
+          "name": "Dance",
+          "description": "composes and performs dance using shapes and movements to communicate ideas, and describes ways that dance conveys ideas",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "CA1-DRA-01",
+          "name": "Drama",
+          "description": "makes and performs drama to embody and enact characters, ideas and stories, and describes ways that drama communicates ideas",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "CA1-MUS-01",
+          "name": "Music",
+          "description": "performs, uses listening skills and composes to communicate ideas through sound, and describes ways musical ideas are conveyed",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "CA1-VIS-01",
+          "name": "Visual Arts",
+          "description": "makes artworks using materials and techniques to represent subject matter and ideas, and describes ways artists convey ideas in artworks",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "English",
+      "code": "ENG",
+      "description": "Learning area for English",
+      "outcomes": [
+        {
+          "code": "EN1-OLC-01",
+          "name": "Oral language and communication",
+          "description": "communicates effectively by using interpersonal conventions and language to extend and elaborate ideas for social and learning interactions",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "EN1-VOCAB-01",
+          "name": "Vocabulary",
+          "description": "understands and effectively uses Tier 1, taught Tier 2 and Tier 3 vocabulary to extend and elaborate ideas",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "EN1-PHOKW-01",
+          "name": "Phonic knowledge",
+          "description": "uses initial and extended phonics, including vowel digraphs, trigraphs to decode and encode words when reading and creating texts",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "EN1-REFLU-01",
+          "name": "Reading fluency",
+          "description": "sustains reading unseen texts with automaticity and prosody and self-corrects errors",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "EN1-RECOM-01",
+          "name": "Reading comprehension",
+          "description": "comprehends independently read texts that require sustained reading by activating background and word knowledge, connecting and understanding sentences and whole text, and monitoring for meaning",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "EN1-CWT-01",
+          "name": "Creating written texts",
+          "description": "plans, creates and revises texts written for different purposes, including paragraphs, using knowledge of vocabulary, text features and sentence structure",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "EN1-SPELL-01",
+          "name": "Spelling",
+          "description": "applies phonological, orthographic and morphological generalisations and strategies when spelling words in a range of writing contexts",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "EN1-HANDW-01",
+          "name": "Handwriting",
+          "description": "uses a legible, fluent and automatic handwriting style, and digital technology, including word‑processing applications, when creating texts",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "EN1-UARL-01",
+          "name": "Understanding and responding to literature",
+          "description": "understands and responds to literature by creating texts using similar structures, intentional language choices and features appropriate to audience and purpose",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "Human Society and its Environment",
+      "code": "HSIE",
+      "description": "Learning area for Human Society and its Environment",
+      "outcomes": [
+        {
+          "code": "HS1-ACH-01",
+          "name": "Aboriginal and Torres Strait Islander histories and cultures",
+          "description": "describes interactions between Aboriginal Peoples and Country",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "HS1-GEO-01",
+          "name": "Geography",
+          "description": "describes ways people connect to and care for places, water environments and each other, using geographical information",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "HS1-HIS-01",
+          "name": "History",
+          "description": "describes the ancient past and changes in communication over time, using stories, images, objects and sites as evidence",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "Mathematics",
+      "code": "MAT",
+      "description": "Learning area for Mathematics",
+      "outcomes": [
+        {
+          "code": "MAO-WM-01",
+          "name": "Working mathematically",
+          "description": "develops understanding and fluency in mathematics through exploring and connecting mathematical concepts, choosing and applying mathematical techniques to solve problems, and communicating their thinking and reasoning coherently and clearly",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-RWN-01",
+          "name": "Representing whole numbers",
+          "description": "applies an understanding of place value and the role of zero to read, write and order two‑ and three‑digit numbers",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-RWN-02",
+          "name": "Representing whole numbers",
+          "description": "reasons about representations of whole numbers to 1000, partitioning numbers to use and record quantity values",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-CSQ-01",
+          "name": "Combining and separating quantities",
+          "description": "uses number bonds and the relationship between addition and subtraction to solve problems involving partitioning",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-FG-01",
+          "name": "Forming groups",
+          "description": "uses the structure of equal groups to solve multiplication problems, and shares or groups to solve division problems",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-GM-01",
+          "name": "Geometric measure",
+          "description": "represents and describes the positions of objects in familiar locations",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-GM-02",
+          "name": "Geometric measure",
+          "description": "measures, records, compares and estimates lengths and distances using uniform informal units, as well as metres and centimetres",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-GM-03",
+          "name": "Geometric measure",
+          "description": "creates and recognises halves, quarters and eighths as part measures of a whole length",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-2DS-01",
+          "name": "Two‑dimensional spatial structure",
+          "description": "recognises, describes and represents shapes including quadrilaterals and other common polygons",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-2DS-02",
+          "name": "Two‑dimensional spatial structure",
+          "description": "measures and compares areas using uniform informal units in rows and columns",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-3DS-01",
+          "name": "Three‑dimensional spatial structure",
+          "description": "recognises, describes and represents familiar three‑dimensional objects",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-3DS-02",
+          "name": "Three‑dimensional spatial structure",
+          "description": "measures, records, compares and estimates internal volumes (capacities) and volumes using uniform informal units",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-NSM-01",
+          "name": "Non‑spatial measure",
+          "description": "measures, records, compares and estimates the masses of objects using uniform informal units",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-NSM-02",
+          "name": "Non‑spatial measure",
+          "description": "describes, compares and orders durations of events, and reads half‑ and quarter‑hour time",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-DATA-01",
+          "name": "Data",
+          "description": "gathers and organises data, displays data in lists, tables and picture graphs",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-DATA-02",
+          "name": "Data",
+          "description": "reasons about representations of data to describe and interpret the results",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "MA1-CHAN-01",
+          "name": "Chance",
+          "description": "recognises and describes the element of chance in everyday events",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "Modern Languages",
+      "code": "MOD",
+      "description": "Learning area for Modern Languages",
+      "outcomes": [
+        {
+          "code": "ML1-INT-01",
+          "name": "Interacting",
+          "description": "exchanges meaning by selecting culturally appropriate modelled language",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "ML1-UND-01",
+          "name": "Understanding texts",
+          "description": "recognises and responds to information in simple texts to demonstrate understanding",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "ML1-CRT-01",
+          "name": "Creating texts",
+          "description": "creates simple texts by selecting culturally appropriate modelled language",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "Personal Development, Health and Physical Education",
+      "code": "PDH",
+      "description": "Learning area for Personal Development, Health and Physical Education",
+      "outcomes": [
+        {
+          "code": "PH1-MSP-01",
+          "name": "Movement skill and physical activity",
+          "description": "demonstrates fundamental movement skills and fair play in physical activities",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "PH1-RRS-01",
+          "name": "Respectful relationships and safety",
+          "description": "describes and demonstrates actions that support respectful relationships and safety offline and online",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "PH1-IHW-01",
+          "name": "Identity, health and wellbeing",
+          "description": "describes factors that contribute to identity, health and wellbeing",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "PH1-SMI-01",
+          "name": "Self‑management and interpersonal skills",
+          "description": "describes and demonstrates self‑management and interpersonal skills in a range of contexts",
+          "grade_level": "Stage 1"
+        }
+      ]
+    },
+    {
+      "name": "Science and Technology",
+      "code": "SCI",
+      "description": "Learning area for Science and Technology",
+      "outcomes": [
+        {
+          "code": "ST1-SCI-01",
+          "name": "Science",
+          "description": "measures and describes changes in living things, materials, movement, Earth and the sky",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "ST1-PQU-01",
+          "name": "Planning and conducting investigations",
+          "description": "poses questions based on observations and information to investigate cause and effect",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "ST1-DAT-01",
+          "name": "Data",
+          "description": "collects, represents and uses data to identify patterns and relationships",
+          "grade_level": "Stage 1"
+        },
+        {
+          "code": "ST1-DDT-01",
+          "name": "Design and digital technologies",
+          "description": "uses technologies and materials to design and make products to address user needs or opportunities",
+          "grade_level": "Stage 1"
+        }
+      ]
+    }
+  ]
+}
