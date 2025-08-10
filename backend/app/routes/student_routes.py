@@ -16,6 +16,9 @@ class ParentAccessAdd(BaseModel):
 class ParentAccessUpdate(BaseModel):
     access_level: AccessLevel
 
+class UpdateGradeRequest(BaseModel):
+    new_grade_level: str
+
 @router.post("/students/update-slugs")
 async def update_student_slugs(
     current_user: UserInDB = Depends(get_current_user)
@@ -75,6 +78,15 @@ async def get_student(
     except (HTTPException, ValueError):
         # If that fails, try as a slug
         return await StudentService.get_student_by_slug(student_id)
+
+@router.patch("/students/{student_id}/grade", response_model=Student)
+async def update_student_grade(
+    student_id: str,
+    body: UpdateGradeRequest,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """Update a student's current grade level. Accepts student id or slug in the path."""
+    return await StudentService.update_grade_level(student_id, body.new_grade_level, str(current_user.id))
 
 @router.post("/students/{student_id}/subjects/{subject_id}")
 async def enroll_student_in_subject(
