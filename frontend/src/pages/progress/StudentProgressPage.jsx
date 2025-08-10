@@ -1,17 +1,14 @@
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Box, Button, Text, VStack, Heading, Container, Spinner, Center, HStack, Progress, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, Select, useToast } from '@chakra-ui/react'
+import { Box, Button, Text, VStack, Heading, Container, Spinner, Center, HStack, Progress } from '@chakra-ui/react'
 import { ArrowLeft } from 'react-feather'
 import { useEffect, useState } from 'react'
-import { getStudentBySlug, getLatestEvidenceForOutcomes, updateStudentGrade } from '../../services/api'
+import { getStudentBySlug, getLatestEvidenceForOutcomes } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
-import { useStudents } from '../../contexts/StudentsContext'
 
 const StudentProgressPage = () => {
   const navigate = useNavigate()
   const { studentId } = useParams()
   const location = useLocation()
-  const { updateStudent } = useStudents()
-  const toast = useToast()
   const [student, setStudent] = useState(location.state?.student || null)
   const [loading, setLoading] = useState(!location.state?.student)
   const [curriculumLoading, setCurriculumLoading] = useState(true)
@@ -20,9 +17,6 @@ const StudentProgressPage = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const [subjectProgress, setSubjectProgress] = useState({})
   const [progressLoading, setProgressLoading] = useState(false)
-  const { isOpen, onOpen, onClose } = useDisclosure()
-  const [newGrade, setNewGrade] = useState('')
-  const [changingGrade, setChangingGrade] = useState(false)
 
   // Track online/offline status
   useEffect(() => {
@@ -132,30 +126,6 @@ const StudentProgressPage = () => {
     })
   }
 
-  const handleConfirmChangeGrade = async () => {
-    if (!student || !newGrade) return
-    setChangingGrade(true)
-    try {
-      const updated = await updateStudentGrade(studentId, newGrade)
-      setStudent(updated)
-      updateStudent(updated)
-      // Reload curriculum
-      setCurriculumLoading(true)
-      const stage = curriculumService.getStageForGrade(updated.grade_level)
-      await curriculumService.load(stage)
-      const gradeSubjects = await curriculumService.getSubjects(updated.grade_level)
-      setSubjects(gradeSubjects)
-      toast({ title: 'Grade updated', description: `Now viewing ${updated.grade_level}`, status: 'success', duration: 3000 })
-      onClose()
-      setNewGrade('')
-    } catch (e) {
-      toast({ title: 'Failed to update grade', description: e?.response?.data?.detail || e.message, status: 'error' })
-    } finally {
-      setChangingGrade(false)
-      setCurriculumLoading(false)
-    }
-  }
-
   if (loading) {
     return (
       <Container maxW="container.sm" py={8} pb="64px">
@@ -200,9 +170,6 @@ const StudentProgressPage = () => {
             <Heading size="xl">{student?.first_name} {student?.last_name}'s Progress</Heading>
             <Text>Grade: {student?.grade_level}</Text>
           </VStack>
-          <Button onClick={onOpen} isDisabled={isOffline || curriculumLoading}>
-            Change Grade
-          </Button>
         </HStack>
 
         {curriculumLoading ? (
@@ -272,35 +239,6 @@ const StudentProgressPage = () => {
           </Box>
         )}
       </VStack>
-
-      <Modal isOpen={isOpen} onClose={changingGrade ? () => {} : onClose} isCentered>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Change Grade</ModalHeader>
-          <ModalBody>
-            <Text mb={2}>Select a new grade level for this student.</Text>
-            <Select value={newGrade} onChange={(e) => setNewGrade(e.target.value)} placeholder="Select grade" isDisabled={changingGrade}>
-              <option value="K">Kindergarten</option>
-              <option value="1">1st Grade</option>
-              <option value="2">2nd Grade</option>
-              <option value="3">3rd Grade</option>
-              <option value="4">4th Grade</option>
-              <option value="5">5th Grade</option>
-              <option value="6">6th Grade</option>
-              <option value="7">7th Grade</option>
-              <option value="8">8th Grade</option>
-              <option value="9">9th Grade</option>
-              <option value="10">10th Grade</option>
-              <option value="11">11th Grade</option>
-              <option value="12">12th Grade</option>
-            </Select>
-          </ModalBody>
-          <ModalFooter>
-            <Button mr={3} onClick={onClose} isDisabled={changingGrade}>Cancel</Button>
-            <Button colorScheme="blue" onClick={handleConfirmChangeGrade} isLoading={changingGrade} isDisabled={!newGrade}>Confirm</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </Container>
   )
 }
