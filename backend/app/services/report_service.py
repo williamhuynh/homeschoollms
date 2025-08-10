@@ -621,5 +621,141 @@ class ReportService:
                 subjects.append({"code": code, "name": code, "outcomes": []})
 
         return subjects
+
+    # New methods
+    @staticmethod
+    async def update_report_title(report_id: str, title: str, current_user: UserInDB) -> StudentReport:
+        db = Database.get_db()
+        # Find report
+        report = None
+        try:
+            report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        except Exception:
+            report = await db.student_reports.find_one({"_id": report_id})
+        if not report:
+            report = await db.student_reports.find_one({"id": report_id})
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        await db.student_reports.update_one(
+            {"_id": report["_id"]},
+            {"$set": {"title": title, "last_modified": datetime.utcnow(), "modified_by": ObjectId(current_user.id)}}
+        )
+        updated = await db.student_reports.find_one({"_id": report["_id"]})
+        return StudentReport(**updated)
+
+    @staticmethod
+    async def update_report_status(report_id: str, status: ReportStatus, current_user: UserInDB) -> StudentReport:
+        db = Database.get_db()
+        # Find report
+        report = None
+        try:
+            report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        except Exception:
+            report = await db.student_reports.find_one({"_id": report_id})
+        if not report:
+            report = await db.student_reports.find_one({"id": report_id})
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        # Only allow valid transitions (generating -> draft handled by generator)
+        if status not in [ReportStatus.DRAFT, ReportStatus.PUBLISHED]:
+            raise HTTPException(status_code=400, detail="Invalid status update")
+        await db.student_reports.update_one(
+            {"_id": report["_id"]},
+            {"$set": {"status": status.value if hasattr(status, 'value') else str(status), "last_modified": datetime.utcnow(), "modified_by": ObjectId(current_user.id)}}
+        )
+        updated = await db.student_reports.find_one({"_id": report["_id"]})
+        # Normalize
+        if isinstance(updated.get("status"), str):
+            try:
+                updated["status"] = ReportStatus(updated["status"])
+            except Exception:
+                pass
+        if isinstance(updated.get("report_period"), str):
+            try:
+                updated["report_period"] = ReportPeriod(updated["report_period"])
+            except Exception:
+                pass
+        return StudentReport(**updated)
+
+    @staticmethod
+    async def regenerate_report(student_id: str, report_id: str, current_user: UserInDB) -> StudentReport:
+        db = Database.get_db()
+        # Resolve student id
+        try:
+            student_obj_id = ObjectId(student_id)
+        except Exception:
+            student_doc = await db.students.find_one({"slug": student_id})
+            if not student_doc:
+                raise HTTPException(status_code=404, detail=f"Student not found: {student_id}")
+            student_obj_id = student_doc["_id"]
+        # Fetch report
+        report = None
+        try:
+            report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        except Exception:
+            report = await db.student_reports.find_one({"_id": report_id})
+        if not report:
+            report = await db.student_reports.find_one({"id": report_id})
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        # Ensure report belongs to student
+        if str(report.get("student_id")) != str(student_obj_id):
+            raise HTTPException(status_code=403, detail="Report does not belong to this student")
+        # Set status to generating
+        await db.student_reports.update_one(
+            {"_id": report["_id"]},
+            {"$set": {"status": ReportStatus.GENERATING.value, "last_modified": datetime.utcnow(), "modified_by": ObjectId(current_user.id)}}
+        )
+        # Re-run generation using existing academic_year and report_period
+        generate_request = GenerateReportRequest(
+            academic_year=report.get("academic_year"),
+            report_period=report.get("report_period") if isinstance(report.get("report_period"), ReportPeriod) else ReportPeriod(report.get("report_period")),
+            custom_period_name=report.get("custom_period_name"),
+            learning_area_codes=None
+        )
+        # Instead of creating a new document, reuse same report id: call internal logic below
+        start_time = datetime.utcnow()
+        student = await StudentService.get_student_by_id(str(student_obj_id))
+        # Load curriculum
+        curriculum = await CurriculumService.load_curriculum(student.grade_level)
+        subjects = list(curriculum.get("subjects", []))
+        if not subjects:
+            subjects = await ReportService._discover_learning_areas_from_evidence(student_obj_id, student.grade_level)
+        summaries: List[LearningAreaSummary] = []
+        for subject in subjects:
+            try:
+                summaries.append(
+                    await ReportService._generate_learning_area_summary(
+                        student_obj_id,
+                        subject,
+                        generate_request.report_period,
+                        student.grade_level
+                    )
+                )
+            except Exception as e:
+                logger.error(f"Failed to regenerate summary for {subject.get('code')}: {e}")
+        generation_time = (datetime.utcnow() - start_time).total_seconds()
+        await db.student_reports.update_one(
+            {"_id": report["_id"]},
+            {"$set": {
+                "learning_area_summaries": [s.dict() for s in summaries],
+                "status": ReportStatus.DRAFT.value,
+                "generated_at": datetime.utcnow(),
+                "generation_time_seconds": generation_time,
+                "last_modified": datetime.utcnow()
+            }}
+        )
+        updated = await db.student_reports.find_one({"_id": report["_id"]})
+        if isinstance(updated.get("status"), str):
+            try:
+                updated["status"] = ReportStatus(updated["status"])
+            except Exception:
+                pass
+        if isinstance(updated.get("report_period"), str):
+            try:
+                updated["report_period"] = ReportPeriod(updated["report_period"])
+            except Exception:
+                pass
+        return StudentReport(**updated)
     
  

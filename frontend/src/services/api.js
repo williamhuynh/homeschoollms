@@ -994,4 +994,35 @@ export const deleteReport = async (studentId, reportId) => {
   }
 };
 
+// New report functions
+export const updateReportTitle = async (studentId, reportId, title) => {
+  try {
+    const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/title`, { title });
+    return response.data;
+  } catch (error) {
+    console.error('Update Report Title Error:', error);
+    throw error;
+  }
+};
+
+export const updateReportStatus = async (studentId, reportId, status) => {
+  try {
+    const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/status`, { status });
+    return response.data;
+  } catch (error) {
+    console.error('Update Report Status Error:', error);
+    throw error;
+  }
+};
+
+export const regenerateReport = async (studentId, reportId) => {
+  try {
+    const response = await apiToUse.post(`/api/reports/${studentId}/${reportId}/regenerate`);
+    return response.data;
+  } catch (error) {
+    console.error('Regenerate Report Error:', error);
+    throw error;
+  }
+};
+
 export default apiToUse;

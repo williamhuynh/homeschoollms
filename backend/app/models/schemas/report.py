@@ -47,6 +47,7 @@ class StudentReport(MongoBaseModel):
     academic_year: str  # e.g., "2024-2025"
     report_period: ReportPeriod
     custom_period_name: Optional[str] = None  # For custom periods
+    title: Optional[str] = None
     learning_area_summaries: List[LearningAreaSummary] = []
     generated_at: Optional[datetime] = None
     last_modified: datetime = Field(default_factory=datetime.utcnow)
@@ -68,6 +69,12 @@ class GenerateReportRequest(BaseModel):
 
 class UpdateLearningAreaSummaryRequest(BaseModel):
     user_edited_summary: str
+
+class UpdateReportTitleRequest(BaseModel):
+    title: str
+
+class UpdateReportStatusRequest(BaseModel):
+    status: ReportStatus
 
 class ReportListResponse(BaseModel):
     reports: List[StudentReport]

@@ -13,11 +13,16 @@ import {
   useToast,
   IconButton,
   Progress,
-  Divider
+  Divider,
+  Input,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem
 } from '@chakra-ui/react'
-import { ArrowLeft, Calendar, Clock } from 'react-feather'
+import { ArrowLeft, Calendar, Clock, Check, Edit2, MoreVertical, RefreshCw, Save, X } from 'react-feather'
 import { useEffect, useState } from 'react'
-import { getReportById, getStudentBySlug } from '../../services/api'
+import { getReportById, getStudentBySlug, updateReportTitle, updateReportStatus, regenerateReport } from '../../services/api'
 import LearningAreaSummaryCard from '../../components/reports/LearningAreaSummaryCard'
 import ReportExporter from '../../components/reports/ReportExporter'
 
@@ -29,6 +34,11 @@ const ReportViewPage = () => {
   const [report, setReport] = useState(null)
   const [student, setStudent] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleInput, setTitleInput] = useState('')
+  const [savingTitle, setSavingTitle] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
   function getReportIdFromState(r) {
     if (!r) return ''
@@ -52,6 +62,7 @@ const ReportViewPage = () => {
       ])
       setReport(reportData)
       setStudent(studentData)
+      setTitleInput(reportData.title || '')
     } catch (error) {
       console.error('Error fetching report:', error)
       toast({
@@ -108,6 +119,51 @@ const ReportViewPage = () => {
     }))
   }
 
+  const handleSaveTitle = async () => {
+    try {
+      setSavingTitle(true)
+      const updated = await updateReportTitle(studentId, reportId, titleInput.trim())
+      setReport(updated)
+      setEditingTitle(false)
+      toast({ title: 'Title updated', status: 'success', duration: 1500, isClosable: true })
+    } catch (error) {
+      console.error('Error updating title:', error)
+      toast({ title: 'Failed to update title', description: error.message, status: 'error' })
+    } finally {
+      setSavingTitle(false)
+    }
+  }
+
+  const handleToggleStatus = async () => {
+    if (!report) return
+    try {
+      setUpdatingStatus(true)
+      const target = report.status === 'published' ? 'draft' : 'published'
+      const updated = await updateReportStatus(studentId, reportId, target)
+      setReport(updated)
+      toast({ title: `Marked as ${updated.status}`, status: 'success', duration: 1500, isClosable: true })
+    } catch (error) {
+      console.error('Error updating status:', error)
+      toast({ title: 'Failed to update status', description: error.message, status: 'error' })
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
+
+  const handleRegenerate = async () => {
+    try {
+      setRegenerating(true)
+      const updated = await regenerateReport(studentId, reportId)
+      setReport(updated)
+      toast({ title: 'Report regenerated', status: 'success', duration: 2000, isClosable: true })
+    } catch (error) {
+      console.error('Error regenerating report:', error)
+      toast({ title: 'Failed to regenerate report', description: error.message, status: 'error' })
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
   if (loading) {
     return (
       <Container maxW="container.md" py={8} pb="80px">
@@ -136,6 +192,10 @@ const ReportViewPage = () => {
     )
   }
 
+  const titleDisplay = report.title && report.title.trim().length > 0
+    ? report.title
+    : formatReportPeriod(report.report_period, report.custom_period_name)
+
   return (
     <Container maxW="container.md" py={4} pb="80px">
       <VStack spacing={6} align="stretch">
@@ -147,10 +207,48 @@ const ReportViewPage = () => {
             onClick={() => navigate(`/students/${studentId}/reports`)}
             aria-label="Back to reports"
           />
-          <VStack align="start" flex={1} spacing={0}>
-            <Heading size="lg">
-              {formatReportPeriod(report.report_period, report.custom_period_name)}
-            </Heading>
+          <VStack align="start" flex={1} spacing={1}>
+            {!editingTitle ? (
+              <HStack>
+                <Heading size="lg">{titleDisplay}</Heading>
+                <IconButton
+                  icon={<Edit2 size={16} />}
+                  size="sm"
+                  variant="ghost"
+                  aria-label="Edit title"
+                  onClick={() => {
+                    setTitleInput(report.title || '')
+                    setEditingTitle(true)
+                  }}
+                />
+              </HStack>
+            ) : (
+              <HStack>
+                <Input
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  placeholder={formatReportPeriod(report.report_period, report.custom_period_name)}
+                  size="md"
+                  maxW="lg"
+                />
+                <IconButton
+                  icon={<Save size={16} />}
+                  size="sm"
+                  colorScheme="blue"
+                  aria-label="Save title"
+                  isLoading={savingTitle}
+                  onClick={handleSaveTitle}
+                  isDisabled={!titleInput.trim()}
+                />
+                <IconButton
+                  icon={<X size={16} />}
+                  size="sm"
+                  variant="ghost"
+                  aria-label="Cancel"
+                  onClick={() => setEditingTitle(false)}
+                />
+              </HStack>
+            )}
             {student && (
               <Text color="gray.600" fontSize="sm">
                 {student.first_name} {student.last_name} • {student.grade_level} • {report.academic_year}
@@ -158,12 +256,23 @@ const ReportViewPage = () => {
             )}
           </VStack>
           <HStack>
+            <Menu placement="bottom-end">
+              <MenuButton as={IconButton} icon={<MoreVertical />} variant="ghost" aria-label="Options" />
+              <MenuList>
+                <MenuItem icon={<RefreshCw size={16} />} onClick={handleRegenerate} isDisabled={regenerating}>
+                  {regenerating ? 'Regenerating...' : 'Regenerate Report'}
+                </MenuItem>
+                <MenuItem icon={<Check size={16} />} onClick={handleToggleStatus} isDisabled={updatingStatus}>
+                  {report.status === 'published' ? 'Mark as Draft' : 'Publish Report'}
+                </MenuItem>
+              </MenuList>
+            </Menu>
             <ReportExporter 
               report={report} 
               student={student}
             />
             <Badge 
-              colorScheme={report.status === 'published' ? 'green' : 'orange'}
+              colorScheme={report.status === 'published' ? 'green' : report.status === 'generating' ? 'purple' : 'orange'}
               size="lg"
               px={3}
               py={1}
