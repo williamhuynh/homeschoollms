@@ -1,6 +1,6 @@
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Box, Button, Text, VStack, Heading, Container, Spinner, Center, HStack, Progress, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, Select, useToast } from '@chakra-ui/react'
-import { ArrowLeft } from 'react-feather'
+import { Box, Button, Text, VStack, Heading, Container, Spinner, Center, HStack, Progress, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, Select, useToast, Menu, MenuButton, MenuList, MenuItem, IconButton } from '@chakra-ui/react'
+import { ArrowLeft, MoreVertical } from 'react-feather'
 import { useEffect, useState } from 'react'
 import { getStudentBySlug, getLatestEvidenceForOutcomes, updateStudentGrade } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
@@ -200,9 +200,12 @@ const StudentProgressPage = () => {
             <Heading size="xl">{student?.first_name} {student?.last_name}'s Progress</Heading>
             <Text>Grade: {student?.grade_level}</Text>
           </VStack>
-          <Button onClick={onOpen} isDisabled={isOffline || curriculumLoading}>
-            Change Grade
-          </Button>
+          <Menu placement="bottom-end">
+            <MenuButton as={IconButton} icon={<MoreVertical />} variant="ghost" aria-label="Options" isDisabled={isOffline || curriculumLoading} />
+            <MenuList>
+              <MenuItem onClick={onOpen}>Change Grade</MenuItem>
+            </MenuList>
+          </Menu>
         </HStack>
 
         {curriculumLoading ? (
