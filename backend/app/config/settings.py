@@ -26,9 +26,15 @@ class Settings(BaseSettings):
     # CORS settings
     allowed_origins: List[str] = [
         "http://localhost:5173",
+        "http://localhost",
         "https://homeschool-lms.vercel.app",  # Production frontend
-        "http://localhost:4173" # Local frontend
+        "http://localhost:4173", # Local frontend
+        "capacitor://localhost",
+        "ionic://localhost"
     ]
+    # Allow any http/https origin via regex (works with allow_credentials=True)
+    # This helps dev on mobile/LAN IPs where the exact origin is unknown.
+    allowed_origin_regex: Optional[str] = r"https?://.*"
     
     class Config:
         env_file = ".env"
