@@ -484,7 +484,7 @@ const AIEvidenceUploadPage = () => {
           >
             <VStack spacing={2}>
               <Upload size={32} />
-              <Text>Select Images to Analyze</Text>
+              <Text>Upload</Text>
               <Text fontSize="sm" color="gray.500">
                 Choose photos of learning activities
               </Text>
