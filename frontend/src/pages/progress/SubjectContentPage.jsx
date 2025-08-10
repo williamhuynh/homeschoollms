@@ -114,6 +114,27 @@ const SubjectContentPage = () => {
     }
   }, [outcomes, student, isOffline])
 
+  // If navigated directly via URL without navigation state, derive subject from curriculum using URL param
+  useEffect(() => {
+    const deriveSubjectFromUrl = async () => {
+      try {
+        if (!student?.grade_level || subjectData || !subject) return
+        const stage = curriculumService.getStageForGrade(student.grade_level)
+        // Ensure curriculum for the stage is loaded
+        await curriculumService.load(stage)
+        const subjects = await curriculumService.getSubjects(student.grade_level)
+        const foundSubject = subjects.find((s) => s.code === subject)
+        if (foundSubject) {
+          setSubjectData(foundSubject)
+        }
+      } catch (err) {
+        console.error('Failed to derive subject from URL:', err)
+      }
+    }
+
+    deriveSubjectFromUrl()
+  }, [student, subject, subjectData])
+
   const handleNavigateToOutcome = (outcome) => {
     navigate(`/students/${studentId}/learning-outcomes/${outcome.code.toLowerCase()}`, {
       state: { learningOutcome: outcome, stage: curriculumService.getStageForGrade(student.grade_level), subject: subjectData }
@@ -178,7 +199,7 @@ const SubjectContentPage = () => {
           aria-label="Back"
         />
         <Text fontSize="xl" fontWeight="bold" ml={2} display="inline-block">
-          {student?.first_name} {student?.last_name}'s {subjectData?.name}
+          {student?.first_name} {student?.last_name}'s {subjectData?.name || subject}
         </Text>
       </Box>
 
