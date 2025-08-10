@@ -18,13 +18,14 @@ import {
   Menu,
   MenuButton,
   MenuList,
-  MenuItem
+  MenuItem,
+  MenuDivider
 } from '@chakra-ui/react'
-import { ArrowLeft, Calendar, Clock, Check, Edit2, MoreVertical, RefreshCw, Save, X } from 'react-feather'
+import { ArrowLeft, Calendar, Clock, Check, Edit2, MoreVertical, RefreshCw, Save, X, Printer, Download, Share2 } from 'react-feather'
 import { useEffect, useState } from 'react'
 import { getReportById, getStudentBySlug, updateReportTitle, updateReportStatus, regenerateReport } from '../../services/api'
 import LearningAreaSummaryCard from '../../components/reports/LearningAreaSummaryCard'
-import ReportExporter from '../../components/reports/ReportExporter'
+import { generatePrintableHTML } from '../../components/reports/exportUtils'
 
 const ReportViewPage = () => {
   const navigate = useNavigate()
@@ -164,6 +165,76 @@ const ReportViewPage = () => {
     }
   }
 
+  const handlePrint = () => {
+    try {
+      const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        toast({
+          title: 'Print blocked',
+          description: 'Please allow pop-ups to print the report',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        })
+        return
+      }
+      const htmlContent = generatePrintableHTML(report, student)
+      printWindow.document.write(htmlContent)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print()
+          printWindow.close()
+        }, 500)
+      }
+    } catch (error) {
+      console.error('Print error:', error)
+      toast({ title: 'Print failed', description: 'Unable to open print dialog', status: 'error', duration: 3000, isClosable: true })
+    }
+  }
+
+  const handleDownloadHTML = () => {
+    try {
+      const htmlContent = generatePrintableHTML(report, student)
+      const blob = new Blob([htmlContent], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${student?.first_name}_${student?.last_name}_${report.report_period}_${report.academic_year}.html`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      toast({ title: 'Report downloaded', description: 'HTML report saved to your downloads', status: 'success', duration: 2000, isClosable: true })
+    } catch (error) {
+      console.error('Download error:', error)
+      toast({ title: 'Download failed', description: 'Unable to download report', status: 'error', duration: 3000, isClosable: true })
+    }
+  }
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${titleDisplay} - ${student?.first_name} ${student?.last_name}`,
+          text: `Educational progress report for ${student?.first_name} ${student?.last_name}`,
+          url: window.location.href
+        })
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Share error:', error)
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+        toast({ title: 'Link copied', description: 'Report link copied to clipboard', status: 'success', duration: 2000, isClosable: true })
+      } catch (error) {
+        toast({ title: 'Share failed', description: 'Unable to share report', status: 'error', duration: 3000, isClosable: true })
+      }
+    }
+  }
+
   if (loading) {
     return (
       <Container maxW="container.md" py={8} pb="80px">
@@ -249,6 +320,13 @@ const ReportViewPage = () => {
                 />
               </HStack>
             )}
+            <Badge 
+              colorScheme={report.status === 'published' ? 'green' : report.status === 'generating' ? 'purple' : 'orange'}
+              px={2}
+              py={0.5}
+            >
+              {report.status?.toUpperCase()}
+            </Badge>
             {student && (
               <Text color="gray.600" fontSize="sm">
                 {student.first_name} {student.last_name} • {student.grade_level} • {report.academic_year}
@@ -265,20 +343,18 @@ const ReportViewPage = () => {
                 <MenuItem icon={<Check size={16} />} onClick={handleToggleStatus} isDisabled={updatingStatus}>
                   {report.status === 'published' ? 'Mark as Draft' : 'Publish Report'}
                 </MenuItem>
+                <MenuDivider />
+                <MenuItem icon={<Printer size={16} />} onClick={handlePrint}>
+                  Print Report
+                </MenuItem>
+                <MenuItem icon={<Download size={16} />} onClick={handleDownloadHTML}>
+                  Download HTML
+                </MenuItem>
+                <MenuItem icon={<Share2 size={16} />} onClick={handleShare}>
+                  Share Report
+                </MenuItem>
               </MenuList>
             </Menu>
-            <ReportExporter 
-              report={report} 
-              student={student}
-            />
-            <Badge 
-              colorScheme={report.status === 'published' ? 'green' : report.status === 'generating' ? 'purple' : 'orange'}
-              size="lg"
-              px={3}
-              py={1}
-            >
-              {report.status}
-            </Badge>
           </HStack>
         </HStack>
 

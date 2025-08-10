@@ -1,31 +1,28 @@
-import {
-  Button,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  useToast,
-  VStack,
-  Text,
-  Box,
-  Divider,
-  HStack,
-  Image,
-  Grid,
-  Heading,
-  Progress,
-  Badge
-} from '@chakra-ui/react'
-import { Download, Printer, FileText, Share2, ChevronDown } from 'react-feather'
-import { useState } from 'react'
-import { generatePrintableHTML, formatReportPeriod, formatDate } from './exportUtils'
+export const formatReportPeriod = (period, customName) => {
+  if (period === 'custom' && customName) {
+    return customName;
+  }
+  const periodMap = {
+    annual: 'Annual Report',
+    term_1: 'Term 1 Report',
+    term_2: 'Term 2 Report',
+    term_3: 'Term 3 Report',
+    term_4: 'Term 4 Report',
+  };
+  return periodMap[period] || period;
+};
 
-const ReportExporter = ({ report, student, className = '' }) => {
-  const toast = useToast()
-  const [exporting, setExporting] = useState(false)
+export const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('en-AU', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
 
-  const generatePrintableHTMLLegacy = () => {
-    const printStyles = `
+export const generatePrintableHTML = (report, student) => {
+  const printStyles = `
       <style>
         @page {
           margin: 2cm;
@@ -126,9 +123,9 @@ const ReportExporter = ({ report, student, className = '' }) => {
           margin-bottom: 30px;
         }
       </style>
-    `
+    `;
 
-    const reportHTML = `
+  const reportHTML = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -213,152 +210,7 @@ const ReportExporter = ({ report, student, className = '' }) => {
           </div>
         </body>
       </html>
-    `
+    `;
 
-    return reportHTML
-  }
-
-  const handlePrint = () => {
-    try {
-      const printWindow = window.open('', '_blank')
-      if (!printWindow) {
-        toast({
-          title: 'Print blocked',
-          description: 'Please allow pop-ups to print the report',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        })
-        return
-      }
-
-      const htmlContent = generatePrintableHTML()
-      printWindow.document.write(htmlContent)
-      printWindow.document.close()
-      
-      // Wait for content to load then print
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print()
-          printWindow.close()
-        }, 500)
-      }
-    } catch (error) {
-      console.error('Print error:', error)
-      toast({
-        title: 'Print failed',
-        description: 'Unable to open print dialog',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
-    }
-  }
-
-  const handleDownloadHTML = () => {
-    try {
-      const htmlContent = generatePrintableHTML()
-      const blob = new Blob([htmlContent], { type: 'text/html' })
-      const url = URL.createObjectURL(blob)
-      
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${student?.first_name}_${student?.last_name}_${report.report_period}_${report.academic_year}.html`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-
-      toast({
-        title: 'Report downloaded',
-        description: 'HTML report saved to your downloads',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-      })
-    } catch (error) {
-      console.error('Download error:', error)
-      toast({
-        title: 'Download failed',
-        description: 'Unable to download report',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
-    }
-  }
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${formatReportPeriod(report.report_period, report.custom_period_name)} - ${student?.first_name} ${student?.last_name}`,
-          text: `Educational progress report for ${student?.first_name} ${student?.last_name}`,
-          url: window.location.href
-        })
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Share error:', error)
-        }
-      }
-    } else {
-      // Fallback: copy link to clipboard
-      try {
-        await navigator.clipboard.writeText(window.location.href)
-        toast({
-          title: 'Link copied',
-          description: 'Report link copied to clipboard',
-          status: 'success',
-          duration: 2000,
-          isClosable: true,
-        })
-      } catch (error) {
-        toast({
-          title: 'Share failed',
-          description: 'Unable to share report',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        })
-      }
-    }
-  }
-
-  return (
-    <Menu>
-      <MenuButton 
-        as={Button} 
-        rightIcon={<ChevronDown size={16} />}
-        leftIcon={<Download size={16} />}
-        variant="outline"
-        size="sm"
-        className={className}
-        isLoading={exporting}
-      >
-        Export
-      </MenuButton>
-      <MenuList>
-        <MenuItem 
-          icon={<Printer size={16} />} 
-          onClick={handlePrint}
-        >
-          Print Report
-        </MenuItem>
-        <MenuItem 
-          icon={<Download size={16} />} 
-          onClick={handleDownloadHTML}
-        >
-          Download HTML
-        </MenuItem>
-        <MenuItem 
-          icon={<Share2 size={16} />} 
-          onClick={handleShare}
-        >
-          Share Report
-        </MenuItem>
-      </MenuList>
-    </Menu>
-  )
-}
-
-export default ReportExporter 
+  return reportHTML;
+};
