@@ -274,8 +274,16 @@ class ReportService:
         """Update a specific learning area summary in a report."""
         db = Database.get_db()
         
-        # Get the report
-        report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        # Get the report with robust id handling
+        report = None
+        try:
+            report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        except Exception:
+            report = None
+        if not report:
+            report = await db.student_reports.find_one({"_id": report_id})
+        if not report:
+            report = await db.student_reports.find_one({"id": report_id})
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
         
@@ -292,9 +300,9 @@ class ReportService:
         if not updated:
             raise HTTPException(status_code=404, detail="Learning area not found in report")
         
-        # Update the report
+        # Update the report using the actual _id value
         await db.student_reports.update_one(
-            {"_id": ObjectId(report_id)},
+            {"_id": report["_id"]},
             {
                 "$set": {
                     "learning_area_summaries": report["learning_area_summaries"],
@@ -305,7 +313,7 @@ class ReportService:
         )
         
         # Return updated report
-        updated_report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        updated_report = await db.student_reports.find_one({"_id": report["_id"]})
         return StudentReport(**updated_report)
     
     @staticmethod
@@ -313,11 +321,24 @@ class ReportService:
         """Delete a report."""
         db = Database.get_db()
         
-        result = await db.student_reports.delete_one({"_id": ObjectId(report_id)})
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Report not found")
-            
-        return True
+        # Try multiple deletion strategies for backward compatibility
+        # 1) ObjectId _id
+        try:
+            result = await db.student_reports.delete_one({"_id": ObjectId(report_id)})
+            if result.deleted_count > 0:
+                return True
+        except Exception:
+            pass
+        # 2) String _id
+        result = await db.student_reports.delete_one({"_id": report_id})
+        if result.deleted_count > 0:
+            return True
+        # 3) Legacy 'id' field
+        result = await db.student_reports.delete_one({"id": report_id})
+        if result.deleted_count > 0:
+            return True
+        
+        raise HTTPException(status_code=404, detail="Report not found")
     
     @staticmethod
     async def _generate_learning_area_summary(

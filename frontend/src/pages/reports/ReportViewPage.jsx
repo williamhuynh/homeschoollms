@@ -30,6 +30,15 @@ const ReportViewPage = () => {
   const [student, setStudent] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  function getReportIdFromState(r) {
+    if (!r) return ''
+    const raw = r.id ?? r._id
+    if (!raw) return ''
+    if (typeof raw === 'string') return raw
+    if (typeof raw === 'object' && raw !== null) return raw.$oid || String(raw)
+    return String(raw)
+  }
+
   useEffect(() => {
     fetchReportData()
   }, [studentId, reportId])

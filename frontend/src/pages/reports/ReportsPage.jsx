@@ -56,6 +56,16 @@ const ReportsPage = () => {
     template: 'standard'
   })
 
+  // Normalize various id shapes to a string
+  function getReportId(report) {
+    if (!report) return ''
+    const raw = report.id ?? report._id
+    if (!raw) return ''
+    if (typeof raw === 'string') return raw
+    if (typeof raw === 'object' && raw !== null) return raw.$oid || String(raw)
+    return String(raw)
+  }
+
   useEffect(() => {
     fetchReports()
     fetchStudent()
@@ -123,13 +133,14 @@ const ReportsPage = () => {
     }
   }
 
-  const handleDeleteReport = async (reportId) => {
+  const handleDeleteReport = async (reportOrId) => {
     if (!window.confirm('Are you sure you want to delete this report?')) {
       return
     }
 
     try {
-      await deleteReport(studentId, reportId)
+      const id = typeof reportOrId === 'string' ? reportOrId : getReportId(reportOrId)
+      await deleteReport(studentId, id)
       toast({
         title: 'Report deleted',
         status: 'success',
@@ -241,7 +252,7 @@ const ReportsPage = () => {
                 key={report.id || report._id} 
                 cursor="pointer"
                 _hover={{ shadow: 'md' }}
-                onClick={() => navigate(`/students/${studentId}/reports/${report.id || report._id}`)}
+                onClick={() => navigate(`/students/${studentId}/reports/${getReportId(report)}`)}
               >
                 <CardBody>
                   <HStack justify="space-between">
@@ -277,7 +288,7 @@ const ReportsPage = () => {
                           icon={<Eye size={16} />}
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/students/${studentId}/reports/${report.id || report._id}`)
+                            navigate(`/students/${studentId}/reports/${getReportId(report)}`)
                           }}
                         >
                           View Report
@@ -287,7 +298,7 @@ const ReportsPage = () => {
                           color="red.500"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDeleteReport(report.id || report._id)
+                            handleDeleteReport(report)
                           }}
                         >
                           Delete Report
