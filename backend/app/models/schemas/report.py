@@ -55,6 +55,7 @@ class StudentReport(MongoBaseModel):
     modified_by: Optional[PyObjectId] = None
     status: ReportStatus = ReportStatus.DRAFT
     export_settings: ExportSettings = Field(default_factory=ExportSettings)
+    grade_level: Optional[str] = None
     
     # Metadata for tracking changes
     version: int = 1
@@ -66,6 +67,7 @@ class GenerateReportRequest(BaseModel):
     report_period: ReportPeriod
     custom_period_name: Optional[str] = None
     learning_area_codes: Optional[List[str]] = None  # If None, generate for all areas
+    grade_level: Optional[str] = None
 
 class UpdateLearningAreaSummaryRequest(BaseModel):
     user_edited_summary: str

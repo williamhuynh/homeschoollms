@@ -959,7 +959,10 @@ export const getReportById = async (studentId, reportId) => {
 export const generateReport = async (studentId, reportData) => {
   try {
     console.log('Generating report for student:', studentId, reportData);
-    const response = await apiToUse.post(`/api/reports/${studentId}/generate`, reportData);
+    const payload = { ...reportData };
+    // Ensure grade_level is sent if present
+    if (reportData.grade_level) payload.grade_level = reportData.grade_level;
+    const response = await apiToUse.post(`/api/reports/${studentId}/generate`, payload);
     return response.data;
   } catch (error) {
     console.error('Generate Report Error:', error);

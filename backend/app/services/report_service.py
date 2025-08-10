@@ -145,7 +145,8 @@ class ReportService:
             custom_period_name=request.custom_period_name,
             created_by=ObjectId(current_user.id),
             status=ReportStatus.GENERATING,
-            learning_area_summaries=[]
+            learning_area_summaries=[],
+            grade_level=request.grade_level or student.grade_level
         )
         
         # Insert the report in generating status ensuring correct BSON/primitive types
@@ -161,9 +162,10 @@ class ReportService:
         report_id = result.inserted_id
         
         try:
-            # Get curriculum data for the student's grade
-            logger.info(f"Loading curriculum data for grade level: {student.grade_level}")
-            curriculum = await CurriculumService.load_curriculum(student.grade_level)
+            # Get curriculum data for the selected grade (fallback to student's current grade)
+            selected_grade_level = request.grade_level or student.grade_level
+            logger.info(f"Loading curriculum data for grade level: {selected_grade_level}")
+            curriculum = await CurriculumService.load_curriculum(selected_grade_level)
             subjects = list(curriculum.get("subjects", []))
             logger.info(f"Loaded curriculum with {len(subjects)} subjects")
             
@@ -185,7 +187,7 @@ class ReportService:
             # discover learning areas directly from student's evidence so the report still contains content.
             if not subjects:
                 logger.warning("No subjects loaded from curriculum. Falling back to discovering learning areas from evidence.")
-                subjects = await ReportService._discover_learning_areas_from_evidence(student_obj_id, student.grade_level)
+                subjects = await ReportService._discover_learning_areas_from_evidence(student_obj_id, selected_grade_level)
                 logger.info(f"Discovered {len(subjects)} learning areas from evidence for student {student_obj_id}")
             
             # Generate summaries for each learning area
@@ -199,7 +201,7 @@ class ReportService:
                         student_obj_id, 
                         subject,
                         request.report_period,
-                        student.grade_level
+                        (request.grade_level or student.grade_level)
                     )
                     logger.info(f"Successfully generated summary for {subject['name']}: {len(summary.ai_generated_summary)} chars, {summary.evidence_count} evidence items")
                     summaries.append(summary)
@@ -367,6 +369,14 @@ class ReportService:
             ],
             "deleted": {"$ne": True}
         }
+        # If evidence contains grade_level metadata, filter to selected grade only
+        if grade_level:
+            evidence_query["$and"] = evidence_query.get("$and", []) + [
+                {"$or": [
+                    {"grade_level": {"$exists": False}},
+                    {"grade_level": {"$eq": grade_level}}
+                ]}
+            ]
         
         logger.info(f"Searching for evidence with learning area code: {subject_code}")
         logger.info(f"Evidence query: {evidence_query}")
@@ -711,16 +721,18 @@ class ReportService:
             academic_year=report.get("academic_year"),
             report_period=report.get("report_period") if isinstance(report.get("report_period"), ReportPeriod) else ReportPeriod(report.get("report_period")),
             custom_period_name=report.get("custom_period_name"),
-            learning_area_codes=None
+            learning_area_codes=None,
+            grade_level=report.get("grade_level")
         )
         # Instead of creating a new document, reuse same report id: call internal logic below
         start_time = datetime.utcnow()
         student = await StudentService.get_student_by_id(str(student_obj_id))
         # Load curriculum
-        curriculum = await CurriculumService.load_curriculum(student.grade_level)
+        selected_grade_level = generate_request.grade_level or student.grade_level
+        curriculum = await CurriculumService.load_curriculum(selected_grade_level)
         subjects = list(curriculum.get("subjects", []))
         if not subjects:
-            subjects = await ReportService._discover_learning_areas_from_evidence(student_obj_id, student.grade_level)
+            subjects = await ReportService._discover_learning_areas_from_evidence(student_obj_id, selected_grade_level)
         summaries: List[LearningAreaSummary] = []
         for subject in subjects:
             try:
@@ -729,7 +741,7 @@ class ReportService:
                         student_obj_id,
                         subject,
                         generate_request.report_period,
-                        student.grade_level
+                        selected_grade_level
                     )
                 )
             except Exception as e:
