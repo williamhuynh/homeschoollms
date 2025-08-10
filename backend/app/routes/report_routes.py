@@ -235,4 +235,65 @@ async def delete_report(
         raise
     except Exception as e:
         logger.error(f"Error deleting report: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+# New endpoints
+from ..models.schemas.report import UpdateReportTitleRequest, UpdateReportStatusRequest
+
+@router.put("/reports/{student_id}/{report_id}/title", response_model=StudentReport)
+async def update_report_title(
+    student_id: str,
+    report_id: str,
+    request: UpdateReportTitleRequest,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    # content-level access required
+    await ensure_student_access(student_id, current_user, "content")
+    # verify ownership
+    report = await ReportService.get_report_by_id(report_id)
+    db = Database.get_db()
+    try:
+        student_obj_id = ObjectId(student_id)
+    except:
+        student = await db.students.find_one({"slug": student_id})
+        if student:
+            student_obj_id = student["_id"]
+        else:
+            raise HTTPException(status_code=404, detail="Student not found")
+    if str(report.student_id) != str(student_obj_id):
+        raise HTTPException(status_code=403, detail="Report does not belong to this student")
+    return await ReportService.update_report_title(report_id, request.title, current_user)
+
+@router.put("/reports/{student_id}/{report_id}/status", response_model=StudentReport)
+async def update_report_status(
+    student_id: str,
+    report_id: str,
+    request: UpdateReportStatusRequest,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    # content-level access required to publish/draft
+    await ensure_student_access(student_id, current_user, "content")
+    # verify ownership
+    report = await ReportService.get_report_by_id(report_id)
+    db = Database.get_db()
+    try:
+        student_obj_id = ObjectId(student_id)
+    except:
+        student = await db.students.find_one({"slug": student_id})
+        if student:
+            student_obj_id = student["_id"]
+        else:
+            raise HTTPException(status_code=404, detail="Student not found")
+    if str(report.student_id) != str(student_obj_id):
+        raise HTTPException(status_code=403, detail="Report does not belong to this student")
+    return await ReportService.update_report_status(report_id, request.status, current_user)
+
+@router.post("/reports/{student_id}/{report_id}/regenerate", response_model=StudentReport)
+async def regenerate_report(
+    student_id: str,
+    report_id: str,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    # content-level access required
+    await ensure_student_access(student_id, current_user, "content")
+    return await ReportService.regenerate_report(student_id, report_id, current_user) 
