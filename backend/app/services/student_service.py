@@ -416,3 +416,35 @@ class StudentService:
             "success": True,
             "message": f"Removed access for parent"
         }
+    
+    @staticmethod
+    async def update_grade_level(student_id_or_slug: str, new_grade_level: str, current_parent_id: str) -> Student:
+        """Update a student's grade_level after verifying admin access. Accepts id or slug."""
+        db = Database.get_db()
+        # Resolve student id (accept ObjectId or slug)
+        resolved_id: Optional[ObjectId] = None
+        if ObjectId.is_valid(student_id_or_slug):
+            resolved_id = ObjectId(student_id_or_slug)
+        else:
+            student_doc = await db.students.find_one({"slug": student_id_or_slug})
+            if not student_doc:
+                raise HTTPException(status_code=404, detail="Student not found")
+            resolved_id = student_doc["_id"]
+        # Check admin access
+        has_admin = await StudentService.check_admin_access(str(resolved_id), current_parent_id)
+        if not has_admin:
+            raise HTTPException(status_code=403, detail="Only parents with admin access can change grade")
+        # Perform update
+        update_result = await db.students.update_one(
+            {"_id": resolved_id},
+            {"$set": {"grade_level": new_grade_level}}
+        )
+        if update_result.modified_count == 0:
+            # Could be same grade; fetch anyway
+            student_doc = await db.students.find_one({"_id": resolved_id})
+            if not student_doc:
+                raise HTTPException(status_code=404, detail="Student not found after update")
+            return Student(**student_doc)
+        # Return updated document
+        updated = await db.students.find_one({"_id": resolved_id})
+        return Student(**updated)

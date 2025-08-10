@@ -9,8 +9,16 @@ export const StudentsProvider = ({ children }) => {
     setStudents(prev => [...prev, newStudent])
   }
 
+  const updateStudent = (updated) => {
+    setStudents(prev => prev.map(s => {
+      const sid = s._id || s.id || s.slug
+      const uid = updated._id || updated.id || updated.slug
+      return sid === uid ? { ...s, ...updated } : s
+    }))
+  }
+
   return (
-    <StudentsContext.Provider value={{ students, setStudents, addStudent }}>
+    <StudentsContext.Provider value={{ students, setStudents, addStudent, updateStudent }}>
       {children}
     </StudentsContext.Provider>
   )

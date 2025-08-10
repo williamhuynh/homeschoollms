@@ -602,8 +602,8 @@ export const analyzeImageForQuestions = async (files) => {
 export const suggestLearningOutcomes = async (files, questionAnswers, curriculumData, studentGrade) => {
   try {
     // Validate inputs
-    if (!files || files.length === 0) {
-      throw new Error('No files provided');
+    if (!files || !Array.isArray(files)) {
+      throw new Error('Files must be an array');
     }
     
     if (!questionAnswers) {
@@ -1022,6 +1022,18 @@ export const regenerateReport = async (studentId, reportId) => {
     return response.data;
   } catch (error) {
     console.error('Regenerate Report Error:', error);
+    throw error;
+  }
+};
+
+export const updateStudentGrade = async (studentIdOrSlug, newGradeLevel) => {
+  try {
+    const response = await apiToUse.patch(`/api/students/${studentIdOrSlug}/grade`, {
+      new_grade_level: newGradeLevel
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Update Student Grade Error:', error);
     throw error;
   }
 };
