@@ -1,17 +1,20 @@
 import axios from 'axios';
 import { supabase, getSession } from './supabase';
 
+// Resolve base URL: prefer explicit env, otherwise same-origin (works on prod/staging), fallback to localhost
+const resolvedBaseURL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'http://localhost:8000');
+
 // Create API instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: resolvedBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Create a separate instance for the production API
+// Create a separate instance for explicitly configured remote API (optional)
 const productionApi = axios.create({
-  baseURL: 'https://homeschoollms-server.onrender.com',
+  baseURL: import.meta.env.VITE_REMOTE_API_URL || 'https://homeschoollms-server.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -36,16 +39,14 @@ const addAuthToken = async (config) => {
 api.interceptors.request.use(addAuthToken);
 productionApi.interceptors.request.use(addAuthToken);
 
-// Determine which API to use based on the environment
-// Prefer env-configured API. Fallback to production API when not running locally.
+// Determine which API to use
+// Prefer explicit env-configured API; otherwise use same-origin. Only use remote URL if VITE_REMOTE_API_URL is provided.
 const apiToUse = import.meta.env.VITE_API_URL
   ? api
-  : (typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
-    ? productionApi
-    : api;
+  : (import.meta.env.VITE_REMOTE_API_URL ? productionApi : api);
 
 // Helpful debug log
-console.log('Using API base URL:', (apiToUse === productionApi ? productionApi.defaults.baseURL : api.defaults.baseURL));
+console.log('Using API base URL:', apiToUse.defaults.baseURL);
 
 export const login = async (credentials) => {
   try {
