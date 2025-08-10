@@ -106,7 +106,9 @@ const ReportsPage = () => {
         isClosable: true,
       })
       onClose()
-      navigate(`/students/${studentId}/reports/${report.id || report._id}`)
+      // Ensure we use the canonical string id when navigating
+      const reportId = (typeof report.id === 'string' && report.id) || (report._id && (report._id.$oid || report._id)) || report.id
+      navigate(`/students/${studentId}/reports/${reportId}`)
     } catch (error) {
       console.error('Error generating report:', error)
       toast({

@@ -82,7 +82,20 @@ class ReportService:
         """Get a specific report by ID."""
         db = Database.get_db()
         
-        report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        # Primary lookup by ObjectId
+        report = None
+        try:
+            report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        except Exception:
+            report = None
+
+        # Fallbacks for legacy records that may have string _id or different field name
+        if not report:
+            # _id stored as string
+            report = await db.student_reports.find_one({"_id": report_id})
+        if not report:
+            # legacy field name
+            report = await db.student_reports.find_one({"id": report_id})
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
             
