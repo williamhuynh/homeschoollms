@@ -163,7 +163,10 @@ const ReportsPage = () => {
     }
   }
 
-  const formatReportPeriod = (period) => {
+  const formatReportPeriod = (period, customName) => {
+    if (period === 'custom' && customName) {
+      return customName
+    }
     const periodMap = {
       'annual': 'Annual Report',
       'term_1': 'Term 1',
@@ -262,7 +265,7 @@ const ReportsPage = () => {
                     <VStack align="start" spacing={1} flex={1}>
                       <HStack>
                         <Text fontWeight="medium">
-                          {formatReportPeriod(report.report_period)}
+                          {(report.title && report.title.trim()) || formatReportPeriod(report.report_period, report.custom_period_name)}
                         </Text>
                         <Badge 
                           colorScheme={report.status === 'published' ? 'green' : 'orange'}
