@@ -62,7 +62,7 @@ const handleLogin = async () => {
   return (
     <Box p={8} maxWidth="400px" mx="auto" mt={16}>
       <VStack spacing={6} align="stretch">
-        <Text fontSize="2xl" fontWeight="bold">Login to Homeschool LMS</Text>
+        <Text fontSize="2xl" fontWeight="bold">Login to Astra Learning</Text>
         
         {notification && (
           <Alert status="info">
