@@ -22,6 +22,7 @@ import { StudentsProvider } from './contexts/StudentsContext'
 import { FileUploadModalProvider } from './contexts/FileUploadModalContext'
 import { UserProvider } from './contexts/UserContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import SplashScreen from './components/common/SplashScreen'
 
 function App() {
   // Check for Supabase session on initial load
@@ -63,7 +64,7 @@ function App() {
 
   // Show loading state
   if (isLoading && !isAuthenticatedOverride) {
-    return <div>Loading...</div>;
+    return <SplashScreen />;
   }
 
 
