@@ -40,3 +40,7 @@ class Student(MongoBaseModel):
     family_id: Optional[PyObjectId]
     subjects: Dict[str, StudentSubject] = {}  # Key: subject_id
     active_subjects: List[PyObjectId] = []
+    # Optional avatar fields
+    avatar_path: Optional[str] = None
+    avatar_url: Optional[str] = None
+    avatar_thumbnail_url: Optional[str] = None

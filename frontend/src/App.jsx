@@ -23,6 +23,7 @@ import { FileUploadModalProvider } from './contexts/FileUploadModalContext'
 import { UserProvider } from './contexts/UserContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import SplashScreen from './components/common/SplashScreen'
+import StudentEditPage from './pages/students/StudentEditPage'
 
 function App() {
   // Check for Supabase session on initial load
@@ -211,6 +212,15 @@ function App() {
                 element={
                   isAuthenticatedOverride || isAuthenticated ? 
                     <AvatarSettingsPage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              {/* Student edit page */}
+              <Route 
+                path="/students/:studentId/edit" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <StudentEditPage /> : 
                     <Navigate to="/login" replace />
                 } 
               />

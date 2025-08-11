@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File
 from ..services.student_service import StudentService
 from ..models.schemas.student import Student, AccessLevel
 from ..models.schemas.user import UserInDB
@@ -19,6 +19,13 @@ class ParentAccessUpdate(BaseModel):
 class UpdateGradeRequest(BaseModel):
     new_grade_level: str
 
+class UpdateStudentRequest(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    gender: Optional[str] = None
+    grade_level: Optional[str] = None
+
 @router.post("/students/update-slugs")
 async def update_student_slugs(
     current_user: UserInDB = Depends(get_current_user)
@@ -38,7 +45,8 @@ async def create_student(
 async def get_students(
     current_user: UserInDB = Depends(get_current_user)
 ):
-    return await StudentService.get_all_students()
+    # For now, return students for parent to ensure access scoping
+    return await StudentService.get_students_for_parent(str(current_user.id))
 
 @router.get("/students/", response_model=List[Student])
 async def get_students_with_slash(
@@ -87,6 +95,24 @@ async def update_student_grade(
 ):
     """Update a student's current grade level. Accepts student id or slug in the path."""
     return await StudentService.update_grade_level(student_id, body.new_grade_level, str(current_user.id))
+
+@router.patch("/students/{student_id}", response_model=Student)
+async def update_student_details(
+    student_id: str,
+    updates: UpdateStudentRequest,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """Update core student profile fields. Accepts student id or slug in the path."""
+    return await StudentService.update_student(student_id, updates.dict(exclude_none=True), str(current_user.id))
+
+@router.post("/students/{student_id}/avatar", response_model=Student)
+async def upload_student_avatar(
+    student_id: str,
+    file: UploadFile = File(...),
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """Upload and set a student's profile picture. Accepts student id or slug in the path."""
+    return await StudentService.update_student_avatar(student_id, file, str(current_user.id))
 
 @router.post("/students/{student_id}/subjects/{subject_id}")
 async def enroll_student_in_subject(
