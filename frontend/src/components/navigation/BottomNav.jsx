@@ -2,15 +2,22 @@
 import { Box, Flex, IconButton } from '@chakra-ui/react'
 import { Home, Plus, User, FileText, Zap } from 'react-feather' // Added Zap for AI chat
 import { useNavigate, useLocation, useParams, useMatch } from 'react-router-dom'
+import { useStudents } from '../../contexts/StudentsContext'
+import { curriculumService } from '../../services/curriculum'
 
 const BottomNav = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
+  const { students } = useStudents()
   
   // Use useMatch to reliably get studentId from the current path
   const studentMatch = useMatch('/students/:studentId/*');
   const studentId = studentMatch?.params?.studentId;
+  
+  // Match learning outcome route to know when to pass context to AI chat
+  const learningOutcomeMatch = useMatch('/students/:studentId/learning-outcomes/:learningOutcomeId')
+  const learningOutcomeId = learningOutcomeMatch?.params?.learningOutcomeId
   
   // Check if we're on the student selector page
   const isStudentSelectorPage = location.pathname === '/students'
@@ -25,13 +32,55 @@ const BottomNav = () => {
     }
   }
 
-  const handleOpenAIChat = () => {
-    if (studentId) {
-      console.log(`BottomNav: Opening AI chat for studentId: ${studentId}`)
-      navigate(`/students/${studentId}/ai-chat`)
-    } else {
+  const handleOpenAIChat = async () => {
+    if (!studentId) {
       console.warn("BottomNav: Cannot open AI chat: No active student ID found in URL.")
+      return
     }
+
+    // Default: open AI chat with no extra context
+    let navigationState = undefined
+
+    // If currently on a learning outcome page, replicate the same behavior as the "Ask AI about this outcome" button
+    if (learningOutcomeId) {
+      try {
+        const student = students.find(s => s._id === studentId || s.id === studentId || s.slug === studentId)
+        const stage = location.state?.stage || curriculumService.getStageForGrade(student?.grade_level || 'Year 1')
+        const subject = location.state?.subject
+
+        if (stage && subject?.code) {
+          await curriculumService.load(stage)
+          const outcomes = await curriculumService.getOutcomes(stage, subject.code)
+          const outcome = outcomes.find(o => o.code.toLowerCase() === learningOutcomeId.toLowerCase())
+
+          if (outcome) {
+            const outcomePayload = {
+              code: outcome.code,
+              name: outcome.name,
+              description: outcome.description,
+              grade_level: student?.grade_level,
+              subject: subject?.name || subject?.code,
+              subjectCode: subject?.code,
+            }
+            navigationState = {
+              fromLearningOutcome: true,
+              learningOutcome: outcomePayload,
+            }
+          } else {
+            // Fallback minimal payload using code only
+            navigationState = {
+              fromLearningOutcome: true,
+              learningOutcome: { code: learningOutcomeId }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('BottomNav: Failed to build learning outcome context for AI chat:', err)
+      }
+    }
+
+    console.log(`BottomNav: Opening AI chat for studentId: ${studentId}`)
+    navigate(`/students/${studentId}/ai-chat`, navigationState ? { state: navigationState } : undefined)
   }
 
   return (
