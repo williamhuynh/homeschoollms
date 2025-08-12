@@ -240,6 +240,31 @@ const LearningOutcomePage = () => {
           {learningOutcome?.description}
         </Text>
 
+        {/* Ask AI about this outcome */}
+        <Button
+          colorScheme="teal"
+          mb={6}
+          onClick={() => {
+            const outcomePayload = {
+              code: learningOutcome?.code,
+              name: learningOutcome?.name,
+              description: learningOutcome?.description,
+              grade_level: learningOutcome?.grade_level,
+              subject: location.state?.subject?.name || location.state?.subject?.code,
+              subjectCode: location.state?.subject?.code,
+            }
+            navigate(`/students/${studentId}/ai-chat`, {
+              state: {
+                fromLearningOutcome: true,
+                learningOutcome: outcomePayload,
+              }
+            })
+          }}
+          isDisabled={!learningOutcome}
+        >
+          Ask AI about this outcome
+        </Button>
+
         {/* Evidence Gallery */}
         <Box mt={8} p={4}>
           <Flex justify="space-between" align="center" mb={4}>
