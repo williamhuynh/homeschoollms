@@ -42,7 +42,7 @@ const StudentEditPage = () => {
   })
   const [previewUrl, setPreviewUrl] = useState(null)
   const fileInputRef = useRef(null)
-  const avatarSize = useBreakpointValue({ base: '36', md: '40' })
+  const avatarBoxSize = useBreakpointValue({ base: '96px', md: '128px' })
 
   useEffect(() => {
     const load = async () => {
@@ -153,7 +153,7 @@ const StudentEditPage = () => {
         <Heading size="lg">Edit {student?.first_name} {student?.last_name}</Heading>
 
         <HStack spacing={4} align="center">
-          <Avatar size={avatarSize} name={`${student?.first_name} ${student?.last_name}`} src={currentAvatar} />
+          <Avatar boxSize={avatarBoxSize} name={`${student?.first_name} ${student?.last_name}`} src={currentAvatar} />
           <div>
             <Button
               leftIcon={<Camera size={16} />}
