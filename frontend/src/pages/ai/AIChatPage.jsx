@@ -136,6 +136,12 @@ const AIChatPage = () => {
                 size="sm"
                 variant="outline"
                 colorScheme="teal"
+                w="full"
+                whiteSpace="normal"
+                height="auto"
+                textAlign="left"
+                wordBreak="break-word"
+                maxW="100%"
                 onClick={() => {
                   setInput(suggestion)
                   handleSend(suggestion)
