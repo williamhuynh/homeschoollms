@@ -306,3 +306,53 @@ async def suggest_learning_outcomes(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to suggest learning outcomes due to an internal error."
         )
+
+@router.post("/chat", response_model=dict)
+async def ai_chat(request: Request):
+    """Simple AI chat endpoint. Expects JSON with { student_id?: str, student_slug?: str, messages: [{role, content}] }.
+    Injects student name and grade level into a system context for the assistant.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    messages = body.get("messages", [])
+    student_id = body.get("student_id")
+    student_slug = body.get("student_slug")
+
+    if not isinstance(messages, list) or len(messages) == 0:
+        raise HTTPException(status_code=422, detail="messages must be a non-empty array")
+
+    # Lazy import to avoid circular
+    from ..services.student_service import StudentService
+
+    student = None
+    if student_id:
+        try:
+            student = await StudentService.get_student_by_id(student_id)
+        except HTTPException as e:
+            if e.status_code != 404:
+                raise
+    if not student and student_slug:
+        student = await StudentService.get_student_by_slug(student_slug)
+
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found for provided identifier")
+
+    # Prepare system context
+    student_full_name = f"{student.first_name} {student.last_name}".strip()
+    grade_level = student.grade_level
+
+    system_context = (
+        f"Student Name: {student_full_name}\n"
+        f"Current Grade: {grade_level}\n\n"
+        "Guidance:\n"
+        "- Be concise, practical, and supportive.\n"
+        "- Provide actionable advice for parents.\n"
+        "- If unsure, ask a clarifying question.\n"
+        "- Keep responses suitable for a homeschooling context in Australia.\n"
+    )
+
+    reply = await ai_service.chat_with_ai(messages=messages, system_context=system_context)
+    return {"reply": reply}

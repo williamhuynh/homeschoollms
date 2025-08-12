@@ -639,3 +639,76 @@ Do not include any preamble or closing statements. Just provide the two paragrap
             f"\n\nThe submitted work demonstrates active participation in {learning_area_name} activities. "
             f"Please review the individual evidence items for detailed insights into specific skills and achievements."
         )
+
+async def chat_with_ai(messages: List[Dict[str, str]], system_context: str) -> str:
+    """
+    Conduct a chat turn with the AI model using the provided message history and a system context.
+
+    Args:
+        messages: List of dicts with shape {"role": "user"|"assistant", "content": str}
+        system_context: A system instruction string that sets behavior and context (e.g., student info)
+
+    Returns:
+        The assistant reply text.
+
+    Raises:
+        HTTPException on validation or model errors
+    """
+    logger.info("Starting chat turn with %d prior messages", len(messages) if messages else 0)
+
+    if not api_key:
+        error_msg = "Google AI API key is not configured."
+        logger.error(error_msg)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=error_msg)
+
+    if not model:
+        error_msg = f"Gemini model '{model_name}' failed to initialize."
+        logger.error(error_msg)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=error_msg)
+
+    if not isinstance(messages, list) or any(
+        not isinstance(m, dict) or m.get("role") not in {"user", "assistant"} or not isinstance(m.get("content"), str)
+        for m in messages
+    ):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid messages format")
+
+    if not system_context or not system_context.strip():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="System context must be provided")
+
+    try:
+        # Convert to Gemini chat history format
+        history = []
+        # Prepend system context as a high-priority instruction
+        # Since global model is created without system_instruction, include it as a first user message block
+        history.append({
+            "role": "user",
+            "parts": [
+                (
+                    "You are an AI co-pilot helping a homeschooling parent. "
+                    "Follow the System Context strictly. "
+                    "System Context:\n" + system_context.strip()
+                )
+            ]
+        })
+
+        for m in messages[:-1]:  # all but the latest user message
+            role = "user" if m["role"] == "user" else "model"
+            history.append({"role": role, "parts": [m["content"]]})
+
+        latest = messages[-1] if messages else {"role": "user", "content": "Hello"}
+        if latest["role"] != "user":
+            # Ensure the last message is a user turn to send
+            history.append({"role": "model", "parts": [latest["content"]]})
+            latest_to_send = "Please continue."
+        else:
+            latest_to_send = latest["content"]
+
+        chat = model.start_chat(history=history)
+        response = await chat.send_message_async(latest_to_send)
+        reply_text = (response.text or "").strip()
+        return reply_text
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Unexpected error during chat: %s", e, exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Chat generation failed")

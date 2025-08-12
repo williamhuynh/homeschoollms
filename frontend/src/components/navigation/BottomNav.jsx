@@ -1,6 +1,6 @@
 // src/components/navigation/BottomNav.jsx
 import { Box, Flex, IconButton } from '@chakra-ui/react'
-import { Home, Plus, User, FileText } from 'react-feather' // Added FileText for reports
+import { Home, Plus, User, FileText, Zap } from 'react-feather' // Added Zap for AI chat
 import { useNavigate, useLocation, useParams, useMatch } from 'react-router-dom'
 
 const BottomNav = () => {
@@ -22,6 +22,15 @@ const BottomNav = () => {
     } else {
       console.warn("BottomNav: Cannot open AI upload: No active student ID found in URL.");
       // Optionally show a message to the user (e.g., using a Toast)
+    }
+  }
+
+  const handleOpenAIChat = () => {
+    if (studentId) {
+      console.log(`BottomNav: Opening AI chat for studentId: ${studentId}`)
+      navigate(`/students/${studentId}/ai-chat`)
+    } else {
+      console.warn("BottomNav: Cannot open AI chat: No active student ID found in URL.")
     }
   }
 
@@ -71,6 +80,16 @@ const BottomNav = () => {
             variant="ghost"
             onClick={() => navigate(`/students/${studentId}/reports`)}
             aria-label="Reports"
+          />
+        )}
+        
+        {/* AI Chat button - only show if we have a student context */}
+        {studentId && (
+          <IconButton
+            icon={<Zap />}
+            variant="ghost"
+            onClick={handleOpenAIChat}
+            aria-label="AI Chat"
           />
         )}
         

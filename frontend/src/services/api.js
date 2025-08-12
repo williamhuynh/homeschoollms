@@ -699,4 +699,20 @@ export const getReportById = async (studentId, reportId) => {
   }
 };
 
+export const chatWithAI = async (studentId, messages) => {
+  try {
+    const response = await apiToUse.post('/api/v1/ai/chat', {
+      student_id: studentId,
+      messages,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('AI Chat Error:', error);
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw error;
+  }
+};
+
 export default apiToUse;

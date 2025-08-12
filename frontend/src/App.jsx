@@ -24,6 +24,7 @@ import { UserProvider } from './contexts/UserContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import SplashScreen from './components/common/SplashScreen'
 import StudentEditPage from './pages/students/StudentEditPage'
+import AIChatPage from './pages/ai/AIChatPage'
 
 function App() {
   // Check for Supabase session on initial load
@@ -164,6 +165,17 @@ function App() {
                 element={
                   isAuthenticatedOverride || isAuthenticated ? 
                     <AIEvidenceUploadPage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              <Route 
+                path="/students/:studentId/ai-chat" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <>
+                      <AIChatPage />
+                      <BottomNav />
+                    </> : 
                     <Navigate to="/login" replace />
                 } 
               />
