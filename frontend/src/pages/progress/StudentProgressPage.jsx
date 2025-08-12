@@ -204,6 +204,7 @@ const StudentProgressPage = () => {
             <MenuButton as={IconButton} icon={<MoreVertical />} variant="ghost" aria-label="Options" isDisabled={isOffline || curriculumLoading} bg="transparent" _hover={{ bg: 'transparent' }} _active={{ bg: 'transparent' }} boxShadow="none" />
             <MenuList>
               <MenuItem onClick={onOpen} icon={<Edit3 size={16} />} bg="transparent" _hover={{ bg: 'transparent', color: 'blue.600' }} _focus={{ bg: 'transparent' }} py={2}>Change Grade</MenuItem>
+              <MenuItem onClick={() => navigate(`/students/${studentId}/edit`, { state: { student } })} icon={<Edit3 size={16} />} bg="transparent" _hover={{ bg: 'transparent', color: 'blue.600' }} _focus={{ bg: 'transparent' }} py={2}>Edit Profile</MenuItem>
             </MenuList>
           </Menu>
         </HStack>

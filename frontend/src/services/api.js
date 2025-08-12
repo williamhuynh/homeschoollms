@@ -67,12 +67,99 @@ export const login = async (credentials) => {
   }
 };
 
+export const logout = async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Logout Error:', error);
+    throw error;
+  }
+};
+
 export const healthCheck = async () => {
   try {
     const response = await apiToUse.get('/health');
     return response.data;
   } catch (error) {
     console.error('API Health Check Error:', error);
+    throw error;
+  }
+};
+
+export const getCurrentUser = async () => {
+  try {
+    const response = await apiToUse.get('/api/users/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    throw error;
+  }
+};
+
+// Reports API (re-add)
+export const getStudentReports = async (studentId, params = {}) => {
+  try {
+    const response = await apiToUse.get(`/api/reports/${studentId}`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Get Student Reports Error:', error);
+    throw error;
+  }
+};
+
+export const generateReport = async (studentId, reportData) => {
+  try {
+    const payload = { ...reportData };
+    if (reportData.grade_level) payload.grade_level = reportData.grade_level;
+    const response = await apiToUse.post(`/api/reports/${studentId}/generate`, payload);
+    return response.data;
+  } catch (error) {
+    console.error('Generate Report Error:', error);
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw error;
+  }
+};
+
+export const deleteReport = async (studentId, reportId) => {
+  try {
+    const response = await apiToUse.delete(`/api/reports/${studentId}/${reportId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Delete Report Error:', error);
+    throw error;
+  }
+};
+
+export const updateReportTitle = async (studentId, reportId, title) => {
+  try {
+    const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/title`, { title });
+    return response.data;
+  } catch (error) {
+    console.error('Update Report Title Error:', error);
+    throw error;
+  }
+};
+
+export const updateReportStatus = async (studentId, reportId, status) => {
+  try {
+    const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/status`, { status });
+    return response.data;
+  } catch (error) {
+    console.error('Update Report Status Error:', error);
+    throw error;
+  }
+};
+
+export const regenerateReport = async (studentId, reportId) => {
+  try {
+    const response = await apiToUse.post(`/api/reports/${studentId}/${reportId}/regenerate`);
+    return response.data;
+  } catch (error) {
+    console.error('Regenerate Report Error:', error);
     throw error;
   }
 };
@@ -288,17 +375,178 @@ export const updateProgress = async (studentId, contentId, progressData) => {
   }
 };
 
-
-export const logout = async () => {
+export const updateStudentGrade = async (studentIdOrSlug, newGradeLevel) => {
   try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    return true;
+    const response = await apiToUse.patch(`/api/students/${studentIdOrSlug}/grade`, {
+      new_grade_level: newGradeLevel
+    });
+    return response.data;
   } catch (error) {
-    console.error('Logout Error:', error);
+    console.error('Update Student Grade Error:', error);
     throw error;
   }
 };
+
+// Evidence and AI helpers (re-add)
+export const uploadEvidence = async (studentId, learningOutcomeId, formData) => {
+  try {
+    const response = await apiToUse.post(
+      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,
+      formData,
+      { headers: { 'Content-Type': null } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading evidence:', error);
+    throw error;
+  }
+};
+
+export const updateEvidence = async (studentId, learningOutcomeId, evidenceId, data) => {
+  try {
+    const response = await apiToUse.patch(
+      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error updating evidence:', error);
+    throw error;
+  }
+};
+
+export const uploadEvidenceMultiOutcome = async (studentId, formData) => {
+  try {
+    const response = await apiToUse.post(`/api/evidence/${studentId}`, formData, {
+      headers: { 'Content-Type': null }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading multi-outcome evidence:', error);
+    throw error;
+  }
+};
+
+export const generateAIDescription = async (files, contextDescription) => {
+  try {
+    if (!files || files.length === 0) throw new Error('No files provided')
+    if (!contextDescription) throw new Error('No context description provided')
+
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    formData.append('context_description', contextDescription)
+
+    const response = await apiToUse.post('/api/v1/ai/generate-description', formData, {
+      headers: { 'Content-Type': null }
+    })
+    return response.data
+  } catch (error) {
+    console.error('Error generating AI description:', error)
+    throw error
+  }
+};
+
+export const analyzeImageForQuestions = async (files) => {
+  try {
+    if (!files || files.length === 0) throw new Error('No files provided')
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    const response = await apiToUse.post('/api/v1/ai/analyze-image', formData, {
+      headers: { 'Content-Type': null }
+    })
+    return response.data
+  } catch (error) {
+    console.error('Error analyzing image for questions:', error)
+    throw error
+  }
+};
+
+export const suggestLearningOutcomes = async (files, questionAnswers, curriculumData, studentGrade) => {
+  try {
+    if (!files || !Array.isArray(files)) throw new Error('Files must be an array')
+    if (!questionAnswers) throw new Error('No question answers provided')
+    if (!curriculumData) throw new Error('No curriculum data provided')
+    if (!studentGrade) throw new Error('No student grade provided')
+
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    formData.append('question_answers', JSON.stringify(questionAnswers))
+    formData.append('curriculum_data', JSON.stringify(curriculumData))
+    formData.append('student_grade', studentGrade)
+
+    const response = await apiToUse.post('/api/v1/ai/suggest-outcomes', formData, {
+      headers: { 'Content-Type': null }
+    })
+    return response.data
+  } catch (error) {
+    console.error('Error suggesting learning outcomes:', error)
+    throw error
+  }
+};
+
+// Migration API functions (re-add)
+export const getMigrationStatus = async () => {
+  try {
+    const response = await apiToUse.get('/api/files/migration/status');
+    return response.data;
+  } catch (error) {
+    console.error('Get Migration Status Error:', error);
+    throw error;
+  }
+};
+
+export const listMigrationImages = async (imageType = 'public', limit = 50) => {
+  try {
+    const response = await apiToUse.get('/api/files/migration/images', {
+      params: { image_type: imageType, limit: limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('List Migration Images Error:', error);
+    throw error;
+  }
+};
+
+export const migrateSingleImage = async (publicId) => {
+  try {
+    const response = await apiToUse.post('/api/files/migration/migrate-image', { public_id: publicId });
+    return response.data;
+  } catch (error) {
+    console.error('Migrate Single Image Error:', error);
+    throw error;
+  }
+};
+
+export const bulkMigrateImages = async (publicIds) => {
+  try {
+    const response = await apiToUse.post('/api/files/migration/bulk-migrate', { public_ids: publicIds });
+    return response.data;
+  } catch (error) {
+    console.error('Bulk Migrate Images Error:', error);
+    throw error;
+  }
+};
+
+export const setMigrationMode = async (mode) => {
+  try {
+    const response = await apiToUse.post('/api/files/migration/set-mode', { mode });
+    return response.data;
+  } catch (error) {
+    console.error('Set Migration Mode Error:', error);
+    throw error;
+  }
+};
+
+// Cleanup functions
+export const deleteAllPublicImages = async () => apiToUse.post('/api/files/migration/cleanup/delete-all-public', { 
+  confirm_delete_all: 'YES_DELETE_ALL_PUBLIC_IMAGES' 
+});
+export const deleteAllPrivateImages = async () => apiToUse.post('/api/files/migration/cleanup/delete-all-private', { 
+  confirm_delete_all: 'YES_DELETE_ALL_PRIVATE_IMAGES' 
+});
+export const deleteAllCloudinaryImages = async () => apiToUse.post('/api/files/migration/cleanup/delete-all-cloudinary', { 
+  confirm_delete_all: 'YES_DELETE_EVERYTHING_FROM_CLOUDINARY' 
+});
 
 export const getLearningOutcome = async (studentId, learningOutcomeId) => {
   try {
@@ -356,6 +604,7 @@ export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
       } catch (err) {
         console.error(`Error fetching evidence for outcome ${outcomeCode}:`, err);
         // Continue with other outcomes even if one fails
+        continue;
       }
     }
     
@@ -391,591 +640,44 @@ export const getBatchEvidenceForOutcomes = async (studentId, outcomeCodes) => {
   }
 };
 
-// Evidence management functions
-export const deleteEvidence = async (studentId, learningOutcomeId, evidenceId) => {
+// Signed image URL generation
+export const getSignedUrl = async (request) => {
   try {
-    const response = await apiToUse.delete(
-      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}`
-    );
+    const response = await apiToUse.post('/api/files/signed-url', request);
     return response.data;
   } catch (error) {
-    console.error('Error deleting evidence:', error);
-    
-    // If the evidence is not found (404), consider it already deleted and return success
-    if (error.response?.status === 404) {
-      console.log('Evidence not found (404), treating as already deleted');
-      return { success: true, message: 'Evidence already deleted or does not exist' };
-    }
-    
-    // Add more details to the error
-    const errorDetail = error.response?.data?.detail || error.message || 'Unknown error';
-    const enhancedError = new Error(`Failed to delete evidence: ${errorDetail}`);
-    enhancedError.statusCode = error.response?.status;
-    enhancedError.originalError = error;
-    
-    throw enhancedError;
-  }
-};
-
-export const getEvidenceDownloadUrl = async (studentId, learningOutcomeId, evidenceId) => {
-  try {
-    const response = await apiToUse.get(
-      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}/download`
-    );
-    return response.data.download_url;
-  } catch (error) {
-    console.error('Error getting evidence download URL:', error);
+    console.error('Error getting signed URL:', error);
     throw error;
   }
 };
 
-export const getCurrentUser = async () => {
+// Student profile update API
+export const updateStudent = async (studentIdOrSlug, updates) => {
   try {
-    const response = await apiToUse.get('/api/users/me');
+    const response = await apiToUse.patch(`/api/students/${studentIdOrSlug}`, updates);
     return response.data;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.error('Error updating student:', error);
     throw error;
   }
 };
 
-export const getEvidenceShareUrl = async (studentId, learningOutcomeId, evidenceId) => {
-  try {
-    const response = await apiToUse.post(
-      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}/share`
-    );
-    return response.data.share_url;
-  } catch (error) {
-    console.error('Error getting evidence share URL:', error);
-    throw error;
-  }
-};
-
-// AI Description Generation
-export const generateAIDescription = async (files, contextDescription) => {
-  try {
-    // Validate inputs
-    if (!files || files.length === 0) { // Check if files array is empty
-      throw new Error('No files provided');
-    }
-    
-    if (!contextDescription) {
-      throw new Error('No context description provided');
-    }
-    
-    // Log file details for debugging (log the first file for brevity)
-    if (files.length > 0) {
-      const firstFile = files[0];
-      console.log(`Generating description for ${files.length} file(s). First file details:`, {
-        name: firstFile.name,
-        type: firstFile.type,
-        size: firstFile.size,
-        lastModified: new Date(firstFile.lastModified).toISOString()
-      });
-    }
-    
-    // Create FormData
-    const formData = new FormData();
-    // Append all files with the key 'files'
-    files.forEach((file, index) => {
-      formData.append('files', file); 
-    });
-    formData.append('context_description', contextDescription);
-
-    // Log FormData contents for debugging
-    console.log('--- FormData for AI Description ---');
-    for (let [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
-      } else {
-        console.log(`${key}: ${value}`);
-      }
-    }
-    console.log('---------------------------------');
-    
-    console.log('Sending request to /api/v1/ai/generate-description');
-    console.log('API base URL:', apiToUse.defaults.baseURL);
-
-    // Important: Set Content-Type to null to let the browser set the correct boundary
-    // This prevents axios from overriding the automatically set multipart/form-data header
-    const response = await apiToUse.post('/api/v1/ai/generate-description', formData, {
-      headers: {
-        'Content-Type': null, // Let axios set the correct multipart/form-data header with boundary
-      },
-    });
-    
-    console.log('AI Description Response:', response.data);
-    return response.data; // Should contain { description: "..." }
-  } catch (error) {
-    console.error('Error generating AI description:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        baseURL: error.config?.baseURL
-      }
-    });
-    
-    // If we have a response with data, log it in detail
-    if (error.response?.data) {
-      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
-    }
-    
-    // Re-throw the error so the component can handle it
-    throw error; 
-  }
-};
-
-// AI Image Analysis for Questions
-export const analyzeImageForQuestions = async (files) => {
-  try {
-    // Validate inputs
-    if (!files || files.length === 0) {
-      throw new Error('No files provided');
-    }
-    
-    // Log file details for debugging
-    if (files.length > 0) {
-      const firstFile = files[0];
-      console.log(`Analyzing ${files.length} file(s) for questions. First file details:`, {
-        name: firstFile.name,
-        type: firstFile.type,
-        size: firstFile.size,
-        lastModified: new Date(firstFile.lastModified).toISOString()
-      });
-    }
-    
-    // Create FormData
-    const formData = new FormData();
-    // Append all files with the key 'files'
-    files.forEach((file) => {
-      formData.append('files', file); 
-    });
-
-    // Log FormData contents for debugging
-    console.log('--- FormData for AI Image Analysis ---');
-    for (let [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
-      } else {
-        console.log(`${key}: ${value}`);
-      }
-    }
-    console.log('---------------------------------');
-    
-    console.log('Sending request to /api/v1/ai/analyze-image');
-    console.log('API base URL:', apiToUse.defaults.baseURL);
-
-    const response = await apiToUse.post('/api/v1/ai/analyze-image', formData, {
-      headers: {
-        'Content-Type': null, // Let axios set the correct multipart/form-data header
-      },
-    });
-    
-    console.log('AI Image Analysis Response:', response.data);
-    return response.data; // Should contain { questions: [...] }
-  } catch (error) {
-    console.error('Error analyzing image for questions:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        baseURL: error.config?.baseURL
-      }
-    });
-    
-    if (error.response?.data) {
-      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
-    }
-    
-    throw error; 
-  }
-};
-
-// AI Learning Outcome Suggestions
-export const suggestLearningOutcomes = async (files, questionAnswers, curriculumData, studentGrade) => {
-  try {
-    // Validate inputs
-    if (!files || !Array.isArray(files)) {
-      throw new Error('Files must be an array');
-    }
-    
-    if (!questionAnswers) {
-      throw new Error('No question answers provided');
-    }
-    
-    if (!curriculumData) {
-      throw new Error('No curriculum data provided');
-    }
-    
-    if (!studentGrade) {
-      throw new Error('No student grade provided');
-    }
-    
-    // Log file details for debugging
-    if (files.length > 0) {
-      const firstFile = files[0];
-      console.log(`Suggesting outcomes for ${files.length} file(s), grade: ${studentGrade}. First file details:`, {
-        name: firstFile.name,
-        type: firstFile.type,
-        size: firstFile.size,
-        lastModified: new Date(firstFile.lastModified).toISOString()
-      });
-    }
-    
-    // Create FormData
-    const formData = new FormData();
-    
-    // Append all files with the key 'files'
-    files.forEach((file) => {
-      formData.append('files', file); 
-    });
-    
-    // Append other data as JSON strings
-    formData.append('question_answers', JSON.stringify(questionAnswers));
-    formData.append('curriculum_data', JSON.stringify(curriculumData));
-    formData.append('student_grade', studentGrade);
-
-    // Log FormData contents for debugging
-    console.log('--- FormData for AI Outcome Suggestions ---');
-    for (let [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
-      } else {
-        console.log(`${key}: ${value.length > 100 ? value.substring(0, 100) + '...' : value}`);
-      }
-    }
-    console.log('---------------------------------');
-    
-    console.log('Sending request to /api/v1/ai/suggest-outcomes');
-    console.log('API base URL:', apiToUse.defaults.baseURL);
-
-    const response = await apiToUse.post('/api/v1/ai/suggest-outcomes', formData, {
-      headers: {
-        'Content-Type': null, // Let axios set the correct multipart/form-data header
-      },
-    });
-    
-    console.log('AI Outcome Suggestions Response:', response.data);
-    return response.data; // Should contain { outcomes: [...] }
-  } catch (error) {
-    console.error('Error suggesting learning outcomes:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        baseURL: error.config?.baseURL
-      }
-    });
-    
-    if (error.response?.data) {
-      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
-    }
-    
-    throw error; 
-  }
-};
-
-// New function for uploading evidence
-export const uploadEvidence = async (studentId, learningOutcomeId, formData) => {
-  try {
-    // Log FormData contents for debugging
-    console.log('--- FormData for Evidence Upload ---');
-    for (let [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
-      } else {
-        console.log(`${key}: ${value}`);
-      }
-    }
-    console.log('---------------------------------');
-    
-    console.log(`Sending request to /api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`);
-    console.log('API base URL:', apiToUse.defaults.baseURL);
-
-    // Use the correct API instance and endpoint
-    // Pass learningOutcomeId in the path, other data is in formData
-    const response = await apiToUse.post(
-      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`, 
-      formData, 
-      {
-        headers: {
-          // Let browser set Content-Type for FormData
-          'Content-Type': null, 
-        },
-      }
-    );
-    
-    console.log('Evidence Upload Response:', response.data);
-    
-    // Transform the response data to match the expected format
-    const transformedData = {
-      ...response.data,
-      uploaded_files: response.data.uploaded_files.map(file => ({
-        ...file,
-        original_url: file.file_url,
-        thumbnail_small_url: file.thumbnail_url ? `${file.thumbnail_url}?width=150&height=150&quality=80` : null,
-        thumbnail_medium_url: file.thumbnail_url ? `${file.thumbnail_url}?width=600&height=450&quality=85` : null,
-        thumbnail_large_url: file.thumbnail_url ? `${file.thumbnail_url}?width=800&height=600&quality=85` : null
-      }))
-    };
-    
-    return transformedData;
-  } catch (error) {
-    console.error('Error uploading evidence:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        baseURL: error.config?.baseURL
-      }
-    });
-    
-    if (error.response?.data) {
-      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
-    }
-    
-    throw error; // Re-throw for component handling
-  }
-};
-
-// New function for uploading evidence to multiple outcomes
-export const uploadEvidenceMultiOutcome = async (studentId, formData) => {
-  try {
-    // Log FormData contents for debugging
-    console.log('--- FormData for Multi-Outcome Evidence Upload ---');
-    for (let [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
-      } else {
-        console.log(`${key}: ${value}`);
-      }
-    }
-    console.log('---------------------------------');
-    
-    console.log(`Sending request to /api/evidence/${studentId}`);
-    console.log('API base URL:', apiToUse.defaults.baseURL);
-
-    // Use the new multi-outcome endpoint
-    const response = await apiToUse.post(
-      `/api/evidence/${studentId}`, 
-      formData, 
-      {
-        headers: {
-          // Let browser set Content-Type for FormData
-          'Content-Type': null, 
-        },
-      }
-    );
-    
-    console.log('Multi-Outcome Evidence Upload Response:', response.data);
-    
-    // Transform the response data to match the expected format
-    const transformedData = {
-      ...response.data,
-      uploaded_files: response.data.uploaded_files.map(file => ({
-        ...file,
-        original_url: file.file_url,
-        thumbnail_small_url: file.thumbnail_url ? `${file.thumbnail_url}?width=150&height=150&quality=80` : null,
-        thumbnail_medium_url: file.thumbnail_url ? `${file.thumbnail_url}?width=600&height=450&quality=85` : null,
-        thumbnail_large_url: file.thumbnail_url ? `${file.thumbnail_url}?width=800&height=600&quality=85` : null
-      }))
-    };
-    
-    return transformedData;
-  } catch (error) {
-    console.error('Error uploading multi-outcome evidence:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        baseURL: error.config?.baseURL
-      }
-    });
-    
-    if (error.response?.data) {
-      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
-    }
-    
-    throw error; // Re-throw for component handling
-  }
-};
-
-export const updateEvidence = async (studentId, learningOutcomeId, evidenceId, data) => {
-  try {
-    const response = await apiToUse.patch(
-      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${evidenceId}`,
-      data
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error updating evidence:', error);
-    throw error;
-  }
-};
-
-// File and image management
-export const uploadFile = async (file, path) => {
+export const uploadStudentAvatar = async (studentIdOrSlug, file) => {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('file_path', path);
-    
-    const response = await apiToUse.post('/api/files/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    
-    return response.data;
-  } catch (error) {
-    console.error('Upload File Error:', error);
-    throw error;
-  }
-};
-
-export const getSignedUrl = async (params) => {
-  try {
-    const response = await apiToUse.post('/api/files/signed-url', params);
-    return response.data;
-  } catch (error) {
-    console.error('Get Signed URL Error:', error);
-    throw error;
-  }
-};
-
-export const deleteFile = async (filePath) => {
-  try {
-    const response = await apiToUse.post('/api/files/delete', { file_path: filePath });
-    return response.data;
-  } catch (error) {
-    console.error('Delete File Error:', error);
-    throw error;
-  }
-};
-
-// Migration API functions
-export const getMigrationStatus = async () => {
-  try {
-    const response = await apiToUse.get('/api/files/migration/status');
-    return response.data;
-  } catch (error) {
-    console.error('Get Migration Status Error:', error);
-    throw error;
-  }
-};
-
-export const listMigrationImages = async (imageType = 'public', limit = 50) => {
-  try {
-    const response = await apiToUse.get('/api/files/migration/images', {
-      params: { image_type: imageType, limit: limit }
+    const response = await apiToUse.post(`/api/students/${studentIdOrSlug}/avatar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;
   } catch (error) {
-    console.error('List Migration Images Error:', error);
-    throw error;
-  }
-};
-
-export const migrateSingleImage = async (publicId) => {
-  try {
-    const response = await apiToUse.post('/api/files/migration/migrate-image', { public_id: publicId });
-    return response.data;
-  } catch (error) {
-    console.error('Migrate Single Image Error:', error);
-    throw error;
-  }
-};
-
-export const bulkMigrateImages = async (publicIds) => {
-  try {
-    const response = await apiToUse.post('/api/files/migration/bulk-migrate', { public_ids: publicIds });
-    return response.data;
-  } catch (error) {
-    console.error('Bulk Migrate Images Error:', error);
-    throw error;
-  }
-};
-
-export const setMigrationMode = async (mode) => {
-  try {
-    const response = await apiToUse.post('/api/files/migration/set-mode', { mode });
-    return response.data;
-  } catch (error) {
-    console.error('Set Migration Mode Error:', error);
-    throw error;
-  }
-};
-
-// Cleanup functions (DANGEROUS - for starting fresh)
-export const deleteAllPublicImages = () => apiToUse.post('/api/files/migration/cleanup/delete-all-public', { 
-  confirm_delete_all: 'YES_DELETE_ALL_PUBLIC_IMAGES' 
-});
-export const deleteAllPrivateImages = () => apiToUse.post('/api/files/migration/cleanup/delete-all-private', { 
-  confirm_delete_all: 'YES_DELETE_ALL_PRIVATE_IMAGES' 
-});
-export const deleteAllCloudinaryImages = () => apiToUse.post('/api/files/migration/cleanup/delete-all-cloudinary', { 
-  confirm_delete_all: 'YES_DELETE_EVERYTHING_FROM_CLOUDINARY' 
-});
-
-// Student Report Functions
-export const getStudentReports = async (studentId, params = {}) => {
-  try {
-    console.log('Fetching reports for student:', studentId, params);
-    const response = await apiToUse.get(`/api/reports/${studentId}`, { params });
-    return response.data;
-  } catch (error) {
-    console.error('Get Student Reports Error:', error);
-    throw error;
-  }
-};
-
-export const getReportById = async (studentId, reportId) => {
-  try {
-    console.log('Fetching report:', reportId, 'for student:', studentId);
-    const response = await apiToUse.get(`/api/reports/${studentId}/${reportId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Get Report Error:', error);
-    throw error;
-  }
-};
-
-export const generateReport = async (studentId, reportData) => {
-  try {
-    console.log('Generating report for student:', studentId, reportData);
-    const payload = { ...reportData };
-    // Ensure grade_level is sent if present
-    if (reportData.grade_level) payload.grade_level = reportData.grade_level;
-    const response = await apiToUse.post(`/api/reports/${studentId}/generate`, payload);
-    return response.data;
-  } catch (error) {
-    console.error('Generate Report Error:', error);
-    if (error.response?.data?.detail) {
-      throw new Error(error.response.data.detail);
-    }
+    console.error('Error uploading student avatar:', error);
     throw error;
   }
 };
 
 export const updateLearningAreaSummary = async (studentId, reportId, learningAreaCode, summaryData) => {
   try {
-    console.log('Updating learning area summary:', { studentId, reportId, learningAreaCode, summaryData });
     const response = await apiToUse.put(
       `/api/reports/${studentId}/${reportId}/learning-area/${learningAreaCode}`,
       summaryData
@@ -987,56 +689,12 @@ export const updateLearningAreaSummary = async (studentId, reportId, learningAre
   }
 };
 
-export const deleteReport = async (studentId, reportId) => {
+export const getReportById = async (studentId, reportId) => {
   try {
-    console.log('Deleting report:', reportId, 'for student:', studentId);
-    const response = await apiToUse.delete(`/api/reports/${studentId}/${reportId}`);
+    const response = await apiToUse.get(`/api/reports/${studentId}/${reportId}`);
     return response.data;
   } catch (error) {
-    console.error('Delete Report Error:', error);
-    throw error;
-  }
-};
-
-// New report functions
-export const updateReportTitle = async (studentId, reportId, title) => {
-  try {
-    const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/title`, { title });
-    return response.data;
-  } catch (error) {
-    console.error('Update Report Title Error:', error);
-    throw error;
-  }
-};
-
-export const updateReportStatus = async (studentId, reportId, status) => {
-  try {
-    const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/status`, { status });
-    return response.data;
-  } catch (error) {
-    console.error('Update Report Status Error:', error);
-    throw error;
-  }
-};
-
-export const regenerateReport = async (studentId, reportId) => {
-  try {
-    const response = await apiToUse.post(`/api/reports/${studentId}/${reportId}/regenerate`);
-    return response.data;
-  } catch (error) {
-    console.error('Regenerate Report Error:', error);
-    throw error;
-  }
-};
-
-export const updateStudentGrade = async (studentIdOrSlug, newGradeLevel) => {
-  try {
-    const response = await apiToUse.patch(`/api/students/${studentIdOrSlug}/grade`, {
-      new_grade_level: newGradeLevel
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Update Student Grade Error:', error);
+    console.error('Get Report Error:', error);
     throw error;
   }
 };

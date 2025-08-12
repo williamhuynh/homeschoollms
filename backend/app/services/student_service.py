@@ -1,13 +1,14 @@
 from ..utils.database_utils import Database
 from ..models.schemas.student import Student, StudentSubject, ParentAccess, AccessLevel
 from ..services.user_service import UserService
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, UploadFile
 from bson import ObjectId
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 import re
 from ..models.schemas.user import UserInDB
 from ..utils.auth_utils import get_current_user
+from .file_storage_service import file_storage_service
 
 class StudentService:
     @staticmethod
@@ -129,7 +130,7 @@ class StudentService:
         if not student:
             raise HTTPException(status_code=404, detail="Student not found")
         return Student(**student)
-    
+
     @staticmethod
     async def get_student_by_slug(slug: str):
         db = Database.get_db()
@@ -137,6 +138,14 @@ class StudentService:
         if not student:
             raise HTTPException(status_code=404, detail="Student not found")
         return Student(**student)
+
+    @staticmethod
+    async def get_all_students() -> List[Student]:
+        db = Database.get_db()
+        students: List[Student] = []
+        async for s in db.students.find({}):
+            students.append(Student(**s))
+        return students
     
     @staticmethod
     async def update_missing_slugs():
@@ -446,5 +455,88 @@ class StudentService:
                 raise HTTPException(status_code=404, detail="Student not found after update")
             return Student(**student_doc)
         # Return updated document
+        updated = await db.students.find_one({"_id": resolved_id})
+        return Student(**updated)
+
+    @staticmethod
+    async def resolve_student_object_id(student_id_or_slug: str) -> ObjectId:
+        """Resolve a provided id or slug into an ObjectId."""
+        db = Database.get_db()
+        if ObjectId.is_valid(student_id_or_slug):
+            return ObjectId(student_id_or_slug)
+        student_doc = await db.students.find_one({"slug": student_id_or_slug})
+        if not student_doc:
+            raise HTTPException(status_code=404, detail="Student not found")
+        return student_doc["_id"]
+
+    @staticmethod
+    async def update_student(student_id_or_slug: str, updates: Dict[str, Any], current_parent_id: str) -> Student:
+        """Update core student details (first/last name, dob, gender, grade) and regenerate slug if needed."""
+        db = Database.get_db()
+        resolved_id = await StudentService.resolve_student_object_id(student_id_or_slug)
+        # Check admin access
+        has_admin = await StudentService.check_admin_access(str(resolved_id), current_parent_id)
+        if not has_admin:
+            raise HTTPException(status_code=403, detail="Only parents with admin access can update the student")
+
+        # Normalize allowed fields
+        allowed_fields = {"first_name", "last_name", "date_of_birth", "gender", "grade_level"}
+        set_updates: Dict[str, Any] = {}
+        for key, value in updates.items():
+            if key in allowed_fields:
+                if key == "date_of_birth" and isinstance(value, date):
+                    set_updates[key] = value.isoformat()
+                else:
+                    set_updates[key] = value
+        if not set_updates:
+            # Nothing to update
+            student_doc = await db.students.find_one({"_id": resolved_id})
+            return Student(**student_doc)
+
+        # If first/last name changed, update slug
+        if "first_name" in set_updates or "last_name" in set_updates:
+            # Get current names
+            current = await db.students.find_one({"_id": resolved_id}, {"first_name": 1, "last_name": 1})
+            first_name = set_updates.get("first_name", current.get("first_name"))
+            last_name = set_updates.get("last_name", current.get("last_name"))
+            new_slug_base = StudentService.generate_slug(first_name, last_name)
+            unique_slug = await StudentService.ensure_unique_slug(db, new_slug_base, str(resolved_id))
+            set_updates["slug"] = unique_slug
+
+        update_result = await db.students.update_one({"_id": resolved_id}, {"$set": set_updates})
+        if update_result.modified_count == 0:
+            # Fetch current doc regardless
+            student_doc = await db.students.find_one({"_id": resolved_id})
+            return Student(**student_doc)
+
+        updated = await db.students.find_one({"_id": resolved_id})
+        return Student(**updated)
+
+    @staticmethod
+    async def update_student_avatar(student_id_or_slug: str, file: UploadFile, current_parent_id: str) -> Student:
+        """Upload and set a student's avatar image. Returns updated student."""
+        db = Database.get_db()
+        resolved_id = await StudentService.resolve_student_object_id(student_id_or_slug)
+        # Check admin access
+        has_admin = await StudentService.check_admin_access(str(resolved_id), current_parent_id)
+        if not has_admin:
+            raise HTTPException(status_code=403, detail="Only parents with admin access can change the student's avatar")
+
+        # Determine path: use slug if available
+        student_doc = await db.students.find_one({"_id": resolved_id}, {"slug": 1})
+        slug_or_id = student_doc.get("slug") or str(resolved_id)
+        file_path = f"avatars/{slug_or_id}/profile"
+
+        # Upload file via storage service and request thumbnails
+        upload_result = await file_storage_service.upload_file(file, file_path, generate_thumbnail=True, thumbnail_size=(200, 200))
+
+        # Persist avatar fields
+        avatar_updates = {
+            "avatar_path": file_path,
+            "avatar_url": upload_result.get("original_url"),
+            "avatar_thumbnail_url": upload_result.get("thumbnail_small_url") or upload_result.get("original_url"),
+        }
+        await db.students.update_one({"_id": resolved_id}, {"$set": avatar_updates})
+
         updated = await db.students.find_one({"_id": resolved_id})
         return Student(**updated)
