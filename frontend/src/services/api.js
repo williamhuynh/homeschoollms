@@ -273,7 +273,7 @@ export const getStudentBySlug = async (slug) => {
 
 export const updateStudentSlugs = async () => {
   try {
-    const response = await apiToUse.post('/api/students/update-slugs');
+    const response = await apiToUse.post('/api/students/actions/update-slugs');
     return response.data;
   } catch (error) {
     console.error('Update Student Slugs Error:', error);
@@ -654,7 +654,9 @@ export const getSignedUrl = async (request) => {
 // Student profile update API
 export const updateStudent = async (studentIdOrSlug, updates) => {
   try {
-    const response = await apiToUse.patch(`/api/students/${studentIdOrSlug}`, updates);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(studentIdOrSlug);
+    const path = isObjectId ? `/api/students/${studentIdOrSlug}` : `/api/students/by-slug/${studentIdOrSlug}`;
+    const response = await apiToUse.patch(path, updates);
     return response.data;
   } catch (error) {
     console.error('Error updating student:', error);

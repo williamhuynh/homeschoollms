@@ -25,6 +25,11 @@ class StudentService:
     @staticmethod
     async def ensure_unique_slug(db, slug: str, student_id=None) -> str:
         """Ensure the slug is unique by adding a suffix if necessary."""
+        # Reserve certain slugs that conflict with API paths
+        reserved_slugs = {"update-slugs", "for-parent", "actions", "by-slug"}
+        if slug in reserved_slugs:
+            slug = f"{slug}-student"
+        
         # Check if slug already exists for a different student
         query = {"slug": slug}
         if student_id:

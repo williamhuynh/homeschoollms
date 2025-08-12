@@ -26,7 +26,7 @@ class UpdateStudentRequest(BaseModel):
     gender: Optional[str] = None
     grade_level: Optional[str] = None
 
-@router.post("/students/update-slugs")
+@router.post("/students/actions/update-slugs")
 async def update_student_slugs(
     current_user: UserInDB = Depends(get_current_user)
 ):
@@ -104,6 +104,15 @@ async def update_student_details(
 ):
     """Update core student profile fields. Accepts student id or slug in the path."""
     return await StudentService.update_student(student_id, updates.dict(exclude_none=True), str(current_user.id))
+
+@router.patch("/students/by-slug/{slug}", response_model=Student)
+async def update_student_details_by_slug(
+    slug: str,
+    updates: UpdateStudentRequest,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """Update core student profile fields by slug. Dedicated route to prevent collisions with static paths like /students/for-parent."""
+    return await StudentService.update_student(slug, updates.dict(exclude_none=True), str(current_user.id))
 
 @router.post("/students/{student_id}/avatar", response_model=Student)
 async def upload_student_avatar(
