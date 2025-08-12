@@ -11,6 +11,19 @@ const studentsSlice = createSlice({
   name: 'students',
   initialState,
   reducers: {
+    hydrateStudents(state, action) {
+      const next = action.payload
+      if (!next || typeof next !== 'object') return state
+      return {
+        ...state,
+        ...next,
+        // Ensure required keys exist
+        items: Array.isArray(next.items) ? next.items : state.items,
+        status: next.status || state.status,
+        error: next.error ?? state.error,
+        lastFetchedAt: next.lastFetchedAt ?? state.lastFetchedAt,
+      }
+    },
     setStudents(state, action) {
       state.items = Array.isArray(action.payload) ? action.payload : []
       state.status = 'succeeded'
@@ -49,5 +62,5 @@ const studentsSlice = createSlice({
   }
 })
 
-export const { setStudents, addStudent, updateStudent, clearStudents, setLoading, setError } = studentsSlice.actions
+export const { hydrateStudents, setStudents, addStudent, updateStudent, clearStudents, setLoading, setError } = studentsSlice.actions
 export default studentsSlice.reducer

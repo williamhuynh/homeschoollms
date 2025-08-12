@@ -1,34 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit'
-import studentsReducer from './studentsSlice'
-import userReducer from './userSlice'
+import studentsReducer, { hydrateStudents } from './studentsSlice'
+import userReducer, { hydrateUser } from './userSlice'
+import { idbGet, idbSet } from './db'
 
-const PERSIST_KEY = 'appState:v1'
-
-function loadState() {
-  try {
-    const serialized = localStorage.getItem(PERSIST_KEY)
-    if (!serialized) return undefined
-    const parsed = JSON.parse(serialized)
-    const preloaded = {}
-    if (parsed.students) preloaded.students = parsed.students
-    if (parsed.user) preloaded.user = parsed.user
-    return preloaded
-  } catch (e) {
-    console.warn('Failed to load persisted state', e)
-    return undefined
-  }
-}
-
-function saveState(state) {
-  try {
-    const subset = {
-      students: state.students,
-      user: state.user,
-    }
-    localStorage.setItem(PERSIST_KEY, JSON.stringify(subset))
-  } catch (e) {
-    console.warn('Failed to save state', e)
-  }
+const PERSIST_KEYS = {
+  students: 'students:v1',
+  user: 'user:v1',
 }
 
 export const store = configureStore({
@@ -36,15 +13,40 @@ export const store = configureStore({
     students: studentsReducer,
     user: userReducer,
   },
-  preloadedState: typeof window !== 'undefined' ? loadState() : undefined,
 })
 
+// Async rehydration from IndexedDB
+export async function rehydrateStore() {
+  try {
+    const [studentsState, userState] = await Promise.all([
+      idbGet(PERSIST_KEYS.students),
+      idbGet(PERSIST_KEYS.user),
+    ])
+    if (studentsState) {
+      store.dispatch(hydrateStudents(studentsState))
+    }
+    if (userState) {
+      store.dispatch(hydrateUser(userState))
+    }
+  } catch (e) {
+    console.warn('Rehydration failed', e)
+  }
+}
+
+// Persist to IndexedDB (debounced)
 let saveTimeout = null
 store.subscribe(() => {
-  if (typeof window === 'undefined') return
   if (saveTimeout) clearTimeout(saveTimeout)
-  saveTimeout = setTimeout(() => {
-    saveState(store.getState())
+  saveTimeout = setTimeout(async () => {
+    const state = store.getState()
+    try {
+      await Promise.all([
+        idbSet(PERSIST_KEYS.students, state.students),
+        idbSet(PERSIST_KEYS.user, state.user),
+      ])
+    } catch (e) {
+      console.warn('Persist failed', e)
+    }
   }, 500)
 })
 

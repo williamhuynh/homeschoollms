@@ -10,6 +10,17 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
+    hydrateUser(state, action) {
+      const next = action.payload
+      if (!next || typeof next !== 'object') return state
+      return {
+        ...state,
+        ...next,
+        profile: next.profile ?? state.profile,
+        status: next.status || state.status,
+        error: next.error ?? state.error,
+      }
+    },
     setUser(state, action) {
       state.profile = action.payload || null
       state.status = 'succeeded'
@@ -30,5 +41,5 @@ const userSlice = createSlice({
   }
 })
 
-export const { setUser, clearUser, setUserLoading, setUserError } = userSlice.actions
+export const { hydrateUser, setUser, clearUser, setUserLoading, setUserError } = userSlice.actions
 export default userSlice.reducer
