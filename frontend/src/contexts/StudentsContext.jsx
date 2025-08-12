@@ -1,20 +1,23 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { setStudents as setStudentsAction, addStudent as addStudentAction, updateStudent as updateStudentAction } from '../state/studentsSlice'
 
 const StudentsContext = createContext()
 
 export const StudentsProvider = ({ children }) => {
-  const [students, setStudents] = useState([])
+  const dispatch = useDispatch()
+  const students = useSelector(state => state.students.items)
+
+  const setStudents = (list) => {
+    dispatch(setStudentsAction(list))
+  }
 
   const addStudent = (newStudent) => {
-    setStudents(prev => [...prev, newStudent])
+    dispatch(addStudentAction(newStudent))
   }
 
   const updateStudent = (updated) => {
-    setStudents(prev => prev.map(s => {
-      const sid = s._id || s.id || s.slug
-      const uid = updated._id || updated.id || updated.slug
-      return sid === uid ? { ...s, ...updated } : s
-    }))
+    dispatch(updateStudentAction(updated))
   }
 
   return (

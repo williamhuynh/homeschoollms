@@ -3,10 +3,12 @@ import { Plus } from 'react-feather' // Removed Settings import
 import { useNavigate } from 'react-router-dom'
 import StudentList from '../../components/students/StudentList'
 import BottomNav from '../../components/navigation/BottomNav' // Import BottomNav
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useStudents } from '../../contexts/StudentsContext'
 import { useUser } from '../../contexts/UserContext' // Import useUser hook
 import { getStudents } from '../../services/api'
+import RefreshButton from '../../components/common/RefreshButton'
+import { useSoftRefresh } from '../../hooks/useSoftRefresh'
 
 const StudentSelection = () => {
   const { students, setStudents } = useStudents()
@@ -44,7 +46,7 @@ const StudentSelection = () => {
     }
   }
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     setLoading(true)
     try {
       console.log('StudentSelection: Fetching students...')
@@ -72,11 +74,11 @@ const StudentSelection = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [setStudents, toast])
 
   useEffect(() => {
     fetchStudents()
-  }, []) // Empty dependency array to run only once on mount
+  }, [fetchStudents]) // Run on mount and when callback identity changes
 
   return (
     // Add paddingBottom to account for fixed BottomNav height (adjust value as needed)
@@ -85,7 +87,7 @@ const StudentSelection = () => {
         <Flex justify="space-between" align="center" px={4}>
           <Heading size="xl">Your Students</Heading>
           <Flex gap={2}>
-            {/* Removed Settings IconButton */}
+            <RefreshButton onClick={fetchStudents} isLoading={loading} label="Refresh list" />
             <IconButton
               icon={<Plus />}
               variant="solid"
@@ -93,7 +95,6 @@ const StudentSelection = () => {
               aria-label="Add student"
               onClick={handleAddStudent}
             />
-            {/* Only render debug button for admin users */}
             {isAdmin() && (
               <IconButton
                 icon={<span>🐞</span>}
