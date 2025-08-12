@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setStudents as setStudentsAction, addStudent as addStudentAction, updateStudent as updateStudentAction } from '../state/studentsSlice'
 
@@ -8,17 +8,17 @@ export const StudentsProvider = ({ children }) => {
   const dispatch = useDispatch()
   const students = useSelector(state => state.students.items)
 
-  const setStudents = (list) => {
+  const setStudents = useCallback((list) => {
     dispatch(setStudentsAction(list))
-  }
+  }, [dispatch])
 
-  const addStudent = (newStudent) => {
+  const addStudent = useCallback((newStudent) => {
     dispatch(addStudentAction(newStudent))
-  }
+  }, [dispatch])
 
-  const updateStudent = (updated) => {
+  const updateStudent = useCallback((updated) => {
     dispatch(updateStudentAction(updated))
-  }
+  }, [dispatch])
 
   return (
     <StudentsContext.Provider value={{ students, setStudents, addStudent, updateStudent }}>
