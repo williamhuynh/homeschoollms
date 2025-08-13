@@ -439,6 +439,7 @@ export const generateAIDescription = async (files, contextDescription) => {
     const response = await apiToUse.post('/api/v1/ai/generate-description', formData, {
       headers: { 'Content-Type': null }
     })
+    // Response now includes { description, title }
     return response.data
   } catch (error) {
     console.error('Error generating AI description:', error)

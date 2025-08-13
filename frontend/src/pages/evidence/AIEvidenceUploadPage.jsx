@@ -675,7 +675,9 @@ const AIEvidenceUploadPage = () => {
               const descriptionResult = await generateAIDescription(fileObjects, richContext)
               const generated = descriptionResult?.description || ''
               setDescription(generated || buildFallbackDescription())
-              if (!title) {
+              if (descriptionResult?.title && descriptionResult.title.trim()) {
+                setTitle(descriptionResult.title.trim())
+              } else if (!title) {
                 setTitle(`AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
               }
             } catch (err) {

@@ -640,6 +640,103 @@ Do not include any preamble or closing statements. Just provide the two paragrap
             f"Please review the individual evidence items for detailed insights into specific skills and achievements."
         )
 
+async def generate_title_from_images(images: List[Dict[str, Union[bytes, str]]], context_description: str) -> str:
+    """
+    Generates a concise, factual title for one or more images based on provided context.
+
+    Args:
+        images: A list of dictionaries, each containing 'bytes' and 'mime_type' for an image.
+        context_description: Contextual information related to the image(s).
+
+    Returns:
+        A short title string (aim for <= 60 characters).
+
+    Raises:
+        HTTPException: If configuration or validation fails, or generation fails.
+    """
+    logger.info(f"Generating title for {len(images)} image(s).")
+    logger.info(f"Context: {context_description[:100]}{'...' if len(context_description) > 100 else ''}")
+
+    if not api_key:
+        error_msg = "Google AI API key is not configured."
+        logger.error(error_msg)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=error_msg)
+
+    if not model:
+        error_msg = f"Gemini model '{model_name}' failed to initialize."
+        logger.error(error_msg)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=error_msg)
+
+    if not images:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No valid images provided to generate title.")
+
+    prepared_images = []
+    try:
+        for i, image_data in enumerate(images):
+            image_bytes = image_data.get("bytes")
+            image_mime_type = image_data.get("mime_type")
+
+            if not image_bytes or not image_mime_type:
+                logger.warning(f"Skipping image {i+1} due to missing data.")
+                continue
+
+            if not image_mime_type.startswith('image/'):
+                logger.warning(f"Skipping image {i+1} due to invalid MIME type: {image_mime_type}")
+                continue
+
+            try:
+                img = Image.open(io.BytesIO(image_bytes))
+                prepared_images.append(img)
+                logger.debug(f"Successfully prepared image {i+1}: {img.format}, {img.size}")
+            except Exception as img_error:
+                logger.warning(f"Failed to process image {i+1}: {img_error}. Skipping.")
+                continue
+
+        if not prepared_images:
+            raise ValueError("No valid images could be processed.")
+
+        if not context_description or len(context_description.strip()) == 0:
+            raise ValueError("Context description cannot be empty")
+
+        prompt = f"""You are titling an educational evidence entry for a child's learning journal. Using the images and context below, generate a concise, factual, neutral title.
+
+Context: {context_description}
+
+Guidelines:
+- 4 to 8 words, maximum 60 characters
+- No emojis or quotation marks
+- Avoid overly emotive language
+- Prefer action-oriented or noun phrase titles (e.g., "Measuring Volumes with Cups")
+- If a clear learning area is evident from the context, you may include a short hint (e.g., "EN" for English) if it remains concise
+- Output ONLY the title text, with no extra commentary
+"""
+
+        logger.info("Sending title generation prompt to Gemini API")
+        content_parts = [prompt] + prepared_images
+        response = await model.generate_content_async(content_parts)
+        logger.info("Received response from Gemini API for title generation")
+
+        generated_title = (response.text or "").strip()
+
+        # Clean common wrappers
+        if generated_title.startswith('```'):
+            generated_title = generated_title.strip('`').strip()
+        if generated_title.startswith('Title:'):
+            generated_title = generated_title[len('Title:'):].strip()
+
+        # Enforce basic length cap
+        if len(generated_title) > 80:
+            generated_title = generated_title[:77] + '...'
+
+        return generated_title
+
+    except ValueError as ve:
+        logger.error(f"Input validation error (title): {ve}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Invalid input: {str(ve)}")
+    except Exception as e:
+        logger.error(f"ERROR during Gemini API call for title: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate title using AI due to an internal error.")
+
 async def chat_with_ai(messages: List[Dict[str, str]], system_context: str) -> str:
     """
     Conduct a chat turn with the AI model using the provided message history and a system context.
