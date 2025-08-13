@@ -340,6 +340,10 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
       } else {
         setGenerationError('Failed to generate description')
       }
+      
+      if (result && result.title && result.title.trim()) {
+        setTitle(result.title.trim())
+      }
     } catch (err) {
       console.error('Error generating AI description:', err)
       setGenerationError(err.message || 'Failed to generate description')

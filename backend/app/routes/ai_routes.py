@@ -108,9 +108,22 @@ async def generate_ai_description(
             images=image_data_list,
             context_description=context_description
         )
+
+        # Try generating a title; fallback gracefully on failure
+        try:
+            generated_title = await ai_service.generate_title_from_images(
+                images=image_data_list,
+                context_description=context_description
+            )
+            if not generated_title or len(generated_title.strip()) == 0:
+                raise ValueError("Empty title from AI")
+        except Exception as title_error:
+            logger.warning(f"AI title generation failed: {title_error}. Using fallback title.")
+            from datetime import datetime
+            generated_title = f"AI Analyzed Evidence - {datetime.now().strftime('%Y-%m-%d')}"
         
         logger.info(f"Successfully generated description (length: {len(generated_text)}).")
-        return {"description": generated_text}
+        return {"description": generated_text, "title": generated_title}
 
     except HTTPException as http_exc:
         # Re-raise HTTPExceptions (e.g., from AI service validation)
