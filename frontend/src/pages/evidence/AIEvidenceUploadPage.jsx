@@ -44,7 +44,7 @@ const AIEvidenceUploadPage = () => {
   const student = students.find(s => s._id === studentId || s.slug === studentId)
   
   // State management
-  const [currentStep, setCurrentStep] = useState(1) // 1: Upload, 2: Questions, 3: Outcomes
+  const [currentStep, setCurrentStep] = useState(1) // 1: Upload, 2: Questions, 3: Outcomes, 4: Review
   const [selectedFiles, setSelectedFiles] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [analysisQuestions, setAnalysisQuestions] = useState([])
@@ -53,6 +53,11 @@ const AIEvidenceUploadPage = () => {
   const [selectedOutcomes, setSelectedOutcomes] = useState([])
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const [curriculumData, setCurriculumData] = useState(null)
+
+  // Add fields for review/edit step
+  const [title, setTitle] = useState(`AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
+  const [description, setDescription] = useState('')
+  const [aiGenerationError, setAIGenerationError] = useState(null)
 
   // Load curriculum data when component mounts
   useEffect(() => {
@@ -314,74 +319,50 @@ const AIEvidenceUploadPage = () => {
   const handleFinalSubmit = async () => {
     setIsProcessing(true)
     try {
-      console.log('Final submission:', {
+      console.log('Uploading after review:', {
         files: selectedFiles.map(f => f.file.name),
         outcomes: selectedOutcomes,
-        answers: questionAnswers
       })
 
-      // Use ALL selected outcomes with new multi-outcome endpoint
       if (selectedOutcomes.length === 0) {
         throw new Error('Please select at least one learning outcome to proceed')
       }
 
-      // Generate rich AI description before upload
-      let aiGeneratedDescription = ''
-      try {
-        console.log('Generating AI description from analysis data...')
-        const richContext = buildRichContext()
-        console.log('Rich context built:', richContext)
-        
-        const fileObjects = selectedFiles.map(f => f.file)
-        const descriptionResult = await generateAIDescription(fileObjects, richContext)
-        
-        if (descriptionResult && descriptionResult.description) {
-          aiGeneratedDescription = descriptionResult.description
-          console.log('AI description generated:', aiGeneratedDescription)
-        } else {
-          console.warn('AI description generation returned empty result')
-        }
-      } catch (descError) {
-        console.error('Failed to generate AI description:', descError)
-        // Continue with upload even if description generation fails
-        aiGeneratedDescription = buildFallbackDescription()
+      if (!title || !title.trim()) {
+        throw new Error('Please provide a title before uploading')
       }
-
-      // Use AI-generated description or fallback
-      const finalDescription = aiGeneratedDescription || buildFallbackDescription()
 
       // Create FormData for multi-outcome evidence upload
       const formData = new FormData()
-      
+
       // Add files
       selectedFiles.forEach(({ file }) => {
         formData.append('files', file)
       })
-      
-      // Add metadata with ALL selected outcomes
-      formData.append('title', `AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
+
+      // Use edited fields (fallback description if empty)
+      const finalDescription = description && description.trim() ? description : buildFallbackDescription()
+
+      formData.append('title', title.trim())
       formData.append('description', finalDescription)
-      formData.append('learning_outcome_codes', selectedOutcomes.join(',')) // All outcomes as comma-separated
-      formData.append('learning_area_codes', selectedOutcomes.map(code => code.split('-')[0]).join(',')) // Extract area codes
-      
+      formData.append('learning_outcome_codes', selectedOutcomes.join(','))
+      formData.append('learning_area_codes', selectedOutcomes.map(code => code.split('-')[0]).join(','))
+
       if (student?.grade_level) {
         formData.append('student_grade', student.grade_level)
       }
 
-      // Upload evidence using new multi-outcome endpoint
-      const result = await uploadEvidenceMultiOutcome(studentId, formData)
+      await uploadEvidenceMultiOutcome(studentId, formData)
 
       toast({
         title: 'Evidence uploaded successfully',
-        description: `Uploaded ${selectedFiles.length} file(s) to ${selectedOutcomes.length} learning outcome(s) with AI analysis`,
+        description: `Uploaded ${selectedFiles.length} file(s) to ${selectedOutcomes.length} learning outcome(s)`,
         status: 'success',
         duration: 5000,
         isClosable: true,
       })
 
-      // Navigate back to student progress
       navigate(`/students/${studentId}/progress`)
-      
     } catch (error) {
       console.error('Error uploading evidence:', error)
       toast({
@@ -448,6 +429,7 @@ const AIEvidenceUploadPage = () => {
       case 1: return 'Upload Images'
       case 2: return 'Provide Context'
       case 3: return 'Review Suggestions'
+      case 4: return 'Review & Edit Details'
       default: return 'AI Evidence Upload'
     }
   }
@@ -680,15 +662,66 @@ const AIEvidenceUploadPage = () => {
           Back
         </Button>
         <Button
-          colorScheme="green"
+          colorScheme="blue"
           flex={1}
-          leftIcon={<CheckCircle />}
-          onClick={handleFinalSubmit}
+          onClick={async () => {
+            if (selectedOutcomes.length === 0) return
+            setIsProcessing(true)
+            setAIGenerationError(null)
+            try {
+              // Build context and generate description
+              const richContext = buildRichContext()
+              const fileObjects = selectedFiles.map(f => f.file)
+              const descriptionResult = await generateAIDescription(fileObjects, richContext)
+              const generated = descriptionResult?.description || ''
+              setDescription(generated || buildFallbackDescription())
+              if (!title) {
+                setTitle(`AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
+              }
+            } catch (err) {
+              console.error('AI description generation failed before review:', err)
+              setDescription(buildFallbackDescription())
+              setAIGenerationError('Could not generate AI description. A basic description has been provided. You can edit it below.')
+            } finally {
+              setIsProcessing(false)
+              setCurrentStep(4)
+            }
+          }}
           isLoading={isProcessing}
-          loadingText="Generating description & uploading..."
+          loadingText="Generating description..."
           isDisabled={selectedOutcomes.length === 0}
         >
-          Upload Evidence ({selectedOutcomes.length} outcomes)
+          Review Details ({selectedOutcomes.length} outcomes)
+        </Button>
+      </HStack>
+    </VStack>
+  )
+
+  const renderStep4 = () => (
+    <VStack spacing={6} align="stretch">
+      <Box textAlign="center">
+        <Heading size="lg" mb={2}>Review & Edit</Heading>
+        <Text color="gray.600">Update the title and description before saving.</Text>
+      </Box>
+      {aiGenerationError && (
+        <Alert status="warning">
+          <AlertIcon />
+          {aiGenerationError}
+        </Alert>
+      )}
+      <FormControl isRequired>
+        <FormLabel>Title</FormLabel>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter a title" />
+      </FormControl>
+      <FormControl>
+        <FormLabel>Description</FormLabel>
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder="Enter a description" />
+      </FormControl>
+
+      <HStack spacing={3}>
+        <Button variant="outline" onClick={() => setCurrentStep(3)} isDisabled={isProcessing}>Back</Button>
+        <Button colorScheme="green" flex={1} leftIcon={<CheckCircle />} onClick={handleFinalSubmit} isLoading={isProcessing} loadingText="Uploading...">
+          Save Evidence
         </Button>
       </HStack>
     </VStack>
@@ -718,16 +751,17 @@ const AIEvidenceUploadPage = () => {
         {/* Progress indicator */}
         <Box>
           <HStack justify="space-between" mb={2}>
-            <Text fontSize="sm" fontWeight="medium">Step {currentStep} of 3</Text>
-            <Text fontSize="sm" color="gray.500">{Math.round((currentStep / 3) * 100)}% complete</Text>
+            <Text fontSize="sm" fontWeight="medium">Step {currentStep} of 4</Text>
+            <Text fontSize="sm" color="gray.500">{Math.round((currentStep / 4) * 100)}% complete</Text>
           </HStack>
-          <Progress value={(currentStep / 3) * 100} colorScheme="blue" size="sm" />
+          <Progress value={(currentStep / 4) * 100} colorScheme="blue" size="sm" />
         </Box>
 
         {/* Step content */}
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
+        {currentStep === 4 && renderStep4()}
       </VStack>
     </Container>
   )
