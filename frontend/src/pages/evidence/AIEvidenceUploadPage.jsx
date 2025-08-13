@@ -544,7 +544,7 @@ const AIEvidenceUploadPage = () => {
           size="lg"
           onClick={handleUploadAndAnalyze}
           isLoading={isProcessing}
-          loadingText="Analyzing..."
+          loadingText="Analysing..."
           isDisabled={isOffline}
         >
           Upload
@@ -614,7 +614,7 @@ const AIEvidenceUploadPage = () => {
           flex={1}
           onClick={handleQuestionSubmit}
           isLoading={isProcessing}
-          loadingText="Analyzing..."
+          loadingText="Analysing..."
         >
           Next
         </Button>
@@ -625,7 +625,7 @@ const AIEvidenceUploadPage = () => {
   const renderStep3 = () => (
     <VStack spacing={6} align="stretch">
       <Box textAlign="center">
-        <Heading size="lg" mb={2}>AI Suggested Learning Outcomes</Heading>
+        <Heading size="lg" mb={2}>Suggested Learning Outcomes</Heading>
         <Text color="gray.600">
           Review and select the learning outcomes that best match this evidence
         </Text>
