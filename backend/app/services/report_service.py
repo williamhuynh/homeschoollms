@@ -376,22 +376,43 @@ class ReportService:
         db = Database.get_db()
         
         # Get all evidence for this learning area
-        # Handle both array-based (new) and string-based (legacy) storage formats
-        # Use case-insensitive matching for robustness
+        # We need to query by BOTH learning_area_codes AND learning_outcome_codes
+        # because learning_area_codes is optional and may not always be populated
         subject_code = subject["code"]
+        
+        # Get outcome codes for this subject to also match by learning_outcome_codes
+        outcomes = subject.get("outcomes", [])
+        outcome_codes = [o.get("code") for o in outcomes if o.get("code")]
+        
+        # Build query conditions for learning_area_codes (may be empty or missing)
+        area_code_conditions = [
+            # New array-based format: learning_area_codes contains the subject code
+            {"learning_area_codes": {"$in": [subject_code]}},
+            # Case-insensitive array matching
+            {"learning_area_codes": {"$elemMatch": {"$regex": f"^{subject_code}$", "$options": "i"}}},
+            # Legacy string-based format (backward compatibility)
+            {"learning_area_codes": subject_code},
+            {"learning_area_codes": {"$regex": f"^{subject_code}$", "$options": "i"}}
+        ]
+        
+        # Build query conditions for learning_outcome_codes (more reliable since it's required)
+        # This catches evidence that was uploaded with outcome codes but without area codes
+        outcome_code_conditions = []
+        for outcome_code in outcome_codes:
+            # Case-insensitive match for each outcome code
+            outcome_code_conditions.append({
+                "learning_outcome_codes": {"$elemMatch": {"$regex": f"^{re.escape(outcome_code)}$", "$options": "i"}}
+            })
+        
+        # Combine both types of conditions with $or
+        all_conditions = area_code_conditions + outcome_code_conditions
+        
         evidence_query = {
             "student_id": student_id,
-            "$or": [
-                # New array-based format: learning_area_codes contains the subject code
-                {"learning_area_codes": {"$in": [subject_code]}},
-                # Case-insensitive array matching
-                {"learning_area_codes": {"$elemMatch": {"$regex": f"^{subject_code}$", "$options": "i"}}},
-                # Legacy string-based format (backward compatibility)
-                {"learning_area_codes": subject_code},
-                {"learning_area_codes": {"$regex": f"^{subject_code}$", "$options": "i"}}
-            ],
+            "$or": all_conditions,
             "deleted": {"$ne": True}
         }
+        
         # If evidence contains grade_level metadata, filter to selected grade only
         if grade_level:
             evidence_query["$and"] = evidence_query.get("$and", []) + [
