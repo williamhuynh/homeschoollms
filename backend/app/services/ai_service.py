@@ -30,9 +30,9 @@ else:
 
 # Initialize the Generative Model (using a model that supports multiple images)
 model = None
-# Models supporting multiple images include gemini-1.5-flash-latest, gemini-1.5-pro-latest
-# Let's use flash for speed/cost unless pro is needed for complexity.
-model_name = 'gemini-1.5-flash-latest' 
+# Models supporting multiple images include gemini-1.5-flash-latest, gemini-1.5-pro-latest, gemini-2.5-flash-lite
+# Using gemini-2.5-flash-lite for improved performance and cost efficiency.
+model_name = 'gemini-2.5-flash-lite' 
 try:
     # List available models for debugging
     logger.debug("Available models:")
