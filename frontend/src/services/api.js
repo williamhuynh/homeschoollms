@@ -718,4 +718,100 @@ export const chatWithAI = async (studentId, messages) => {
   }
 };
 
+// =====================
+// Subscription API
+// =====================
+
+export const getSubscriptionPricing = async () => {
+  try {
+    const response = await apiToUse.get('/api/stripe/subscription/pricing');
+    return response.data;
+  } catch (error) {
+    console.error('Get Subscription Pricing Error:', error);
+    throw error;
+  }
+};
+
+export const getSubscriptionStatus = async () => {
+  try {
+    const response = await apiToUse.get('/api/stripe/subscription/status');
+    return response.data;
+  } catch (error) {
+    console.error('Get Subscription Status Error:', error);
+    throw error;
+  }
+};
+
+export const getSubscriptionUsage = async () => {
+  try {
+    const response = await apiToUse.get('/api/stripe/subscription/usage');
+    return response.data;
+  } catch (error) {
+    console.error('Get Subscription Usage Error:', error);
+    throw error;
+  }
+};
+
+export const createCheckoutSession = async (priceId, successUrl, cancelUrl) => {
+  try {
+    const response = await apiToUse.post('/api/stripe/checkout/session', {
+      price_id: priceId,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Create Checkout Session Error:', error);
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw error;
+  }
+};
+
+export const createPortalSession = async (returnUrl) => {
+  try {
+    const response = await apiToUse.post('/api/stripe/portal/session', {
+      return_url: returnUrl,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Create Portal Session Error:', error);
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw error;
+  }
+};
+
+export const canAddStudent = async () => {
+  try {
+    const response = await apiToUse.get('/api/stripe/can-add-student');
+    return response.data;
+  } catch (error) {
+    console.error('Can Add Student Check Error:', error);
+    throw error;
+  }
+};
+
+export const canAddEvidence = async () => {
+  try {
+    const response = await apiToUse.get('/api/stripe/can-add-evidence');
+    return response.data;
+  } catch (error) {
+    console.error('Can Add Evidence Check Error:', error);
+    throw error;
+  }
+};
+
+export const canGenerateReports = async () => {
+  try {
+    const response = await apiToUse.get('/api/stripe/can-generate-reports');
+    return response.data;
+  } catch (error) {
+    console.error('Can Generate Reports Check Error:', error);
+    throw error;
+  }
+};
+
 export default apiToUse;

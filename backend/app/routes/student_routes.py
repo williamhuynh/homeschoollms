@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File
 from ..services.student_service import StudentService
+from ..services.subscription_service import SubscriptionService
 from ..models.schemas.student import Student, AccessLevel
 from ..models.schemas.user import UserInDB
 from ..utils.auth_utils import get_current_user
@@ -39,6 +40,11 @@ async def create_student(
     student: Student,
     current_user: UserInDB = Depends(get_current_user)
 ):
+    # Check subscription limits before creating student
+    can_add, message = await SubscriptionService.can_add_student(str(current_user.id))
+    if not can_add:
+        raise HTTPException(status_code=403, detail=message)
+    
     return await StudentService.create_student(student, str(current_user.id))
 
 @router.get("/students", response_model=List[Student])

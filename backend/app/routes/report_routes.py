@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from ..services.report_service import ReportService
+from ..services.subscription_service import SubscriptionService
 from ..models.schemas.report import (
     StudentReport,
     GenerateReportRequest,
@@ -139,6 +140,11 @@ async def generate_report(
     """Generate a new AI-powered report for a student."""
     # Ensure user has content access (required for report generation)
     await ensure_student_access(student_id, current_user, "content")
+    
+    # Check subscription allows report generation
+    can_generate, message = await SubscriptionService.can_generate_reports(str(current_user.id))
+    if not can_generate:
+        raise HTTPException(status_code=403, detail=message)
     
     try:
         report = await ReportService.generate_report(

@@ -15,7 +15,8 @@ from .routes import (
     learning_outcome_routes,
     ai_routes, # Add import for AI routes
     file_routes, # Add import for file routes
-    report_routes # Add import for report routes
+    report_routes, # Add import for report routes
+    stripe_routes # Add import for Stripe/subscription routes
 )
 from bson.errors import InvalidId
 from .utils.error_handlers import http_error_handler, invalid_object_id_handler
@@ -62,6 +63,7 @@ app.include_router(learning_outcome_routes.router, prefix="/api", tags=["learnin
 app.include_router(ai_routes.router, prefix="/api/v1/ai", tags=["ai"]) # Include the AI router with correct prefix
 app.include_router(file_routes.router, prefix="/api/files", tags=["files"]) # Include the file routes
 app.include_router(report_routes.router, prefix="/api", tags=["reports"]) # Include the report routes
+app.include_router(stripe_routes.router, prefix="/api/stripe", tags=["stripe"]) # Include Stripe/subscription routes
 
 
 # Add error handlers

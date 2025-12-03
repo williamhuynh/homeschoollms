@@ -29,14 +29,18 @@ import {
   Menu,
   MenuButton,
   MenuList,
-  MenuItem
+  MenuItem,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react'
-import { ArrowLeft, Plus, FileText, MoreVertical, Trash2, Eye } from 'react-feather'
+import { ArrowLeft, Plus, FileText, MoreVertical, Trash2, Eye, Zap } from 'react-feather'
 import { useEffect, useState } from 'react'
 import { getStudentReports, generateReport, deleteReport, getStudentBySlug } from '../../services/api'
 import ReportGenerationProgress from '../../components/reports/ReportGenerationProgress'
 import ErrorBoundary from '../../components/reports/ErrorBoundary'
 import ReportTemplateSelector from '../../components/reports/ReportTemplateSelector'
+import { useUser } from '../../contexts/UserContext'
+import { UpgradeBanner } from '../../components/subscription/UpgradePrompt'
 
 const ReportsPage = () => {
   const navigate = useNavigate()
@@ -44,6 +48,7 @@ const ReportsPage = () => {
   const location = useLocation()
   const toast = useToast()
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { canGenerateReports } = useUser()
   
   const [reports, setReports] = useState([])
   const [student, setStudent] = useState(null)
@@ -56,6 +61,9 @@ const ReportsPage = () => {
     template: 'standard',
     grade_level: ''
   })
+  
+  // Check if user can generate reports
+  const canGenerate = canGenerateReports()
 
   // Normalize various id shapes to a string
   function getReportId(report) {
@@ -216,14 +224,23 @@ const ReportsPage = () => {
           />
           <Heading size="lg" flex={1}>Reports</Heading>
           <Button
-            leftIcon={<Plus />}
-            colorScheme="blue"
-            onClick={onOpen}
+            leftIcon={canGenerate ? <Plus /> : <Zap size={16} />}
+            colorScheme={canGenerate ? "blue" : "purple"}
+            onClick={canGenerate ? onOpen : () => navigate('/subscription')}
             size="sm"
           >
-            Generate Report
+            {canGenerate ? 'Generate Report' : 'Upgrade to Generate'}
           </Button>
         </HStack>
+        
+        {/* Upgrade prompt for free tier users */}
+        {!canGenerate && (
+          <UpgradeBanner 
+            message="Report generation is a premium feature. Upgrade to Basic to create detailed learning reports."
+            feature="report generation"
+            variant="premium"
+          />
+        )}
 
         {student && (
           <Text color="gray.600" fontSize="sm" px={2}>
@@ -240,14 +257,25 @@ const ReportsPage = () => {
                 <Text color="gray.500" textAlign="center">
                   No reports generated yet
                 </Text>
-                <Button
-                  colorScheme="blue"
-                  onClick={onOpen}
-                  size="sm"
-                  leftIcon={<Plus />}
-                >
-                  Generate First Report
-                </Button>
+                {canGenerate ? (
+                  <Button
+                    colorScheme="blue"
+                    onClick={onOpen}
+                    size="sm"
+                    leftIcon={<Plus />}
+                  >
+                    Generate First Report
+                  </Button>
+                ) : (
+                  <Button
+                    colorScheme="purple"
+                    onClick={() => navigate('/subscription')}
+                    size="sm"
+                    leftIcon={<Zap size={16} />}
+                  >
+                    Upgrade to Generate Reports
+                  </Button>
+                )}
               </VStack>
             </CardBody>
           </Card>

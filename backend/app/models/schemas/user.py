@@ -15,6 +15,14 @@ class UserBase(MongoBaseModel):
     profile_image: Optional[str] = None
     organization_id: Optional[PyObjectId] = None
     family_id: Optional[PyObjectId] = None
+    
+    # Subscription fields
+    subscription_tier: str = "free"
+    subscription_status: str = "active"
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    current_period_end: Optional[datetime] = None
+    is_grandfathered: bool = False
 
 class Organization(MongoBaseModel):
     name: str

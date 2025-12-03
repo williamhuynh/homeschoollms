@@ -10,12 +10,16 @@ import {
   Center, 
   Spinner, 
   useToast,
-  Link as ChakraLink // Alias Link to avoid conflict with react-router-dom Link
+  Link as ChakraLink, // Alias Link to avoid conflict with react-router-dom Link
+  Badge,
+  HStack,
+  Divider,
 } from '@chakra-ui/react'
-import { ArrowLeft, LogOut, Settings } from 'react-feather'
+import { ArrowLeft, LogOut, Settings, CreditCard, Star } from 'react-feather'
 import { useNavigate, Link as RouterLink } from 'react-router-dom' // Use RouterLink for internal navigation
 import { getCurrentUser, logout } from '../../services/api' // Assuming logout function exists in api.js
 import UserAvatar from '../../components/common/UserAvatar'
+import { useUser } from '../../contexts/UserContext'
 
 const ProfilePage = () => {
   const navigate = useNavigate()
@@ -23,6 +27,9 @@ const ProfilePage = () => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  
+  // Get subscription info from context
+  const { getEffectiveTier, isGrandfathered, usage } = useUser()
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -122,6 +129,55 @@ const ProfilePage = () => {
           </VStack>
         </Center>
 
+        {/* Subscription Status Card */}
+        <Box 
+          bg="gray.50" 
+          borderRadius="lg" 
+          p={4} 
+          border="1px" 
+          borderColor="gray.200"
+          mt={6}
+        >
+          <HStack justify="space-between" mb={2}>
+            <HStack>
+              <Star size={18} />
+              <Text fontWeight="medium">Subscription</Text>
+            </HStack>
+            <Badge colorScheme={getEffectiveTier() === 'basic' ? 'purple' : 'gray'}>
+              {getEffectiveTier() === 'basic' ? 'Basic' : 'Free'}
+              {isGrandfathered() && ' (Grandfathered)'}
+            </Badge>
+          </HStack>
+          
+          {usage && (
+            <VStack align="stretch" spacing={1} fontSize="sm" color="gray.600">
+              <HStack justify="space-between">
+                <Text>Students:</Text>
+                <Text>{usage.student_count} / {usage.max_students}</Text>
+              </HStack>
+              <HStack justify="space-between">
+                <Text>Evidence:</Text>
+                <Text>{usage.evidence_count} / {usage.max_evidence}</Text>
+              </HStack>
+            </VStack>
+          )}
+          
+          <Button
+            as={RouterLink}
+            to="/subscription"
+            leftIcon={<CreditCard size={18} />}
+            variant="outline"
+            colorScheme="purple"
+            size="sm"
+            mt={3}
+            w="full"
+          >
+            {getEffectiveTier() === 'basic' ? 'Manage Subscription' : 'Upgrade Plan'}
+          </Button>
+        </Box>
+
+        <Divider my={2} />
+
         {/* Settings Link - Changed from Admin Tools */}
         <Button
           as={RouterLink}
@@ -129,7 +185,6 @@ const ProfilePage = () => {
           leftIcon={<Settings size={20} />}
           variant="outline"
           colorScheme="gray"
-          mt={6}
         >
           Settings
         </Button>
