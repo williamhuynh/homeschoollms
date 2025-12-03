@@ -487,7 +487,7 @@ class ReportService:
         
         # Generate AI summary if evidence exists
         ai_summary = ""
-        # Resolve student's name for placeholder replacement
+        # Resolve student's name for personalization and placeholder replacement
         student_first_name = None
         student_last_name = None
         try:
@@ -497,15 +497,17 @@ class ReportService:
         except Exception:
             pass
         if all_evidence:
-            logger.info(f"Generating AI summary for {subject['name']} with {len(all_evidence)} evidence items (using top {min(10, len(all_evidence))})")
+            logger.info(f"Generating AI summary for {subject['name']} with {len(all_evidence)} evidence items (using top {min(12, len(all_evidence))})")
             try:
                 ai_summary = await generate_learning_area_report(
                     student_id=str(student_id),
                     learning_area_code=subject["code"],
                     learning_area_name=subject["name"],
-                    evidence_items=all_evidence[:10],  # Use up to 10 recent items
+                    evidence_items=all_evidence[:12],  # Use up to 12 recent items for richer context
                     report_period=report_period,
-                    grade_level=grade_level
+                    grade_level=grade_level,
+                    outcomes_data=outcomes,  # Pass full outcome definitions for context
+                    student_name=student_first_name  # Pass student's first name for personalization
                 )
                 # Normalize any template placeholders with the student's name
                 if ai_summary and student_first_name:
