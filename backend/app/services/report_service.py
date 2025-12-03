@@ -455,30 +455,34 @@ class ReportService:
                 # Extract the base outcome code (e.g., "EN1-VOCAB-01" from any variation)
                 outcomes_with_evidence.add(outcome_code.upper())
         
-        # Select evidence examples (up to 6, prioritizing recent and varied)
-        evidence_examples = []
-        selected_outcomes = set()
+        # Select the most recent evidence for each learning outcome
+        # Since all_evidence is sorted by uploaded_at DESC, the first occurrence 
+        # of each outcome is the most recent evidence for that outcome
+        outcome_to_evidence = {}
+        for evidence in all_evidence:
+            for outcome_code in evidence.get("learning_outcome_codes", []):
+                if outcome_code not in outcome_to_evidence:
+                    outcome_to_evidence[outcome_code] = evidence
         
-        for evidence in all_evidence[:20]:  # Look at recent 20 items
-            # Try to get variety in outcomes
-            outcome_codes = evidence.get("learning_outcome_codes", [])
-            if not outcome_codes or outcome_codes[0] in selected_outcomes:
-                if len(evidence_examples) >= 6:
-                    continue
-            
-            evidence_examples.append(EvidenceExample(
-                evidence_id=evidence["_id"],
-                thumbnail_url=evidence.get("thumbnail_url", ""),
-                title=evidence.get("title", ""),
-                description=evidence.get("description", ""),
-                uploaded_at=evidence.get("uploaded_at", datetime.utcnow())
-            ))
-            
-            if outcome_codes:
-                selected_outcomes.add(outcome_codes[0])
-            
-            if len(evidence_examples) >= 6:
-                break
+        # Build evidence_examples from unique evidence items (deduplicated by _id)
+        # One evidence item may cover multiple outcomes, so we track seen IDs
+        seen_evidence_ids = set()
+        evidence_examples = []
+        
+        for outcome_code, evidence in outcome_to_evidence.items():
+            evidence_id = evidence["_id"]
+            if evidence_id not in seen_evidence_ids:
+                seen_evidence_ids.add(evidence_id)
+                evidence_examples.append(EvidenceExample(
+                    evidence_id=evidence_id,
+                    thumbnail_url=evidence.get("thumbnail_url", ""),
+                    title=evidence.get("title", ""),
+                    description=evidence.get("description", ""),
+                    uploaded_at=evidence.get("uploaded_at", datetime.utcnow())
+                ))
+        
+        # Sort evidence examples by uploaded_at descending for consistent display
+        evidence_examples.sort(key=lambda x: x.uploaded_at, reverse=True)
         
         # Calculate progress
         total_outcomes = len(outcomes)

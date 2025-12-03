@@ -141,9 +141,8 @@ const EvidenceItem = ({ evidence, onClick, isVisible }) => {
 
 const OptimizedEvidenceGallery = ({ 
   evidenceItems = [], 
-  maxItems = 6,
-  onEvidenceClick,
-  title = "Evidence Examples"
+  totalEvidenceCount,
+  onEvidenceClick
 }) => {
   const containerRef = useRef(null)
   const [isInView, setIsInView] = useState(false)
@@ -171,12 +170,16 @@ const OptimizedEvidenceGallery = ({
     }
   }, [])
 
-  const displayItems = evidenceItems.slice(0, maxItems)
+  // Display all evidence items (no limit)
+  const displayItems = evidenceItems
+
+  // Use totalEvidenceCount if provided, otherwise fall back to evidenceItems length
+  const displayCount = totalEvidenceCount ?? evidenceItems.length
 
   if (!evidenceItems.length) {
     return (
       <Box p={4} textAlign="center" color="gray.500" fontSize="sm">
-        No evidence examples available
+        No evidence available
       </Box>
     )
   }
@@ -184,7 +187,7 @@ const OptimizedEvidenceGallery = ({
   return (
     <Box ref={containerRef}>
       <Text fontWeight="medium" mb={3} fontSize="sm">
-        {title} ({evidenceItems.length} total)
+        Evidence ({displayCount} total)
       </Text>
       
       <Grid 
@@ -201,17 +204,6 @@ const OptimizedEvidenceGallery = ({
           />
         ))}
       </Grid>
-
-      {evidenceItems.length > maxItems && (
-        <Text 
-          fontSize="xs" 
-          color="gray.600" 
-          mt={2}
-          textAlign="center"
-        >
-          Showing {maxItems} of {evidenceItems.length} evidence items
-        </Text>
-      )}
     </Box>
   )
 }
