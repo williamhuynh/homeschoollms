@@ -160,7 +160,7 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
               onCancel={handleCancel}
               saving={saving}
               placeholder={`Enter summary for ${summary.learning_area_name}...`}
-              maxLength={2000}
+              maxLength={3500}
             />
           ) : (
             <Box>

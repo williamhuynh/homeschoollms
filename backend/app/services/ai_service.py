@@ -30,9 +30,9 @@ else:
 
 # Initialize the Generative Model (using a model that supports multiple images)
 model = None
-# Models supporting multiple images include gemini-1.5-flash-latest, gemini-1.5-pro-latest
-# Let's use flash for speed/cost unless pro is needed for complexity.
-model_name = 'gemini-1.5-flash-latest' 
+# Models supporting multiple images include gemini-1.5-flash-latest, gemini-1.5-pro-latest, gemini-2.5-flash-lite
+# Using gemini-2.5-flash-lite for improved performance and cost efficiency.
+model_name = 'gemini-2.5-flash-lite' 
 try:
     # List available models for debugging
     logger.debug("Available models:")
@@ -511,10 +511,12 @@ async def generate_learning_area_report(
     learning_area_name: str,
     evidence_items: List[Dict],
     report_period: str,
-    grade_level: str
+    grade_level: str,
+    outcomes_data: List[Dict] = None,
+    student_name: str = None
 ) -> str:
     """
-    Generates a comprehensive summary for a learning area based on evidence collected.
+    Generates a comprehensive, evidence-focused summary for a learning area.
 
     Args:
         student_id: The student's ID
@@ -523,9 +525,11 @@ async def generate_learning_area_report(
         evidence_items: List of evidence documents for this learning area
         report_period: The report period (annual, term_1, etc.)
         grade_level: The student's grade level
+        outcomes_data: List of learning outcome definitions with code, name, description
+        student_name: The student's first name for personalization
 
     Returns:
-        A 2-paragraph summary of the student's progress in this learning area.
+        A comprehensive narrative summary describing how the student achieved the learning outcomes.
 
     Raises:
         HTTPException: If the API key is not configured or generation fails.
@@ -549,31 +553,63 @@ async def generate_learning_area_report(
         )
     
     try:
-        # Extract key information from evidence
+        # Build outcome lookup for enriching evidence with outcome details
+        outcome_lookup = {}
+        if outcomes_data:
+            for outcome in outcomes_data:
+                code = outcome.get("code", "").upper()
+                outcome_lookup[code] = {
+                    "name": outcome.get("name", ""),
+                    "description": outcome.get("description", "")
+                }
+        
+        # Extract key information from evidence with enriched outcome data
         evidence_summaries = []
         learning_outcomes_covered = set()
         
-        for item in evidence_items[:10]:  # Limit to 10 most recent items
+        for item in evidence_items[:12]:  # Use up to 12 most recent items for richer context
+            # Build enriched outcome information
+            enriched_outcomes = []
+            for outcome_code in item.get("learning_outcome_codes", []):
+                code_upper = outcome_code.upper()
+                learning_outcomes_covered.add(code_upper)
+                outcome_info = outcome_lookup.get(code_upper, {})
+                enriched_outcomes.append({
+                    "code": outcome_code,
+                    "name": outcome_info.get("name", ""),
+                    "description": outcome_info.get("description", "")
+                })
+            
             evidence_summaries.append({
                 "title": item.get("title", ""),
                 "description": item.get("description", ""),
                 "date": str(item.get("uploaded_at", ""))[:10],
-                "outcomes": item.get("learning_outcome_codes", [])
+                "outcomes": enriched_outcomes
             })
-            
-            # Track which outcomes were covered
-            for outcome in item.get("learning_outcome_codes", []):
-                learning_outcomes_covered.add(outcome)
         
-        # Format evidence information for the prompt
+        # Format evidence information with full outcome details
         evidence_text = ""
         for i, evidence in enumerate(evidence_summaries, 1):
-            evidence_text += f"\n{i}. {evidence['title']} ({evidence['date']})"
+            evidence_text += f"\n{i}. \"{evidence['title']}\" ({evidence['date']})"
             if evidence['description']:
-                evidence_text += f"\n   Description: {evidence['description']}"
+                evidence_text += f"\n   Activity Description: {evidence['description']}"
             if evidence['outcomes']:
-                evidence_text += f"\n   Learning Outcomes: {', '.join(evidence['outcomes'])}"
+                evidence_text += f"\n   Learning Outcomes Demonstrated:"
+                for outcome in evidence['outcomes']:
+                    if outcome['name'] or outcome['description']:
+                        evidence_text += f"\n   - {outcome['code']}: {outcome['name']}"
+                        if outcome['description']:
+                            evidence_text += f" - {outcome['description']}"
+                    else:
+                        evidence_text += f"\n   - {outcome['code']}"
             evidence_text += "\n"
+        
+        # Format available outcomes for context
+        outcomes_text = ""
+        if outcomes_data:
+            outcomes_text = "\nLEARNING OUTCOMES FOR THIS AREA:\n"
+            for outcome in outcomes_data[:15]:  # Limit to prevent prompt from being too long
+                outcomes_text += f"- {outcome.get('code', '')}: {outcome.get('name', '')} - {outcome.get('description', '')}\n"
         
         # Map report period to human-readable text
         period_map = {
@@ -586,32 +622,52 @@ async def generate_learning_area_report(
         }
         period_text = period_map.get(report_period, "this period")
         
-        # Construct the prompt
-        prompt = f"""You are writing an educational report summary for a {grade_level} student's progress in {learning_area_name}.
+        # Use student name or generic reference
+        student_ref = student_name if student_name else "the student"
+        
+        # Construct the enhanced prompt
+        prompt = f"""You are writing an educational progress report for a {grade_level} student's achievement in {learning_area_name}.
 
-Based on the evidence collected during {period_text}, create a 2-paragraph summary that:
+Write a comprehensive narrative that describes HOW {student_ref} has demonstrated achievement of learning outcomes, with specific references to evidence collected during {period_text}.
 
-1. First paragraph: Describe the main activities and learning experiences the child engaged in, drawing connections between different pieces of evidence. Focus on what the child DID and EXPLORED.
+STRUCTURE YOUR RESPONSE AS FOLLOWS:
 
-2. Second paragraph: Highlight the skills developed and progress made, referencing specific examples from the evidence. Focus on what the child LEARNED and ACHIEVED.
+1. OPENING SUMMARY (2-3 sentences)
+   - Provide an overview of {student_ref}'s engagement and progress in {learning_area_name}
+   - Mention the breadth of learning outcomes addressed ({len(learning_outcomes_covered)} outcomes across {len(evidence_summaries)} documented activities)
 
-Evidence collected for {learning_area_name}:
+2. EVIDENCE-BASED NARRATIVE (Main body - this is the most important section)
+   For the most significant pieces of evidence, write about:
+   - WHAT {student_ref} did (reference the specific activity by its title)
+   - WHICH learning outcome(s) this demonstrates and HOW
+   - WHY this evidence is meaningful in showing attainment of that outcome
+   
+   Use language like:
+   - "In '[Evidence Title]', {student_ref} demonstrated [specific skill/outcome] by [what they did]..."
+   - "This activity provides clear evidence of [outcome name] because..."
+   - "The work shows {student_ref}'s ability to [outcome description]..."
+   
+   Cover at least 3-4 different pieces of evidence, explaining the connection between each activity and the learning outcomes it demonstrates.
+
+3. CONCLUDING STATEMENT (1-2 sentences)
+   - Summarize {student_ref}'s overall attainment and any areas of particular strength
+
+EVIDENCE COLLECTED:
 {evidence_text}
+{outcomes_text}
 
-Total learning outcomes addressed: {len(learning_outcomes_covered)}
-
-Guidelines:
+IMPORTANT GUIDELINES:
+- Be SPECIFIC - always cite evidence by its exact title in quotes
+- EXPLAIN the significance - don't just list what was done, explain WHY it matters for the learning outcome
+- CONNECT activities to curriculum outcomes explicitly
 - Write in past tense as this is a period report
 - Use warm, professional language suitable for parent-teacher communication
-- Be specific and reference actual activities from the evidence
-- Keep each paragraph 2-3 sentences maximum
-- Focus on facts and observations, not speculation
-- Use the child's work as concrete examples
-- Total length should be under 1000 characters
+- Focus on demonstrated learning and achievement, not just participation
+- Total length should be 1500-2500 characters (be thorough but concise)
 
-Do not include any preamble or closing statements. Just provide the two paragraphs."""
+Do not include any preamble like "Here is the report" - just provide the narrative directly."""
 
-        logger.info(f"Sending report generation prompt to Gemini API")
+        logger.info(f"Sending enhanced report generation prompt to Gemini API")
         
         # Generate content
         response = await model.generate_content_async(prompt)
@@ -620,10 +676,10 @@ Do not include any preamble or closing statements. Just provide the two paragrap
         # Extract and clean the text
         generated_text = response.text.strip()
         
-        # Basic length validation
-        if len(generated_text) > 1500:
+        # Basic length validation - allow longer responses now
+        if len(generated_text) > 3000:
             # Truncate if too long
-            generated_text = generated_text[:1497] + "..."
+            generated_text = generated_text[:2997] + "..."
         
         logger.info(f"Generated report summary length: {len(generated_text)} characters")
         
@@ -631,13 +687,17 @@ Do not include any preamble or closing statements. Just provide the two paragrap
 
     except Exception as e:
         logger.error(f"ERROR during report generation: {e}", exc_info=True)
-        # Return a fallback summary if generation fails
+        # Return a more detailed fallback summary if generation fails
+        evidence_titles = [item.get("title", "Untitled") for item in evidence_items[:5]]
+        evidence_list = ", ".join(f'"{t}"' for t in evidence_titles)
+        
         return (
-            f"During {period_text}, the student engaged with various activities in {learning_area_name}. "
-            f"Evidence has been collected across {len(evidence_items)} learning experiences covering "
-            f"{len(learning_outcomes_covered)} different learning outcomes. "
-            f"\n\nThe submitted work demonstrates active participation in {learning_area_name} activities. "
-            f"Please review the individual evidence items for detailed insights into specific skills and achievements."
+            f"During {period_text}, {student_name or 'the student'} engaged in {len(evidence_items)} documented learning "
+            f"activities in {learning_area_name}, addressing {len(learning_outcomes_covered)} different learning outcomes.\n\n"
+            f"Key activities included: {evidence_list}. Each of these activities provided evidence of progress "
+            f"toward the {grade_level} curriculum expectations for {learning_area_name}.\n\n"
+            f"Please review the individual evidence items attached to this report for detailed insights into "
+            f"specific skills demonstrated and learning achievements."
         )
 
 async def generate_title_from_images(images: List[Dict[str, Union[bytes, str]]], context_description: str) -> str:

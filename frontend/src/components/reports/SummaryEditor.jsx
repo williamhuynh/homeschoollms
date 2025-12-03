@@ -29,7 +29,7 @@ const SummaryEditor = ({
   onCancel, 
   saving = false,
   placeholder = "Enter summary...",
-  maxLength = 2000
+  maxLength = 3500
 }) => {
   const [value, setValue] = useState(initialValue || '')
   const [wordCount, setWordCount] = useState(0)
@@ -225,7 +225,7 @@ const SummaryEditor = ({
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
-        minHeight="200px"
+        minHeight="280px"
         resize="vertical"
         fontSize="sm"
         lineHeight="tall"
