@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     supabase_service_key: Optional[str] = None
     supabase_jwt_secret: Optional[str] = None
     
+    # Stripe settings
+    stripe_secret_key: Optional[str] = None
+    stripe_webhook_secret: Optional[str] = None
+    stripe_monthly_price_id: Optional[str] = None
+    stripe_annual_price_id: Optional[str] = None
+    
+    # Frontend URL for redirects
+    frontend_url: str = "http://localhost:5173"
+    
     def __init__(self, **data):
         super().__init__(**data)
         # Use JWT_SECRET as fallback for jwt_secret

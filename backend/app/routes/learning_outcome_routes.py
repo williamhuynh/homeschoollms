@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, R
 from bson import ObjectId
 from ..services.learning_outcome_service import LearningOutcomeService
 from ..services.file_storage_service import file_storage_service
+from ..services.subscription_service import SubscriptionService
 from ..utils.database_utils import Database
 from ..models.schemas.learning_outcome import LearningOutcome
 from ..utils.auth_utils import get_current_user, get_current_user_with_org, is_admin_user
@@ -190,6 +191,11 @@ async def upload_evidence_multi_outcome(
     # Verify user has content access to this student
     await ensure_student_access(student_id, current_user, "content")
     
+    # Check subscription limits for evidence uploads
+    can_add, message = await SubscriptionService.can_add_evidence(str(current_user.id))
+    if not can_add:
+        raise HTTPException(status_code=403, detail=message)
+    
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     
@@ -363,6 +369,11 @@ async def upload_evidence(
 ):
     # Verify user has content access to this student (required for uploading evidence)
     await ensure_student_access(student_id, current_user, "content")
+    
+    # Check subscription limits for evidence uploads
+    can_add, message = await SubscriptionService.can_add_evidence(str(current_user.id))
+    if not can_add:
+        raise HTTPException(status_code=403, detail=message)
     
     logger.info(f"Received {len(files)} file(s) for student {student_id}, path outcome {learning_outcome_id}")
     logger.info(f"Form data - Title: '{title}', Desc: '{description}', Loc: '{location}', Area: '{learning_area_code}', Outcome: '{learning_outcome_code}'")

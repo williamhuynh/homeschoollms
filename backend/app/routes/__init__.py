@@ -8,6 +8,7 @@ from . import learning_outcome_routes
 from . import ai_routes
 from . import file_routes
 from . import report_routes
+from . import stripe_routes
 
 __all__ = [
     'auth',
@@ -19,5 +20,6 @@ __all__ = [
     'learning_outcome_routes',
     'ai_routes',
     'file_routes',
-    'report_routes'
+    'report_routes',
+    'stripe_routes'
 ]

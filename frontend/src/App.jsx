@@ -25,6 +25,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import SplashScreen from './components/common/SplashScreen'
 import StudentEditPage from './pages/students/StudentEditPage'
 import AIChatPage from './pages/ai/AIChatPage'
+import SubscriptionPage from './pages/subscription/SubscriptionPage'
 
 function App() {
   // Check for Supabase session on initial load
@@ -233,6 +234,15 @@ function App() {
                 element={
                   isAuthenticatedOverride || isAuthenticated ? 
                     <StudentEditPage /> : 
+                    <Navigate to="/login" replace />
+                } 
+              />
+              {/* Subscription Page Route */}
+              <Route 
+                path="/subscription" 
+                element={
+                  isAuthenticatedOverride || isAuthenticated ? 
+                    <SubscriptionPage /> : 
                     <Navigate to="/login" replace />
                 } 
               />

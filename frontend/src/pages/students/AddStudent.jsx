@@ -9,19 +9,27 @@ import {
     Button,
     useToast,
     Box,
-    IconButton
+    IconButton,
+    useDisclosure,
   } from '@chakra-ui/react'
   import { X } from 'react-feather'
-  import { useState } from 'react'
+  import { useState, useEffect } from 'react'
   import { useNavigate } from 'react-router-dom'
   import { createStudent } from '../../services/api'
   import { useStudents } from '../../contexts/StudentsContext'
+  import { useUser } from '../../contexts/UserContext'
+  import { UpgradeBanner, UpgradeModal } from '../../components/subscription/UpgradePrompt'
 
   
   const AddStudent = () => {
     const { addStudent } = useStudents()
     const navigate = useNavigate()
     const toast = useToast()
+    const { canAddStudent, usage, fetchSubscriptionData } = useUser()
+    const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onClose: onUpgradeClose } = useDisclosure()
+    
+    // Check if user can add students
+    const canAdd = canAddStudent()
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -40,6 +48,12 @@ import {
   
     const handleSubmit = async (e) => {
         e.preventDefault()
+        
+        // Check subscription limit first
+        if (!canAdd) {
+          onUpgradeOpen()
+          return
+        }
         
         // Validate form data
         if (!formData.first_name || !formData.last_name || !formData.date_of_birth || !formData.grade_level || !formData.gender) {
@@ -61,6 +75,8 @@ import {
           console.log('Created student:', newStudent)
           
           addStudent(newStudent)
+          // Refresh subscription data to update usage counts
+          fetchSubscriptionData()
           toast({
             title: 'Student created.',
             description: "We've created the student profile for you.",
@@ -71,13 +87,19 @@ import {
           navigate('/students')
         } catch (error) {
           console.error('Error details:', error.response?.data)
-          toast({
-            title: 'Error creating student.',
-            description: error.response?.data?.detail || error.message,
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
-          })
+          // Check if it's a subscription limit error
+          const errorDetail = error.response?.data?.detail || error.message
+          if (errorDetail.includes('limit') || errorDetail.includes('Upgrade')) {
+            onUpgradeOpen()
+          } else {
+            toast({
+              title: 'Error creating student.',
+              description: errorDetail,
+              status: 'error',
+              duration: 5000,
+              isClosable: true,
+            })
+          }
         }
     }
   
@@ -94,6 +116,15 @@ import {
         </Box>
         <VStack spacing={8} align="stretch">
           <Heading size="xl">Add New Student</Heading>
+          
+          {/* Show upgrade banner if at limit */}
+          {!canAdd && (
+            <UpgradeBanner 
+              message={`You've reached your limit of ${usage?.max_students || 1} student(s). Upgrade to add more.`}
+              feature="more student profiles"
+              variant="warning"
+            />
+          )}
           
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
@@ -158,15 +189,24 @@ import {
   
               <Button
                 type="submit"
-                colorScheme="blue"
+                colorScheme={canAdd ? "blue" : "purple"}
                 width="full"
                 mt={4}
               >
-                Create Student
+                {canAdd ? 'Create Student' : 'Upgrade to Add Student'}
               </Button>
             </VStack>
           </form>
         </VStack>
+        
+        {/* Upgrade Modal */}
+        <UpgradeModal 
+          isOpen={isUpgradeOpen}
+          onClose={onUpgradeClose}
+          title="Student Limit Reached"
+          message={`You've reached your limit of ${usage?.max_students || 1} student profile(s). Upgrade to Basic to add up to 3 students.`}
+          feature="more student profiles"
+        />
       </Container>
     )
   }
