@@ -176,7 +176,7 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
               {/* Evidence Examples */}
               <OptimizedEvidenceGallery
                 evidenceItems={summary.evidence_examples || []}
-                maxItems={6}
+                totalEvidenceCount={summary.evidence_count}
                 onEvidenceClick={(evidence) => {
                   // Navigate to evidence detail if needed
                   console.log('View evidence:', evidence.evidence_id)

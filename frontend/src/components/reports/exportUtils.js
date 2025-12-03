@@ -182,9 +182,9 @@ export const generatePrintableHTML = (report, student) => {
 
                   ${summary.evidence_examples?.length > 0 ? `
                     <div>
-                      <h4>Evidence Examples</h4>
+                      <h4>Evidence (${summary.evidence_count} total)</h4>
                       <div class="evidence-gallery">
-                        ${summary.evidence_examples.slice(0, 6).map(evidence => `
+                        ${summary.evidence_examples.map(evidence => `
                           <div class="evidence-item">
                             ${evidence.thumbnail_url ? 
                               `<img src="${evidence.thumbnail_url}" alt="${evidence.title}" />` : 
@@ -193,9 +193,6 @@ export const generatePrintableHTML = (report, student) => {
                           </div>
                         `).join('')}
                       </div>
-                      <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
-                        Sample evidence from ${summary.learning_area_name} activities.
-                      </p>
                     </div>
                   ` : ''}
                 </div>
