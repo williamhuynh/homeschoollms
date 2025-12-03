@@ -29,84 +29,25 @@ export const generatePrintableHTML = (report, student) => {
           size: A4;
         }
         
-        @media print {
-          body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: white !important;
-          }
-          
-          .no-print {
-            display: none !important;
-          }
-          
-          .page-break {
-            page-break-before: always;
-          }
-          
-          .learning-area {
-            break-inside: avoid;
-            margin-bottom: 30px;
-            border: 1px solid #e2e8f0;
-            padding: 20px;
-            border-radius: 8px;
-          }
-          
-          .evidence-gallery {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-          }
-          
-          .evidence-item {
-            width: 80px;
-            height: 80px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            overflow: hidden;
-          }
-          
-          .evidence-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
-          
-          .progress-bar {
-            height: 8px;
-            background: #f0f0f0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 10px 0;
-          }
-          
-          .progress-fill {
-            height: 100%;
-            background: #48bb78;
-          }
-          
-          .header {
-            text-align: center;
-            margin-bottom: 40px;
-            border-bottom: 2px solid #4299e1;
-            padding-bottom: 20px;
-          }
-          
-          .summary-text {
-            white-space: pre-wrap;
-            margin: 15px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-left: 4px solid #4299e1;
-          }
+        /* Base styles - apply to both browser and print */
+        body {
+          font-family: 'Arial', sans-serif;
+          line-height: 1.6;
+          color: #333;
+          background: white;
         }
         
         .report-container {
           max-width: 800px;
           margin: 0 auto;
           padding: 20px;
+        }
+        
+        .header {
+          text-align: center;
+          margin-bottom: 40px;
+          border-bottom: 2px solid #4299e1;
+          padding-bottom: 20px;
         }
         
         .meta-info {
@@ -121,6 +62,74 @@ export const generatePrintableHTML = (report, student) => {
           padding: 20px;
           border-radius: 8px;
           margin-bottom: 30px;
+        }
+        
+        .learning-area {
+          margin-bottom: 30px;
+          border: 1px solid #e2e8f0;
+          padding: 20px;
+          border-radius: 8px;
+        }
+        
+        .progress-bar {
+          height: 8px;
+          background: #f0f0f0;
+          border-radius: 4px;
+          overflow: hidden;
+          margin: 10px 0;
+        }
+        
+        .progress-fill {
+          height: 100%;
+          background: #48bb78;
+        }
+        
+        .summary-text {
+          white-space: pre-wrap;
+          margin: 15px 0;
+          padding: 15px;
+          background: #f8f9fa;
+          border-left: 4px solid #4299e1;
+        }
+        
+        .evidence-gallery {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin: 15px 0;
+        }
+        
+        .evidence-item {
+          height: 120px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          overflow: hidden;
+          background: #f0f0f0;
+        }
+        
+        .evidence-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        /* Print-specific overrides */
+        @media print {
+          body {
+            background: white !important;
+          }
+          
+          .no-print {
+            display: none !important;
+          }
+          
+          .page-break {
+            page-break-before: always;
+          }
+          
+          .learning-area {
+            break-inside: avoid;
+          }
         }
       </style>
     `;
