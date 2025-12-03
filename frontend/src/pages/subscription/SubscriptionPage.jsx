@@ -22,7 +22,7 @@ import {
   FormControl,
   FormLabel,
 } from '@chakra-ui/react'
-import { ArrowLeft, Check, X, Star, Zap, Crown } from 'react-feather'
+import { ArrowLeft, Check, X, Star, Zap, Award } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
 import { 
@@ -196,12 +196,12 @@ function SubscriptionPage() {
               p={6}
               textAlign="center"
             >
-              <HStack justify="center" spacing={2} mb={2}>
-                <Icon as={Crown} color="green.500" />
-                <Badge colorScheme="green" fontSize="md" px={3} py={1}>
-                  Grandfathered Account
-                </Badge>
-              </HStack>
+            <HStack justify="center" spacing={2} mb={2}>
+              <Icon as={Award} color="green.500" />
+              <Badge colorScheme="green" fontSize="md" px={3} py={1}>
+                Grandfathered Account
+              </Badge>
+            </HStack>
               <Text color="green.700">
                 You have free lifetime access to all Basic features as an early supporter! Thank you! 💚
               </Text>

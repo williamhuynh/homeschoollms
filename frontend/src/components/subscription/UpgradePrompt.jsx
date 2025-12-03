@@ -14,7 +14,7 @@ import {
   ModalFooter,
   ModalCloseButton,
 } from '@chakra-ui/react'
-import { AlertTriangle, Zap, Crown } from 'react-feather'
+import { AlertTriangle, Zap, Award } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
 
@@ -46,7 +46,7 @@ export function UpgradeBanner({
       bg: 'purple.50',
       borderColor: 'purple.200',
       iconColor: 'purple.500',
-      icon: Crown,
+      icon: Award,
     },
   }
 
@@ -106,7 +106,7 @@ export function UpgradeModal({
       <ModalContent bg={bgColor} mx={4}>
         <ModalHeader>
           <HStack spacing={3}>
-            <Icon as={Crown} color="purple.500" />
+            <Icon as={Award} color="purple.500" />
             <Text>{title}</Text>
           </HStack>
         </ModalHeader>
