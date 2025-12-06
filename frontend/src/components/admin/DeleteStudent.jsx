@@ -16,6 +16,7 @@ import {
   useDisclosure
 } from '@chakra-ui/react';
 import { deleteStudent, getStudentsWithAdminAccess } from '../../services/api';
+import { logger } from '../../utils/logger';
 
 /**
  * A component that allows administrators to delete a student.
@@ -41,10 +42,11 @@ const DeleteStudent = () => {
       const studentsData = await getStudentsWithAdminAccess();
       setStudents(studentsData);
     } catch (error) {
-      console.error('Error loading students:', error);
+      logger.error('Error loading students for deletion', error);
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to load students';
       toast({
         title: 'Error',
-        description: 'Failed to load students',
+        description: errorMessage,
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -92,14 +94,15 @@ const DeleteStudent = () => {
       // Close the confirmation dialog
       onClose();
     } catch (error) {
-      console.error('Error deleting student:', error);
+      logger.error('Error deleting student', error);
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to delete student';
       setResult({
         success: false,
-        message: error.response?.data?.detail || error.message || 'Failed to delete student'
+        message: errorMessage
       });
       toast({
         title: 'Error',
-        description: error.response?.data?.detail || error.message || 'Failed to delete student',
+        description: errorMessage,
         status: 'error',
         duration: 5000,
         isClosable: true,

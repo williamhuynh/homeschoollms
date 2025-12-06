@@ -24,6 +24,7 @@ import {
 import { Search, RefreshCw, Users, ExternalLink } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import { adminListAllStudents } from '../../services/api'
+import { logger } from '../../utils/logger'
 
 const AllStudentsView = () => {
   const [students, setStudents] = useState([])
@@ -47,8 +48,18 @@ const AllStudentsView = () => {
       setStudents(result.students)
       setPagination(prev => ({ ...prev, total: result.total }))
     } catch (error) {
-      console.error('Admin List Students Error:', error)
-      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred'
+      logger.error('Admin List Students Error', error)
+      
+      // Build a more descriptive error message
+      let errorMessage = 'Unknown error occurred'
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail
+      } else if (error.response?.status) {
+        errorMessage = `Server returned ${error.response.status}: ${error.response.statusText || 'Error'}`
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       toast({
         title: 'Error loading students',
         description: errorMessage,

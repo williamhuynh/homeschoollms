@@ -1,14 +1,14 @@
-import { Container, Heading, VStack, IconButton, Flex, useToast, Text, Center, Spinner, Link, Box, Button } from '@chakra-ui/react'
-import { Plus } from 'react-feather' // Removed Settings import
+import { Container, Heading, VStack, IconButton, Flex, useToast, Text, Center, Spinner, Button } from '@chakra-ui/react'
+import { Plus } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import StudentList from '../../components/students/StudentList'
-import BottomNav from '../../components/navigation/BottomNav' // Import BottomNav
+import BottomNav from '../../components/navigation/BottomNav'
 import { useEffect, useState, useCallback } from 'react'
 import { useStudents } from '../../contexts/StudentsContext'
-import { useUser } from '../../contexts/UserContext' // Import useUser hook
+import { useUser } from '../../contexts/UserContext'
 import { getStudents } from '../../services/api'
 import RefreshButton from '../../components/common/RefreshButton'
-import { useSoftRefresh } from '../../hooks/useSoftRefresh'
+import { logger } from '../../utils/logger'
 
 const StudentSelection = () => {
   const { students, setStudents } = useStudents()
@@ -62,11 +62,12 @@ const StudentSelection = () => {
         setError(null)
       }
     } catch (error) {
-      console.error('StudentSelection: Failed to fetch students:', error)
+      logger.error('StudentSelection: Failed to fetch students', error)
+      const errorMessage = error.response?.data?.detail || error?.message || 'Unknown error'
       setError('Failed to load students. Please try again later.')
       toast({
         title: 'Error loading students',
-        description: error?.message || 'Unknown error',
+        description: errorMessage,
         status: 'error',
         duration: 5000,
         isClosable: true,
