@@ -81,37 +81,47 @@ class ReportService:
     async def get_report_by_id(report_id: str) -> StudentReport:
         """Get a specific report by ID."""
         db = Database.get_db()
-        logger.info(f"get_report_by_id called with report_id: {report_id} (type: {type(report_id).__name__})")
+        logger.info(f"get_report_by_id called", extra={
+            "report_id": report_id,
+            "report_id_type": type(report_id).__name__
+        })
         
         # Primary lookup by ObjectId
         report = None
+        lookup_method = None
         try:
             obj_id = ObjectId(report_id)
-            logger.debug(f"Attempting ObjectId lookup with: {obj_id}")
             report = await db.student_reports.find_one({"_id": obj_id})
             if report:
-                logger.info(f"Found report via ObjectId lookup")
+                lookup_method = "ObjectId"
         except Exception as e:
-            logger.debug(f"ObjectId conversion/lookup failed: {e}")
+            logger.debug(f"ObjectId conversion failed for {report_id}: {e}")
             report = None
 
         # Fallbacks for legacy records that may have string _id or different field name
         if not report:
             # _id stored as string
-            logger.debug(f"Attempting string _id lookup with: {report_id}")
             report = await db.student_reports.find_one({"_id": report_id})
             if report:
-                logger.info(f"Found report via string _id lookup")
+                lookup_method = "string_id"
         if not report:
             # legacy field name
-            logger.debug(f"Attempting legacy 'id' field lookup with: {report_id}")
             report = await db.student_reports.find_one({"id": report_id})
             if report:
-                logger.info(f"Found report via legacy 'id' field lookup")
+                lookup_method = "legacy_id_field"
+        
         if not report:
-            logger.error(f"Report not found with id: {report_id} - tried ObjectId, string _id, and legacy id field")
+            logger.warning(f"Report not found", extra={
+                "report_id": report_id,
+                "attempted_lookups": ["ObjectId", "string_id", "legacy_id_field"]
+            })
             raise HTTPException(status_code=404, detail="Report not found")
-            
+        
+        logger.info(f"Report found", extra={
+            "report_id": report_id,
+            "lookup_method": lookup_method,
+            "student_id": str(report.get("student_id", ""))
+        })
         return StudentReport(**report)
     
     @staticmethod
@@ -750,22 +760,43 @@ class ReportService:
     @staticmethod
     async def update_report_status(report_id: str, status: ReportStatus, current_user: UserInDB) -> StudentReport:
         db = Database.get_db()
-        logger.info(f"update_report_status called - report_id: {report_id}, status: {status}")
+        logger.info(f"update_report_status called", extra={
+            "report_id": report_id,
+            "new_status": status.value if hasattr(status, 'value') else str(status),
+            "user_id": str(current_user.id)
+        })
         # Find report using same robust lookup as get_report_by_id
         report = None
+        lookup_method = None
         try:
             report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+            if report:
+                lookup_method = "ObjectId"
         except Exception:
             report = None
         if not report:
             # Fallback: _id stored as string
             report = await db.student_reports.find_one({"_id": report_id})
+            if report:
+                lookup_method = "string_id"
         if not report:
             # Fallback: legacy 'id' field
             report = await db.student_reports.find_one({"id": report_id})
+            if report:
+                lookup_method = "legacy_id_field"
         if not report:
-            logger.error(f"Report not found for status update: {report_id}")
+            logger.warning(f"Report not found for status update", extra={
+                "report_id": report_id,
+                "attempted_lookups": ["ObjectId", "string_id", "legacy_id_field"]
+            })
             raise HTTPException(status_code=404, detail="Report not found")
+        
+        logger.debug(f"Report found for status update", extra={
+            "report_id": report_id,
+            "lookup_method": lookup_method,
+            "current_status": report.get("status"),
+            "new_status": status.value if hasattr(status, 'value') else str(status)
+        })
         # Only allow valid transitions (generating -> draft handled by generator)
         if status not in [ReportStatus.DRAFT, ReportStatus.SUBMITTED]:
             raise HTTPException(status_code=400, detail="Invalid status update")

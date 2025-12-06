@@ -32,6 +32,33 @@ import os
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Initialize Sentry if DSN is configured
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    
+    if settings.sentry_dsn:
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.sentry_environment,
+            traces_sample_rate=settings.sentry_traces_sample_rate,
+            integrations=[
+                FastApiIntegration(transaction_style="endpoint"),
+                StarletteIntegration(transaction_style="endpoint"),
+                LoggingIntegration(
+                    level=logging.INFO,        # Capture info and above as breadcrumbs
+                    event_level=logging.ERROR  # Send errors as events
+                ),
+            ],
+            # Set to True to see what's being sent to Sentry
+            debug=settings.sentry_environment == "development",
+        )
+        logger.info(f"Sentry initialized for environment: {settings.sentry_environment}")
+except ImportError:
+    logger.info("sentry-sdk not installed, Sentry integration disabled")
+
 
 # Request logging middleware
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
