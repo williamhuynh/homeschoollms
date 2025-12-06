@@ -7,7 +7,10 @@ from ..models.schemas.report import (
     GenerateReportRequest,
     UpdateLearningAreaSummaryRequest,
     ReportListResponse,
-    ReportStatus
+    ReportStatus,
+    UpdateReportTitleRequest,
+    UpdateReportStatusRequest,
+    UpdateReportOverviewRequest
 )
 from ..models.schemas.user import UserInDB
 from ..utils.auth_utils import get_current_user
@@ -242,9 +245,6 @@ async def delete_report(
     except Exception as e:
         logger.error(f"Error deleting report: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-# New endpoints
-from ..models.schemas.report import UpdateReportTitleRequest, UpdateReportStatusRequest, UpdateReportOverviewRequest
 
 @router.put("/reports/{student_id}/{report_id}/title", response_model=StudentReport)
 async def update_report_title(
