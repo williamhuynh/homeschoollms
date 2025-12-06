@@ -814,4 +814,130 @@ export const canGenerateReports = async () => {
   }
 };
 
+// =====================
+// Super Admin API
+// =====================
+
+export const adminListUsers = async (params = {}) => {
+  try {
+    const response = await apiToUse.get('/api/admin/users', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Admin List Users Error:', error);
+    throw error;
+  }
+};
+
+export const adminGetUser = async (userId) => {
+  try {
+    const response = await apiToUse.get(`/api/admin/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Admin Get User Error:', error);
+    throw error;
+  }
+};
+
+export const adminGetUserByEmail = async (email) => {
+  try {
+    const response = await apiToUse.get(`/api/admin/users/by-email/${encodeURIComponent(email)}`);
+    return response.data;
+  } catch (error) {
+    console.error('Admin Get User By Email Error:', error);
+    throw error;
+  }
+};
+
+export const adminUpdateUserProfile = async (userId, updates) => {
+  try {
+    const response = await apiToUse.put(`/api/admin/users/${userId}/profile`, updates);
+    return response.data;
+  } catch (error) {
+    console.error('Admin Update User Profile Error:', error);
+    throw error;
+  }
+};
+
+export const adminUpdateUserSubscription = async (userId, updates) => {
+  try {
+    const response = await apiToUse.put(`/api/admin/users/${userId}/subscription`, updates);
+    return response.data;
+  } catch (error) {
+    console.error('Admin Update User Subscription Error:', error);
+    throw error;
+  }
+};
+
+export const adminDeactivateUser = async (userId) => {
+  try {
+    const response = await apiToUse.post(`/api/admin/users/${userId}/deactivate`);
+    return response.data;
+  } catch (error) {
+    console.error('Admin Deactivate User Error:', error);
+    throw error;
+  }
+};
+
+export const adminReactivateUser = async (userId) => {
+  try {
+    const response = await apiToUse.post(`/api/admin/users/${userId}/reactivate`);
+    return response.data;
+  } catch (error) {
+    console.error('Admin Reactivate User Error:', error);
+    throw error;
+  }
+};
+
+export const adminDeleteUser = async (userId, permanent = false) => {
+  try {
+    const response = await apiToUse.delete(`/api/admin/users/${userId}`, {
+      data: { permanent }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Admin Delete User Error:', error);
+    throw error;
+  }
+};
+
+export const adminListAllStudents = async (params = {}) => {
+  try {
+    const response = await apiToUse.get('/api/admin/students', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Admin List All Students Error:', error);
+    throw error;
+  }
+};
+
+export const adminGetStudent = async (studentId) => {
+  try {
+    const response = await apiToUse.get(`/api/admin/students/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Admin Get Student Error:', error);
+    throw error;
+  }
+};
+
+export const adminImpersonate = async (userId) => {
+  try {
+    const response = await apiToUse.post('/api/admin/impersonate', { user_id: userId });
+    return response.data;
+  } catch (error) {
+    console.error('Admin Impersonate Error:', error);
+    throw error;
+  }
+};
+
+export const adminGetPlatformStats = async () => {
+  try {
+    const response = await apiToUse.get('/api/admin/stats');
+    return response.data;
+  } catch (error) {
+    console.error('Admin Get Platform Stats Error:', error);
+    throw error;
+  }
+};
+
 export default apiToUse;

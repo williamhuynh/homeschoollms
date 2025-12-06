@@ -1,14 +1,23 @@
 from pydantic import EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
+from enum import Enum
 from .base import MongoBaseModel, PyObjectId
 from bson import ObjectId
+
+
+class UserRole(str, Enum):
+    """User role enumeration for access control"""
+    PARENT = "parent"       # Regular user - manages their own students
+    ADMIN = "admin"         # Organization admin - manages org users/students
+    SUPER_ADMIN = "super_admin"  # Platform owner - full system access
+
 
 class UserBase(MongoBaseModel):
     email: EmailStr
     first_name: str
     last_name: str
-    role: str = "parent"
+    role: str = UserRole.PARENT.value
     is_active: bool = True
     is_verified: bool = False
     last_login: Optional[datetime] = None

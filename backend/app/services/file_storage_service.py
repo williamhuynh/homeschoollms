@@ -302,7 +302,7 @@ class FileStorageService:
                 
                 # Get user to check if they're admin
                 user = await db.users.find_one({"_id": ObjectId(user_id)})
-                if user and user.get("role") in ["admin", "developer"]:
+                if user and user.get("role") in ["admin", "super_admin"]:
                     return True
                 
                 # Extract student_id from file path: evidence/{student_id}/...
