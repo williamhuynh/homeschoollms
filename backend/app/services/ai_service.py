@@ -797,6 +797,124 @@ Guidelines:
         logger.error(f"ERROR during Gemini API call for title: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate title using AI due to an internal error.")
 
+async def generate_report_overview(
+    student_name: str,
+    grade_level: str,
+    academic_year: str,
+    report_period: str,
+    learning_area_summaries: List[Dict],
+    total_evidence_count: int,
+    outcomes_achieved: int,
+    total_outcomes: int
+) -> str:
+    """
+    Generates an overview summary for a student's progress report.
+    This serves as a first draft for parents to edit and personalize.
+
+    Args:
+        student_name: The student's first name
+        grade_level: The student's grade level
+        academic_year: The academic year (e.g., "2025")
+        report_period: The report period (annual, term_1, etc.)
+        learning_area_summaries: List of learning area summary objects
+        total_evidence_count: Total number of evidence items across all areas
+        outcomes_achieved: Number of outcomes with evidence
+        total_outcomes: Total number of outcomes
+
+    Returns:
+        A comprehensive overview paragraph for parents to review and edit.
+    """
+    logger.info(f"Generating report overview for {student_name} ({grade_level})")
+    
+    if not api_key:
+        error_msg = "Google AI API key is not configured."
+        logger.error(error_msg)
+        return f"{student_name} has made wonderful progress during this period."
+        
+    if not model:
+        error_msg = f"Gemini model '{model_name}' failed to initialize."
+        logger.error(error_msg)
+        return f"{student_name} has made wonderful progress during this period."
+    
+    try:
+        # Map report period to human-readable text
+        period_map = {
+            "annual": "this academic year",
+            "term_1": "Term 1",
+            "term_2": "Term 2",
+            "term_3": "Term 3",
+            "term_4": "Term 4",
+            "custom": "this period"
+        }
+        period_text = period_map.get(report_period, "this period")
+        
+        # Build learning area highlights
+        area_highlights = []
+        for summary in learning_area_summaries:
+            if summary.get("evidence_count", 0) > 0:
+                area_name = summary.get("learning_area_name", "Unknown")
+                evidence_count = summary.get("evidence_count", 0)
+                area_highlights.append(f"{area_name} ({evidence_count} activities)")
+        
+        areas_text = ", ".join(area_highlights) if area_highlights else "various learning areas"
+        
+        # Calculate progress percentage
+        progress_pct = round((outcomes_achieved / total_outcomes * 100)) if total_outcomes > 0 else 0
+        
+        prompt = f"""Write a warm, personal overview paragraph for a homeschool progress report.
+This will be the opening section that a parent can edit and add to.
+
+STUDENT DETAILS:
+- Name: {student_name}
+- Grade: {grade_level}
+- Academic Year: {academic_year}
+- Period: {period_text}
+
+PROGRESS SUMMARY:
+- Total documented learning activities: {total_evidence_count}
+- Learning outcomes achieved: {outcomes_achieved} of {total_outcomes} ({progress_pct}%)
+- Active learning areas: {areas_text}
+
+INSTRUCTIONS:
+1. Write 3-4 sentences as a first-person parent perspective
+2. Start with a warm opening about {student_name}'s overall engagement
+3. Highlight 1-2 areas where evidence was strongest
+4. End with an encouraging note about continued growth
+5. Use a warm but professional tone suitable for a portfolio document
+6. Keep it to 150-250 words maximum
+7. Do NOT include headers or formatting - just flowing prose
+8. Output ONLY the overview text, no preamble
+
+Example tone: "This year, [Child] has shown remarkable enthusiasm for learning across all subjects. Their work in [Area] demonstrates..."
+"""
+
+        logger.info("Sending overview generation prompt to Gemini API")
+        response = await model.generate_content_async(prompt)
+        logger.info("Received response from Gemini API for overview generation")
+
+        generated_text = response.text.strip()
+        
+        # Clean up any markdown or formatting
+        if generated_text.startswith('```'):
+            generated_text = generated_text.strip('`').strip()
+        
+        # Enforce reasonable length
+        if len(generated_text) > 1500:
+            generated_text = generated_text[:1497] + "..."
+        
+        logger.info(f"Generated overview length: {len(generated_text)} characters")
+        return generated_text
+
+    except Exception as e:
+        logger.error(f"ERROR during overview generation: {e}", exc_info=True)
+        # Return a sensible fallback
+        return (
+            f"{student_name} has engaged in {total_evidence_count} documented learning activities "
+            f"during {period_text}, demonstrating progress across {len(learning_area_summaries)} learning areas. "
+            f"This report highlights the learning journey and achievements throughout {academic_year}."
+        )
+
+
 async def chat_with_ai(messages: List[Dict[str, str]], system_context: str) -> str:
     """
     Conduct a chat turn with the AI model using the provided message history and a system context.

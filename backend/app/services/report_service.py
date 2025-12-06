@@ -10,7 +10,7 @@ from ..models.schemas.report import (
 )
 from ..models.schemas.student import Student
 from ..models.schemas.user import UserInDB
-from ..services.ai_service import generate_learning_area_report
+from ..services.ai_service import generate_learning_area_report, generate_report_overview
 from ..services.learning_outcome_service import LearningOutcomeService
 from ..services.student_service import StudentService
 from ..services.curriculum_service import CurriculumService
@@ -242,7 +242,30 @@ class ReportService:
             for summary in summaries:
                 logger.info(f"  Summary for {summary.learning_area_name}: {summary.evidence_count} evidence, {summary.outcomes_with_evidence}/{summary.total_outcomes} outcomes, {len(summary.ai_generated_summary)} chars")
             
-            # Update report with generated summaries
+            # Calculate totals for overview
+            total_evidence = sum(s.evidence_count for s in summaries)
+            total_outcomes_achieved = sum(s.outcomes_with_evidence for s in summaries)
+            total_outcomes_count = sum(s.total_outcomes for s in summaries)
+            
+            # Generate AI overview for parent comments section
+            student_first_name = getattr(student, "first_name", "") or "Your child"
+            try:
+                ai_overview = await generate_report_overview(
+                    student_name=student_first_name,
+                    grade_level=selected_grade_level,
+                    academic_year=request.academic_year,
+                    report_period=request.report_period.value if hasattr(request.report_period, 'value') else str(request.report_period),
+                    learning_area_summaries=[s.dict() for s in summaries],
+                    total_evidence_count=total_evidence,
+                    outcomes_achieved=total_outcomes_achieved,
+                    total_outcomes=total_outcomes_count
+                )
+                logger.info(f"Generated AI overview: {len(ai_overview)} characters")
+            except Exception as e:
+                logger.error(f"Failed to generate AI overview: {e}")
+                ai_overview = f"{student_first_name} has made wonderful progress during this period."
+            
+            # Update report with generated summaries and overview
             summaries_data = [s.dict() for s in summaries]
             logger.info(f"Updating report {report_id} with {len(summaries_data)} summaries")
             
@@ -251,6 +274,7 @@ class ReportService:
                 {
                     "$set": {
                         "learning_area_summaries": summaries_data,
+                        "ai_generated_overview": ai_overview,
                         "status": ReportStatus.DRAFT.value,
                         "generated_at": datetime.utcnow(),
                         "generation_time_seconds": generation_time
@@ -717,11 +741,48 @@ class ReportService:
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
         # Only allow valid transitions (generating -> draft handled by generator)
-        if status not in [ReportStatus.DRAFT, ReportStatus.PUBLISHED]:
+        if status not in [ReportStatus.DRAFT, ReportStatus.SUBMITTED]:
             raise HTTPException(status_code=400, detail="Invalid status update")
         await db.student_reports.update_one(
             {"_id": report["_id"]},
             {"$set": {"status": status.value if hasattr(status, 'value') else str(status), "last_modified": datetime.utcnow(), "modified_by": ObjectId(current_user.id)}}
+        )
+        updated = await db.student_reports.find_one({"_id": report["_id"]})
+        # Normalize
+        if isinstance(updated.get("status"), str):
+            try:
+                updated["status"] = ReportStatus(updated["status"])
+            except Exception:
+                pass
+        if isinstance(updated.get("report_period"), str):
+            try:
+                updated["report_period"] = ReportPeriod(updated["report_period"])
+            except Exception:
+                pass
+        return StudentReport(**updated)
+    
+    @staticmethod
+    async def update_report_overview(report_id: str, parent_overview: str, current_user: UserInDB) -> StudentReport:
+        """Update the parent overview section of a report."""
+        db = Database.get_db()
+        # Find report
+        report = None
+        try:
+            report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
+        except Exception:
+            report = await db.student_reports.find_one({"_id": report_id})
+        if not report:
+            report = await db.student_reports.find_one({"id": report_id})
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        await db.student_reports.update_one(
+            {"_id": report["_id"]},
+            {"$set": {
+                "parent_overview": parent_overview,
+                "last_modified": datetime.utcnow(),
+                "modified_by": ObjectId(current_user.id)
+            }}
         )
         updated = await db.student_reports.find_one({"_id": report["_id"]})
         # Normalize
@@ -796,11 +857,36 @@ class ReportService:
                 )
             except Exception as e:
                 logger.error(f"Failed to regenerate summary for {subject.get('code')}: {e}")
+        
+        # Calculate totals for overview
+        total_evidence = sum(s.evidence_count for s in summaries)
+        total_outcomes_achieved = sum(s.outcomes_with_evidence for s in summaries)
+        total_outcomes_count = sum(s.total_outcomes for s in summaries)
+        
+        # Regenerate AI overview
+        student_first_name = getattr(student, "first_name", "") or "Your child"
+        try:
+            ai_overview = await generate_report_overview(
+                student_name=student_first_name,
+                grade_level=selected_grade_level,
+                academic_year=generate_request.academic_year,
+                report_period=generate_request.report_period.value if hasattr(generate_request.report_period, 'value') else str(generate_request.report_period),
+                learning_area_summaries=[s.dict() for s in summaries],
+                total_evidence_count=total_evidence,
+                outcomes_achieved=total_outcomes_achieved,
+                total_outcomes=total_outcomes_count
+            )
+            logger.info(f"Regenerated AI overview: {len(ai_overview)} characters")
+        except Exception as e:
+            logger.error(f"Failed to regenerate AI overview: {e}")
+            ai_overview = f"{student_first_name} has made wonderful progress during this period."
+        
         generation_time = (datetime.utcnow() - start_time).total_seconds()
         await db.student_reports.update_one(
             {"_id": report["_id"]},
             {"$set": {
                 "learning_area_summaries": [s.dict() for s in summaries],
+                "ai_generated_overview": ai_overview,
                 "status": ReportStatus.DRAFT.value,
                 "generated_at": datetime.utcnow(),
                 "generation_time_seconds": generation_time,

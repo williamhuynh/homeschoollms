@@ -149,7 +149,7 @@ export const generatePrintableHTML = (report, student) => {
               <h1>${formatReportPeriod(report.report_period, report.custom_period_name)}</h1>
               <h2>${student?.first_name} ${student?.last_name}</h2>
               <p><strong>Grade Level:</strong> ${student?.grade_level} | <strong>Academic Year:</strong> ${report.academic_year}</p>
-              <p><strong>Generated:</strong> ${formatDate(report.generated_at)}</p>
+              <p><strong>Created:</strong> ${formatDate(report.generated_at)}</p>
             </div>
 
             <!-- Report Metadata -->
@@ -164,6 +164,14 @@ export const generatePrintableHTML = (report, student) => {
                 </div>
               </div>
             </div>
+
+            ${(report.parent_overview || report.ai_generated_overview) ? `
+            <!-- Overview Section -->
+            <div class="overall-summary" style="background: #f0fff4; border-left: 4px solid #48bb78;">
+              <h3 style="color: #276749; margin-bottom: 10px;">Overview</h3>
+              <p style="white-space: pre-wrap; color: #2f855a;">${(report.parent_overview || report.ai_generated_overview || '').replace(/\n/g, '<br>')}</p>
+            </div>
+            ` : ''}
 
             <!-- Learning Area Summaries -->
             <div>

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 class ReportStatus(str, Enum):
     DRAFT = "draft"
-    PUBLISHED = "published"
+    SUBMITTED = "submitted"
     GENERATING = "generating"
 
 class ReportPeriod(str, Enum):
@@ -44,7 +44,7 @@ class ExportSettings(BaseModel):
 
 class StudentReport(MongoBaseModel):
     student_id: PyObjectId
-    academic_year: str  # e.g., "2024-2025"
+    academic_year: str  # e.g., "2025"
     report_period: ReportPeriod
     custom_period_name: Optional[str] = None  # For custom periods
     title: Optional[str] = None
@@ -56,6 +56,10 @@ class StudentReport(MongoBaseModel):
     status: ReportStatus = ReportStatus.DRAFT
     export_settings: ExportSettings = Field(default_factory=ExportSettings)
     grade_level: Optional[str] = None
+    
+    # Overview section for parent comments
+    ai_generated_overview: Optional[str] = None  # AI-generated first draft
+    parent_overview: Optional[str] = None  # Parent-edited version
     
     # Metadata for tracking changes
     version: int = 1
@@ -77,6 +81,9 @@ class UpdateReportTitleRequest(BaseModel):
 
 class UpdateReportStatusRequest(BaseModel):
     status: ReportStatus
+
+class UpdateReportOverviewRequest(BaseModel):
+    parent_overview: str
 
 class ReportListResponse(BaseModel):
     reports: List[StudentReport]

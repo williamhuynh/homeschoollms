@@ -55,12 +55,16 @@ const ReportsPage = () => {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [formData, setFormData] = useState({
-    academic_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+    academic_year: String(new Date().getFullYear()),
     report_period: 'annual',
     custom_period_name: '',
     template: 'standard',
     grade_level: ''
   })
+  
+  // Generate year options for the dropdown (current year and 5 years back)
+  const currentYear = new Date().getFullYear()
+  const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i)
   
   // Check if user can generate reports
   const canGenerate = canGenerateReports()
@@ -296,14 +300,14 @@ const ReportsPage = () => {
                           {(report.title && report.title.trim()) || formatReportPeriod(report.report_period, report.custom_period_name)}
                         </Text>
                         <Badge 
-                          colorScheme={report.status === 'published' ? 'green' : 'orange'}
+                          colorScheme={report.status === 'submitted' ? 'green' : 'orange'}
                           size="sm"
                         >
-                          {report.status}
+                          {report.status === 'submitted' ? 'Submitted' : report.status}
                         </Badge>
                       </HStack>
                       <Text fontSize="sm" color="gray.600">
-                        {report.academic_year} • Generated {formatDate(report.generated_at)}
+                        {report.academic_year} • Created {formatDate(report.generated_at)}
                       </Text>
                       <Text fontSize="xs" color="gray.500">
                         {report.learning_area_summaries?.length || 0} learning areas
@@ -357,11 +361,14 @@ const ReportsPage = () => {
             <VStack spacing={4}>
               <FormControl isRequired>
                 <FormLabel>Academic Year</FormLabel>
-                <Input
+                <Select
                   value={formData.academic_year}
                   onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
-                  placeholder="e.g., 2024-2025"
-                />
+                >
+                  {yearOptions.map(year => (
+                    <option key={year} value={String(year)}>{year}</option>
+                  ))}
+                </Select>
               </FormControl>
 
               <FormControl isRequired>
