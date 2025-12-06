@@ -26,6 +26,7 @@ import { ArrowLeft, Calendar, Clock, Check, Edit2, MoreVertical, RefreshCw, Save
 import { useEffect, useState } from 'react'
 import { getReportById, getStudentBySlug, updateReportTitle, updateReportStatus, regenerateReport, updateReportOverview } from '../../services/api'
 import LearningAreaSummaryCard from '../../components/reports/LearningAreaSummaryCard'
+import ReportGenerationProgress from '../../components/reports/ReportGenerationProgress'
 import { generatePrintableHTML } from '../../components/reports/exportUtils'
 
 const ReportViewPage = () => {
@@ -527,6 +528,9 @@ const ReportViewPage = () => {
           )}
         </VStack>
       </VStack>
+
+      {/* Report Regeneration Progress Modal */}
+      <ReportGenerationProgress isOpen={regenerating} title="Regenerating Report" />
     </Container>
   )
 }
