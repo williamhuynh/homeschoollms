@@ -81,22 +81,35 @@ class ReportService:
     async def get_report_by_id(report_id: str) -> StudentReport:
         """Get a specific report by ID."""
         db = Database.get_db()
+        logger.info(f"get_report_by_id called with report_id: {report_id} (type: {type(report_id).__name__})")
         
         # Primary lookup by ObjectId
         report = None
         try:
-            report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
-        except Exception:
+            obj_id = ObjectId(report_id)
+            logger.debug(f"Attempting ObjectId lookup with: {obj_id}")
+            report = await db.student_reports.find_one({"_id": obj_id})
+            if report:
+                logger.info(f"Found report via ObjectId lookup")
+        except Exception as e:
+            logger.debug(f"ObjectId conversion/lookup failed: {e}")
             report = None
 
         # Fallbacks for legacy records that may have string _id or different field name
         if not report:
             # _id stored as string
+            logger.debug(f"Attempting string _id lookup with: {report_id}")
             report = await db.student_reports.find_one({"_id": report_id})
+            if report:
+                logger.info(f"Found report via string _id lookup")
         if not report:
             # legacy field name
+            logger.debug(f"Attempting legacy 'id' field lookup with: {report_id}")
             report = await db.student_reports.find_one({"id": report_id})
+            if report:
+                logger.info(f"Found report via legacy 'id' field lookup")
         if not report:
+            logger.error(f"Report not found with id: {report_id} - tried ObjectId, string _id, and legacy id field")
             raise HTTPException(status_code=404, detail="Report not found")
             
         return StudentReport(**report)
@@ -175,6 +188,9 @@ class ReportService:
         # Insert the report in generating status ensuring correct BSON/primitive types
         report_doc = report.model_dump(by_alias=True)
         # Ensure ObjectId and enum string values are stored
+        # IMPORTANT: model_dump may serialize _id as a string - ensure it's an ObjectId for MongoDB
+        if "_id" in report_doc:
+            report_doc["_id"] = ObjectId(report_doc["_id"]) if not isinstance(report_doc["_id"], ObjectId) else report_doc["_id"]
         report_doc["student_id"] = student_obj_id
         report_doc["created_by"] = ObjectId(current_user.id)
         report_doc["status"] = ReportStatus.GENERATING.value
@@ -710,13 +726,17 @@ class ReportService:
     @staticmethod
     async def update_report_title(report_id: str, title: str, current_user: UserInDB) -> StudentReport:
         db = Database.get_db()
-        # Find report
+        # Find report using robust lookup
         report = None
         try:
             report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
         except Exception:
+            report = None
+        if not report:
+            # Fallback: _id stored as string
             report = await db.student_reports.find_one({"_id": report_id})
         if not report:
+            # Fallback: legacy 'id' field
             report = await db.student_reports.find_one({"id": report_id})
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
@@ -730,15 +750,21 @@ class ReportService:
     @staticmethod
     async def update_report_status(report_id: str, status: ReportStatus, current_user: UserInDB) -> StudentReport:
         db = Database.get_db()
-        # Find report
+        logger.info(f"update_report_status called - report_id: {report_id}, status: {status}")
+        # Find report using same robust lookup as get_report_by_id
         report = None
         try:
             report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
         except Exception:
+            report = None
+        if not report:
+            # Fallback: _id stored as string
             report = await db.student_reports.find_one({"_id": report_id})
         if not report:
+            # Fallback: legacy 'id' field
             report = await db.student_reports.find_one({"id": report_id})
         if not report:
+            logger.error(f"Report not found for status update: {report_id}")
             raise HTTPException(status_code=404, detail="Report not found")
         # Only allow valid transitions (generating -> draft handled by generator)
         if status not in [ReportStatus.DRAFT, ReportStatus.SUBMITTED]:
@@ -765,13 +791,17 @@ class ReportService:
     async def update_report_overview(report_id: str, parent_overview: str, current_user: UserInDB) -> StudentReport:
         """Update the parent overview section of a report."""
         db = Database.get_db()
-        # Find report
+        # Find report using robust lookup
         report = None
         try:
             report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
         except Exception:
+            report = None
+        if not report:
+            # Fallback: _id stored as string
             report = await db.student_reports.find_one({"_id": report_id})
         if not report:
+            # Fallback: legacy 'id' field
             report = await db.student_reports.find_one({"id": report_id})
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
@@ -809,13 +839,17 @@ class ReportService:
             if not student_doc:
                 raise HTTPException(status_code=404, detail=f"Student not found: {student_id}")
             student_obj_id = student_doc["_id"]
-        # Fetch report
+        # Fetch report using robust lookup
         report = None
         try:
             report = await db.student_reports.find_one({"_id": ObjectId(report_id)})
         except Exception:
+            report = None
+        if not report:
+            # Fallback: _id stored as string
             report = await db.student_reports.find_one({"_id": report_id})
         if not report:
+            # Fallback: legacy 'id' field
             report = await db.student_reports.find_one({"id": report_id})
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
