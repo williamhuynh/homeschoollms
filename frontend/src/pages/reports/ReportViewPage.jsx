@@ -15,6 +15,7 @@ import {
   Progress,
   Divider,
   Input,
+  Textarea,
   Menu,
   MenuButton,
   MenuList,
@@ -23,7 +24,7 @@ import {
 } from '@chakra-ui/react'
 import { ArrowLeft, Calendar, Clock, Check, Edit2, MoreVertical, RefreshCw, Save, X, Printer, Download, Share2 } from 'react-feather'
 import { useEffect, useState } from 'react'
-import { getReportById, getStudentBySlug, updateReportTitle, updateReportStatus, regenerateReport } from '../../services/api'
+import { getReportById, getStudentBySlug, updateReportTitle, updateReportStatus, regenerateReport, updateReportOverview } from '../../services/api'
 import LearningAreaSummaryCard from '../../components/reports/LearningAreaSummaryCard'
 import { generatePrintableHTML } from '../../components/reports/exportUtils'
 
@@ -40,6 +41,9 @@ const ReportViewPage = () => {
   const [savingTitle, setSavingTitle] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [editingOverview, setEditingOverview] = useState(false)
+  const [overviewInput, setOverviewInput] = useState('')
+  const [savingOverview, setSavingOverview] = useState(false)
 
   function getReportIdFromState(r) {
     if (!r) return ''
@@ -64,6 +68,7 @@ const ReportViewPage = () => {
       setReport(reportData)
       setStudent(studentData)
       setTitleInput(reportData.title || '')
+      setOverviewInput(reportData.parent_overview || reportData.ai_generated_overview || '')
     } catch (error) {
       console.error('Error fetching report:', error)
       toast({
@@ -98,6 +103,15 @@ const ReportViewPage = () => {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
+    })
+  }
+
+  const formatTime = (dateString) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleTimeString('en-AU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
     })
   }
 
@@ -139,15 +153,31 @@ const ReportViewPage = () => {
     if (!report) return
     try {
       setUpdatingStatus(true)
-      const target = report.status === 'published' ? 'draft' : 'published'
+      const target = report.status === 'submitted' ? 'draft' : 'submitted'
       const updated = await updateReportStatus(studentId, reportId, target)
       setReport(updated)
-      toast({ title: `Marked as ${updated.status}`, status: 'success', duration: 1500, isClosable: true })
+      const statusLabel = updated.status === 'submitted' ? 'Submitted' : 'Draft'
+      toast({ title: `Marked as ${statusLabel}`, status: 'success', duration: 1500, isClosable: true })
     } catch (error) {
       console.error('Error updating status:', error)
       toast({ title: 'Failed to update status', description: error.message, status: 'error' })
     } finally {
       setUpdatingStatus(false)
+    }
+  }
+
+  const handleSaveOverview = async () => {
+    try {
+      setSavingOverview(true)
+      const updated = await updateReportOverview(studentId, reportId, overviewInput.trim())
+      setReport(updated)
+      setEditingOverview(false)
+      toast({ title: 'Overview updated', status: 'success', duration: 1500, isClosable: true })
+    } catch (error) {
+      console.error('Error updating overview:', error)
+      toast({ title: 'Failed to update overview', description: error.message, status: 'error' })
+    } finally {
+      setSavingOverview(false)
     }
   }
 
@@ -321,11 +351,11 @@ const ReportViewPage = () => {
               </HStack>
             )}
             <Badge 
-              colorScheme={report.status === 'published' ? 'green' : report.status === 'generating' ? 'purple' : 'orange'}
+              colorScheme={report.status === 'submitted' ? 'green' : report.status === 'generating' ? 'purple' : 'orange'}
               px={2}
               py={0.5}
             >
-              {report.status?.toUpperCase()}
+              {report.status === 'submitted' ? 'SUBMITTED' : report.status?.toUpperCase()}
             </Badge>
             {student && (
               <Text color="gray.600" fontSize="sm">
@@ -341,7 +371,7 @@ const ReportViewPage = () => {
                   {regenerating ? 'Regenerating...' : 'Regenerate Report'}
                 </MenuItem>
                 <MenuItem icon={<Check size={16} />} onClick={handleToggleStatus} isDisabled={updatingStatus}>
-                  {report.status === 'published' ? 'Mark as Draft' : 'Publish Report'}
+                  {report.status === 'submitted' ? 'Mark as Draft' : 'Submit Report'}
                 </MenuItem>
                 <MenuDivider />
                 <MenuItem icon={<Printer size={16} />} onClick={handlePrint}>
@@ -360,17 +390,15 @@ const ReportViewPage = () => {
 
         {/* Report Metadata */}
         <Box bg="gray.50" p={4} borderRadius="md">
-          <HStack spacing={6} fontSize="sm" color="gray.600">
+          <HStack spacing={6} fontSize="sm" color="gray.600" flexWrap="wrap">
             <HStack>
               <Calendar size={16} />
-              <Text>Generated: {formatDate(report.generated_at)}</Text>
+              <Text>Created: {formatDate(report.generated_at)}</Text>
             </HStack>
-            {report.generation_time_seconds && (
-              <HStack>
-                <Clock size={16} />
-                <Text>Generation time: {formatDuration(report.generation_time_seconds)}</Text>
-              </HStack>
-            )}
+            <HStack>
+              <Clock size={16} />
+              <Text>Last Edited: {formatTime(report.last_modified)}</Text>
+            </HStack>
             <Text>
               {report.learning_area_summaries?.length || 0} Learning Areas
             </Text>
@@ -409,6 +437,65 @@ const ReportViewPage = () => {
             </VStack>
           </Box>
         )}
+
+        {/* Overview Section - Parent Comments */}
+        <Box bg="green.50" p={4} borderRadius="md" border="1px solid" borderColor="green.200">
+          <VStack align="stretch" spacing={3}>
+            <HStack justify="space-between">
+              <Text fontWeight="medium" color="green.800">
+                Overview
+              </Text>
+              {!editingOverview && (
+                <IconButton
+                  icon={<Edit2 size={14} />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="green"
+                  aria-label="Edit overview"
+                  onClick={() => {
+                    setOverviewInput(report.parent_overview || report.ai_generated_overview || '')
+                    setEditingOverview(true)
+                  }}
+                />
+              )}
+            </HStack>
+            
+            {!editingOverview ? (
+              <Text fontSize="sm" color="green.700" whiteSpace="pre-wrap">
+                {report.parent_overview || report.ai_generated_overview || 'No overview available. Click edit to add one.'}
+              </Text>
+            ) : (
+              <VStack align="stretch" spacing={2}>
+                <Textarea
+                  value={overviewInput}
+                  onChange={(e) => setOverviewInput(e.target.value)}
+                  placeholder="Add your comments and observations about your child's learning journey..."
+                  minH="150px"
+                  bg="white"
+                  fontSize="sm"
+                />
+                <HStack justify="flex-end" spacing={2}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingOverview(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    colorScheme="green"
+                    leftIcon={<Save size={14} />}
+                    isLoading={savingOverview}
+                    onClick={handleSaveOverview}
+                  >
+                    Save
+                  </Button>
+                </HStack>
+              </VStack>
+            )}
+          </VStack>
+        </Box>
 
         <Divider />
 

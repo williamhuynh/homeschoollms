@@ -164,6 +164,16 @@ export const regenerateReport = async (studentId, reportId) => {
   }
 };
 
+export const updateReportOverview = async (studentId, reportId, parentOverview) => {
+  try {
+    const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/overview`, { parent_overview: parentOverview });
+    return response.data;
+  } catch (error) {
+    console.error('Update Report Overview Error:', error);
+    throw error;
+  }
+};
+
 export const createStudent = async (studentData) => {
   try {
     // Log the data being sent for debugging
