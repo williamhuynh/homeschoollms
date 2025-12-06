@@ -109,19 +109,48 @@ async def get_admin_user(
     current_user: UserInDB = Depends(get_current_user)
 ) -> UserInDB:
     """
-    Dependency that ensures the current user is an admin.
+    Dependency that ensures the current user is an admin or super_admin.
     Use this for routes that should only be accessible to admin users.
     """
-    if current_user.role not in ["admin", "developer"]:
+    if current_user.role not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Administrator access required for this operation"
         )
     return current_user
 
+
+async def get_super_admin_user(
+    current_user: UserInDB = Depends(get_current_user)
+) -> UserInDB:
+    """
+    Dependency that ensures the current user is a super_admin.
+    Use this for routes that should only be accessible to the platform owner.
+    Super admin has full system access including:
+    - Managing all users across the platform
+    - Modifying subscription tiers directly
+    - Impersonating users
+    - Accessing all students regardless of parent relationship
+    """
+    if current_user.role != "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super administrator access required for this operation"
+        )
+    return current_user
+
+
 def is_admin_user(user: UserInDB) -> bool:
     """
     Helper function to check if a user has admin privileges.
-    Returns True if the user's role is 'admin' or 'developer'.
+    Returns True if the user's role is 'admin' or 'super_admin'.
     """
-    return user.role in ["admin", "developer"]
+    return user.role in ["admin", "super_admin"]
+
+
+def is_super_admin_user(user: UserInDB) -> bool:
+    """
+    Helper function to check if a user has super admin privileges.
+    Returns True if the user's role is 'super_admin'.
+    """
+    return user.role == "super_admin"

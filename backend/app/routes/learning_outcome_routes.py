@@ -32,7 +32,7 @@ async def verify_student_access(student_id: str, current_user: UserInDB, require
     Returns:
         bool: True if user has access, False otherwise
     """
-    # Admins and developers can access everything
+    # Admins and super admins can access everything
     if is_admin_user(current_user):
         return True
     

@@ -9,6 +9,7 @@ from .ai_service import *
 from .file_storage_service import FileStorageService, file_storage_service
 from .supabase_service import SupabaseService
 from .report_service import ReportService
+from .admin_service import AdminService
 
 __all__ = [
     'UserService',
@@ -21,5 +22,6 @@ __all__ = [
     'FileStorageService',
     'file_storage_service',
     'SupabaseService',
-    'ReportService'
+    'ReportService',
+    'AdminService'
 ]

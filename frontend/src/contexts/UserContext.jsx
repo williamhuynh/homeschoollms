@@ -60,9 +60,14 @@ export const UserProvider = ({ children }) => {
     }
   }, [user, fetchSubscriptionData])
 
-  // Helper function to check if user is admin
+  // Helper function to check if user is admin (includes super_admin)
   const isAdmin = () => {
-    return user?.role === 'admin' || user?.role === 'developer'
+    return user?.role === 'admin' || user?.role === 'super_admin'
+  }
+
+  // Helper function to check if user is super admin
+  const isSuperAdmin = () => {
+    return user?.role === 'super_admin'
   }
 
   // Helper function to get effective subscription tier
@@ -107,6 +112,7 @@ export const UserProvider = ({ children }) => {
       error, 
       fetchUserData, 
       isAdmin,
+      isSuperAdmin,
       // Subscription helpers
       subscription,
       usage,

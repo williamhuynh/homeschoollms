@@ -9,6 +9,7 @@ from . import ai_routes
 from . import file_routes
 from . import report_routes
 from . import stripe_routes
+from . import admin_routes
 
 __all__ = [
     'auth',
@@ -21,5 +22,6 @@ __all__ = [
     'ai_routes',
     'file_routes',
     'report_routes',
-    'stripe_routes'
+    'stripe_routes',
+    'admin_routes'
 ]

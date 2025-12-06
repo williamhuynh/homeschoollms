@@ -16,7 +16,8 @@ from .routes import (
     ai_routes, # Add import for AI routes
     file_routes, # Add import for file routes
     report_routes, # Add import for report routes
-    stripe_routes # Add import for Stripe/subscription routes
+    stripe_routes, # Add import for Stripe/subscription routes
+    admin_routes # Add import for super admin routes
 )
 from bson.errors import InvalidId
 from .utils.error_handlers import http_error_handler, invalid_object_id_handler
@@ -64,6 +65,7 @@ app.include_router(ai_routes.router, prefix="/api/v1/ai", tags=["ai"]) # Include
 app.include_router(file_routes.router, prefix="/api/files", tags=["files"]) # Include the file routes
 app.include_router(report_routes.router, prefix="/api", tags=["reports"]) # Include the report routes
 app.include_router(stripe_routes.router, prefix="/api/stripe", tags=["stripe"]) # Include Stripe/subscription routes
+app.include_router(admin_routes.router, prefix="/api", tags=["admin"]) # Include super admin routes
 
 
 # Add error handlers
