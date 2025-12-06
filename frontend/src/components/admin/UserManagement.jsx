@@ -78,9 +78,11 @@ const UserManagement = ({ onImpersonate }) => {
       setUsers(result.users)
       setPagination(prev => ({ ...prev, total: result.total }))
     } catch (error) {
+      console.error('Admin List Users Error:', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred'
       toast({
         title: 'Error loading users',
-        description: error.message,
+        description: errorMessage,
         status: 'error',
         duration: 5000,
       })

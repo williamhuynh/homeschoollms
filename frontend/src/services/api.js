@@ -271,16 +271,6 @@ export const getStudentBySlug = async (slug) => {
   }
 };
 
-export const updateStudentSlugs = async () => {
-  try {
-    const response = await apiToUse.post('/api/students/actions/update-slugs');
-    return response.data;
-  } catch (error) {
-    console.error('Update Student Slugs Error:', error);
-    throw error;
-  }
-};
-
 export const deleteStudent = async (studentId) => {
   // Validate the student ID format
   const objectIdRegex = /^[0-9a-fA-F]{24}$/;

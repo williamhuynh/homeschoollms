@@ -55,9 +55,11 @@ const PlatformStats = () => {
         const data = await adminGetPlatformStats()
         setStats(data)
       } catch (error) {
+        console.error('Admin Platform Stats Error:', error)
+        const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred'
         toast({
           title: 'Error loading stats',
-          description: error.message,
+          description: errorMessage,
           status: 'error',
           duration: 5000,
         })

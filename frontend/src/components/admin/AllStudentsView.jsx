@@ -47,9 +47,11 @@ const AllStudentsView = () => {
       setStudents(result.students)
       setPagination(prev => ({ ...prev, total: result.total }))
     } catch (error) {
+      console.error('Admin List Students Error:', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred'
       toast({
         title: 'Error loading students',
-        description: error.message,
+        description: errorMessage,
         status: 'error',
         duration: 5000,
       })
