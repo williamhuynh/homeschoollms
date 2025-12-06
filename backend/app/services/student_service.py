@@ -194,7 +194,6 @@ class StudentService:
         )
         if update_result.modified_count == 0:
             raise HTTPException(status_code=400, detail="Failed to enroll in subject")
-            raise HTTPException(status_code=400, detail="Failed to enroll in subject")
         
         return await StudentService.get_student_by_id(student_id)
         
