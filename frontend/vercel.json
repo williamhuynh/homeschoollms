@@ -6,7 +6,11 @@
   "rewrites": [
     {
       "source": "/api/files/signed-url",
-      "destination": "https://homeschool-lms.onrender.com/api/files/signed-url"
+      "destination": "https://homeschoollms-server.onrender.com/api/files/signed-url"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://homeschoollms-server.onrender.com/api/:path*"
     },
     {
       "source": "/curriculum/:file*",

@@ -154,13 +154,20 @@ const ReportViewPage = () => {
     try {
       setUpdatingStatus(true)
       const target = report.status === 'submitted' ? 'draft' : 'submitted'
+      console.log('handleToggleStatus - studentId:', studentId, 'reportId:', reportId, 'target:', target)
+      if (!studentId || !reportId) {
+        console.error('handleToggleStatus - Missing studentId or reportId')
+        toast({ title: 'Error', description: 'Missing student or report ID', status: 'error' })
+        return
+      }
       const updated = await updateReportStatus(studentId, reportId, target)
       setReport(updated)
       const statusLabel = updated.status === 'submitted' ? 'Submitted' : 'Draft'
       toast({ title: `Marked as ${statusLabel}`, status: 'success', duration: 1500, isClosable: true })
     } catch (error) {
       console.error('Error updating status:', error)
-      toast({ title: 'Failed to update status', description: error.message, status: 'error' })
+      console.error('Error response:', error.response?.data)
+      toast({ title: 'Failed to update status', description: error.response?.data?.detail || error.message, status: 'error' })
     } finally {
       setUpdatingStatus(false)
     }
