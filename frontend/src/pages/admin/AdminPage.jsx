@@ -13,7 +13,6 @@ import {
   Badge,
   HStack,
   Text,
-  Divider,
 } from '@chakra-ui/react'
 import { ArrowLeft, Shield, Users, BookOpen, BarChart2 } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
@@ -28,7 +27,7 @@ import { useUser } from '../../contexts/UserContext'
 
 const AdminPage = () => {
   const navigate = useNavigate()
-  const { isAdmin, isSuperAdmin, setUser, fetchUserData } = useUser()
+  const { isAdmin, isSuperAdmin, fetchUserData } = useUser()
   
   // Impersonation state
   const [impersonation, setImpersonation] = useState(null)
@@ -100,7 +99,7 @@ const AdminPage = () => {
             </HStack>
           </Box>
 
-          <Tabs isFitted variant="enclosed-colored" colorScheme="purple">
+          <Tabs isFitted variant="enclosed-colored" colorScheme="purple" isLazy>
             <TabList mb="1em" flexWrap="wrap">
               {/* Regular Tabs */}
               <Tab>Manage Access</Tab>
