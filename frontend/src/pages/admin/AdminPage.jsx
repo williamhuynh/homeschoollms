@@ -17,7 +17,6 @@ import {
 } from '@chakra-ui/react'
 import { ArrowLeft, Shield, Users, BookOpen, BarChart2 } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
-import UpdateStudentSlugs from '../../components/admin/UpdateStudentSlugs'
 import DeleteStudent from '../../components/admin/DeleteStudent'
 import ManageParentAccess from '../../components/admin/ManageParentAccess'
 import ImageMigrationManager from '../../components/admin/ImageMigrationManager'
@@ -105,7 +104,6 @@ const AdminPage = () => {
             <TabList mb="1em" flexWrap="wrap">
               {/* Regular Tabs */}
               <Tab>Parent Access</Tab>
-              {isAdmin() && <Tab>Student Slugs</Tab>}
               <Tab>Delete Student</Tab>
               {isAdmin() && <Tab>Image Migration</Tab>}
               
@@ -142,16 +140,6 @@ const AdminPage = () => {
                   <ManageParentAccess />
                 </Box>
               </TabPanel>
-              
-              {/* Student Slugs Tab (Admin only) */}
-              {isAdmin() && (
-                <TabPanel>
-                  <Box>
-                    <Heading size="md" mb={4}>Student Slug Management</Heading>
-                    <UpdateStudentSlugs />
-                  </Box>
-                </TabPanel>
-              )}
               
               {/* Delete Student Tab */}
               <TabPanel>
