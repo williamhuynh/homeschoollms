@@ -87,10 +87,10 @@ const AddParentAccess = ({ studentId, studentName, onAccessUpdated }) => {
         onAccessUpdated();
       }
     } catch (error) {
-      console.error('Error adding parent access:', error);
+      console.error('Error granting access:', error);
       toast({
         title: 'Error',
-        description: error.response?.data?.detail || 'Failed to add parent access',
+        description: error.response?.data?.detail || 'Failed to grant access. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -103,15 +103,15 @@ const AddParentAccess = ({ studentId, studentName, onAccessUpdated }) => {
 
   return (
     <Box>
-      <Heading size="sm" mb={4}>Add Parent Access</Heading>
+      <Heading size="sm" mb={4}>Invite Someone</Heading>
       <form onSubmit={handleSubmit}>
         <FormControl isInvalid={!!emailError} isRequired mb={4}>
-          <FormLabel>Parent Email</FormLabel>
+          <FormLabel>Email Address</FormLabel>
           <Input
             type="email"
             value={email}
             onChange={handleEmailChange}
-            placeholder="Enter parent's email address"
+            placeholder="Enter their email address"
             isDisabled={isSubmitting}
           />
           {emailError && <FormErrorMessage>{emailError}</FormErrorMessage>}
@@ -134,9 +134,9 @@ const AddParentAccess = ({ studentId, studentName, onAccessUpdated }) => {
           type="submit"
           colorScheme="teal"
           isLoading={isSubmitting}
-          loadingText="Adding..."
+          loadingText="Sending..."
         >
-          Add Parent
+          Grant Access
         </Button>
       </form>
 
@@ -149,11 +149,11 @@ const AddParentAccess = ({ studentId, studentName, onAccessUpdated }) => {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Confirm Adding Parent
+              Confirm Access
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to give <strong>{accessLevel}</strong> access to <strong>{email}</strong> for student <strong>{studentName}</strong>?
+              Grant <strong>{accessLevel}</strong> access to <strong>{email}</strong> for <strong>{studentName}</strong>?
             </AlertDialogBody>
 
             <AlertDialogFooter>
@@ -165,9 +165,9 @@ const AddParentAccess = ({ studentId, studentName, onAccessUpdated }) => {
                   colorScheme="teal" 
                   onClick={confirmAddParent} 
                   isLoading={isSubmitting}
-                  loadingText="Adding..."
+                  loadingText="Granting..."
                 >
-                  Confirm
+                  Grant Access
                 </Button>
               </HStack>
             </AlertDialogFooter>

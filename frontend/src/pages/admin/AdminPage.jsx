@@ -103,7 +103,7 @@ const AdminPage = () => {
           <Tabs isFitted variant="enclosed-colored" colorScheme="purple">
             <TabList mb="1em" flexWrap="wrap">
               {/* Regular Tabs */}
-              <Tab>Parent Access</Tab>
+              <Tab>Manage Access</Tab>
               <Tab>Delete Student</Tab>
               {isAdmin() && <Tab>Image Migration</Tab>}
               
@@ -133,12 +133,9 @@ const AdminPage = () => {
             </TabList>
             
             <TabPanels>
-              {/* Parent Access Tab */}
+              {/* Manage Access Tab */}
               <TabPanel>
-                <Box>
-                  <Heading size="md" mb={4}>Parent Access Management</Heading>
-                  <ManageParentAccess />
-                </Box>
+                <ManageParentAccess />
               </TabPanel>
               
               {/* Delete Student Tab */}

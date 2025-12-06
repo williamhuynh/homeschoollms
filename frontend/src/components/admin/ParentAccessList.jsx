@@ -41,11 +41,11 @@ const ParentAccessList = ({ studentId, studentName, onAccessUpdated }) => {
       const parentsList = await getStudentParents(studentId);
       setParents(parentsList);
     } catch (error) {
-      console.error('Error fetching parents:', error);
-      setError('Failed to load parents. Please try again.');
+      console.error('Error fetching access list:', error);
+      setError('Failed to load access list. Please try again.');
       toast({
         title: 'Error',
-        description: 'Failed to load parents. Please try again.',
+        description: 'Failed to load access list. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -65,7 +65,7 @@ const ParentAccessList = ({ studentId, studentName, onAccessUpdated }) => {
       await updateParentAccess(studentId, parentId, newAccessLevel);
       toast({
         title: 'Access updated',
-        description: `Parent access level updated to ${newAccessLevel}`,
+        description: `Access level changed to ${newAccessLevel}`,
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -76,7 +76,7 @@ const ParentAccessList = ({ studentId, studentName, onAccessUpdated }) => {
       console.error('Error updating access level:', error);
       toast({
         title: 'Error',
-        description: error.response?.data?.detail || 'Failed to update access level',
+        description: error.response?.data?.detail || 'Failed to update access level. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -143,7 +143,7 @@ const ParentAccessList = ({ studentId, studentName, onAccessUpdated }) => {
     return (
       <Box textAlign="center" py={4}>
         <Spinner size="lg" />
-        <Text mt={2}>Loading parents...</Text>
+        <Text mt={2}>Loading access list...</Text>
       </Box>
     );
   }
@@ -159,15 +159,15 @@ const ParentAccessList = ({ studentId, studentName, onAccessUpdated }) => {
 
   return (
     <Box>
-      <Heading size="sm" mb={4}>Parents with Access to {studentName}</Heading>
+      <Heading size="sm" mb={4}>People with Access to {studentName}</Heading>
       
       {parents.length === 0 ? (
-        <Text>No other parents have access to this student yet.</Text>
+        <Text>No one else has access to this student yet.</Text>
       ) : (
         <Table variant="simple" size="sm">
           <Thead>
             <Tr>
-              <Th>Parent</Th>
+              <Th>Name</Th>
               <Th>Email</Th>
               <Th>Access Level</Th>
               <Th>Actions</Th>
@@ -218,12 +218,12 @@ const ParentAccessList = ({ studentId, studentName, onAccessUpdated }) => {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Remove Parent Access
+              Remove Access
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to remove access for {parentToDelete?.full_name || parentToDelete?.email}?
-              This action cannot be undone.
+              Remove access for <strong>{parentToDelete?.full_name || parentToDelete?.email}</strong>? 
+              They will no longer be able to view or contribute to this student's profile.
             </AlertDialogBody>
 
             <AlertDialogFooter>
