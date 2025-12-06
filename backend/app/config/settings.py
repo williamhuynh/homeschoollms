@@ -23,11 +23,6 @@ class Settings(BaseSettings):
     stripe_monthly_price_id: Optional[str] = None
     stripe_annual_price_id: Optional[str] = None
     
-    # Sentry settings
-    sentry_dsn: Optional[str] = None
-    sentry_environment: str = "development"
-    sentry_traces_sample_rate: float = 1.0  # 1.0 = 100% of transactions, reduce in production
-    
     # Frontend URL for redirects
     frontend_url: str = "http://localhost:5173"
     
