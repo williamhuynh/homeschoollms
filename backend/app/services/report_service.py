@@ -518,13 +518,26 @@ class ReportService:
             except Exception:
                 # If hydration fails, proceed with empty outcomes list
                 pass
-        outcomes_with_evidence = set()
+        # Build set of valid curriculum outcome codes (case-insensitive) for accurate counting
+        # This ensures we only count outcomes that are actually in the curriculum for this grade/subject
+        curriculum_outcome_codes = {o.get("code", "").upper() for o in outcomes if o.get("code")}
         
-        # Count outcomes with evidence
+        outcomes_with_evidence = set()
+        all_evidence_outcome_codes = set()  # Track all codes for logging
+        
+        # Count outcomes with evidence - only count if outcome is in the curriculum
         for evidence in all_evidence:
             for outcome_code in evidence.get("learning_outcome_codes", []):
-                # Extract the base outcome code (e.g., "EN1-VOCAB-01" from any variation)
-                outcomes_with_evidence.add(outcome_code.upper())
+                outcome_code_upper = outcome_code.upper()
+                all_evidence_outcome_codes.add(outcome_code_upper)
+                # Only count if this outcome is actually in the curriculum for this subject/grade
+                if outcome_code_upper in curriculum_outcome_codes:
+                    outcomes_with_evidence.add(outcome_code_upper)
+        
+        # Log if there's a difference (helps debug cross-grade evidence issues)
+        if len(all_evidence_outcome_codes) != len(outcomes_with_evidence):
+            non_curriculum_codes = all_evidence_outcome_codes - outcomes_with_evidence
+            logger.info(f"Filtered out {len(non_curriculum_codes)} non-curriculum outcome codes for {subject['name']}: {non_curriculum_codes}")
         
         # Select the most recent evidence for each learning outcome
         # Since all_evidence is sorted by uploaded_at DESC, the first occurrence 
