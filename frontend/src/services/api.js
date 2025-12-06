@@ -146,10 +146,16 @@ export const updateReportTitle = async (studentId, reportId, title) => {
 
 export const updateReportStatus = async (studentId, reportId, status) => {
   try {
-    const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/status`, { status });
+    const url = `/api/reports/${studentId}/${reportId}/status`;
+    console.log('updateReportStatus - Making PUT request to:', apiToUse.defaults.baseURL + url);
+    console.log('updateReportStatus - studentId:', studentId, 'reportId:', reportId, 'status:', status);
+    const response = await apiToUse.put(url, { status });
     return response.data;
   } catch (error) {
     console.error('Update Report Status Error:', error);
+    console.error('Update Report Status - Request URL was:', apiToUse.defaults.baseURL + `/api/reports/${studentId}/${reportId}/status`);
+    console.error('Update Report Status - Response status:', error.response?.status);
+    console.error('Update Report Status - Response data:', error.response?.data);
     throw error;
   }
 };

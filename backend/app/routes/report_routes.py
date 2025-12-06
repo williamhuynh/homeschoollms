@@ -106,6 +106,7 @@ async def get_report(
     current_user: UserInDB = Depends(get_current_user)
 ):
     """Get a specific report."""
+    logger.info(f"get_report called - student_id: {student_id}, report_id: {report_id}")
     # Ensure user has at least view access
     await ensure_student_access(student_id, current_user, "view")
     
@@ -277,6 +278,7 @@ async def update_report_status(
     request: UpdateReportStatusRequest,
     current_user: UserInDB = Depends(get_current_user)
 ):
+    logger.info(f"update_report_status called - student_id: {student_id}, report_id: {report_id}, status: {request.status}")
     # content-level access required to publish/draft
     await ensure_student_access(student_id, current_user, "content")
     # verify ownership
@@ -289,8 +291,10 @@ async def update_report_status(
         if student:
             student_obj_id = student["_id"]
         else:
+            logger.error(f"Student not found: {student_id}")
             raise HTTPException(status_code=404, detail="Student not found")
     if str(report.student_id) != str(student_obj_id):
+        logger.error(f"Report {report_id} does not belong to student {student_id}")
         raise HTTPException(status_code=403, detail="Report does not belong to this student")
     return await ReportService.update_report_status(report_id, request.status, current_user)
 

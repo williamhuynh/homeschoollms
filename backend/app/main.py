@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from .config.api_description import API_DESCRIPTION, TAGS_METADATA
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from .config.settings import settings  # Add this import
@@ -23,12 +24,24 @@ from bson.errors import InvalidId
 from .utils.error_handlers import http_error_handler, invalid_object_id_handler
 from .utils.database_utils import Database
 from .services.file_storage_service import file_storage_service  # Add import for file storage service
-import logging  # Import logging
+import time
 
 import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+# Request logging middleware
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start_time = time.time()
+        logger.info(f"Incoming request: {request.method} {request.url.path}")
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        logger.info(f"Request completed: {request.method} {request.url.path} - Status: {response.status_code} - Time: {process_time:.3f}s")
+        return response
 
 # Load environment variables
 load_dotenv()
@@ -52,6 +65,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Location"]  # Add this to expose redirect headers
 )
+
+# Add request logging middleware
+app.add_middleware(RequestLoggingMiddleware)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
