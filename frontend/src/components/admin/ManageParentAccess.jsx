@@ -6,7 +6,9 @@ import {
   Select, 
   Text, 
   Divider,
-  useToast
+  useToast,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { getStudentsWithAdminAccess } from '../../services/api';
 import ParentAccessList from './ParentAccessList';
@@ -63,7 +65,24 @@ const ManageParentAccess = () => {
 
   return (
     <Box>
-      <Heading size="md" mb={4}>Parent Access Management</Heading>
+      <Heading size="md" mb={2}>Share Student Access</Heading>
+      <Text color="gray.600" mb={4}>
+        Invite other parents, guardians, or caregivers to view or contribute to a student's profile. 
+        You can control what each person can do by setting their access level.
+      </Text>
+      
+      <Alert status="info" mb={4} borderRadius="md">
+        <AlertIcon />
+        <Box>
+          <Text fontWeight="medium">Access Levels:</Text>
+          <Text fontSize="sm">
+            <strong>Admin</strong> – Full control, including managing who else has access. 
+            <strong> Content</strong> – Can add evidence and notes. 
+            <strong> View</strong> – Can only view the student's profile.
+          </Text>
+        </Box>
+      </Alert>
+
       <VStack spacing={4} align="stretch">
         {students.length === 0 && !isLoading ? (
           <Box p={4} borderWidth="1px" borderRadius="md" bg="yellow.50">
@@ -73,7 +92,7 @@ const ManageParentAccess = () => {
           </Box>
         ) : (
           <Box>
-            <Text mb={2}>Select a student:</Text>
+            <Text mb={2} fontWeight="medium">Select a student:</Text>
             <Select
               value={selectedStudentId}
               onChange={handleStudentChange}
