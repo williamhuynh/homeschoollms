@@ -15,7 +15,7 @@ import {
 import { CheckCircle, Clock } from 'react-feather'
 import { useState, useEffect } from 'react'
 
-const ReportGenerationProgress = ({ isOpen, generationStatus }) => {
+const ReportGenerationProgress = ({ isOpen, generationStatus, title = 'Generating Report' }) => {
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState('Initializing...')
   const [completedSteps, setCompletedSteps] = useState([])
@@ -81,7 +81,7 @@ const ReportGenerationProgress = ({ isOpen, generationStatus }) => {
     >
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Generating Report</ModalHeader>
+        <ModalHeader>{title}</ModalHeader>
         <ModalBody pb={6}>
           <VStack spacing={4} align="stretch">
             <Box>
