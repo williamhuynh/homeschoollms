@@ -10,14 +10,9 @@ from ..config.settings import settings
 import os
 import logging # Import logging
 
-# Ensure we have a valid secret key
-SECRET_KEY = settings.jwt_secret
-if not SECRET_KEY:
-    # Fallback to environment variable directly as a last resort
-    SECRET_KEY = os.getenv("JWT_SECRET", "fallback-secret-key-for-development-only")
-    if not SECRET_KEY:
-        print("WARNING: No JWT_SECRET found. Using insecure default secret key!")
-        SECRET_KEY = "insecure-default-secret-key-for-development-only"
+# JWT secret for legacy auth (optional - Supabase is primary auth provider)
+# If not configured, legacy JWT auth is disabled but Supabase auth still works
+SECRET_KEY = settings.jwt_secret or os.getenv("JWT_SECRET")
 
 ALGORITHM = settings.jwt_algorithm
 
@@ -79,7 +74,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     else:
         logging.info("Supabase URL or JWT Secret not set, skipping Supabase verification.")
     
-    # Legacy token verification
+    # Legacy token verification (only if JWT_SECRET is configured)
+    if not SECRET_KEY:
+        logging.warning("Legacy JWT auth disabled - JWT_SECRET not configured. Supabase auth should be used.")
+        raise credentials_exception
+    
     logging.info("Attempting legacy token verification.")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

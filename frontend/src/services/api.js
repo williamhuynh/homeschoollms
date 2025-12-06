@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase, getSession } from './supabase';
+import { logger } from '../utils/logger';
 
 // Resolve base URL: prefer explicit env, otherwise same-origin (works on prod/staging), fallback to localhost
 const resolvedBaseURL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'http://localhost:8000');
@@ -30,7 +31,7 @@ const addAuthToken = async (config) => {
       config.headers.Authorization = `Bearer ${session.access_token}`;
     }
   } catch (error) {
-    console.error('Error getting Supabase session:', error);
+    logger.error('Error getting Supabase session', error);
   }
   
   return config;
@@ -45,8 +46,8 @@ const apiToUse = import.meta.env.VITE_API_URL
   ? api
   : (import.meta.env.VITE_REMOTE_API_URL ? productionApi : api);
 
-// Helpful debug log
-console.log('Using API base URL:', apiToUse.defaults.baseURL);
+// Debug log - only in development
+logger.debug('Using API base URL:', apiToUse.defaults.baseURL);
 
 export const login = async (credentials) => {
   try {
@@ -58,11 +59,11 @@ export const login = async (credentials) => {
     
     if (error) throw error;
     
-    console.log('Supabase Login Response:', data);
+    logger.debug('Supabase login successful');
     
     return { data: { token: data.session?.access_token } };
   } catch (error) {
-    console.error('Login Error:', error);
+    logger.error('Login failed', error);
     throw error;
   }
 };
@@ -146,16 +147,12 @@ export const updateReportTitle = async (studentId, reportId, title) => {
 
 export const updateReportStatus = async (studentId, reportId, status) => {
   try {
+    logger.debug('Updating report status', { studentId, reportId, status });
     const url = `/api/reports/${studentId}/${reportId}/status`;
-    console.log('updateReportStatus - Making PUT request to:', apiToUse.defaults.baseURL + url);
-    console.log('updateReportStatus - studentId:', studentId, 'reportId:', reportId, 'status:', status);
     const response = await apiToUse.put(url, { status });
     return response.data;
   } catch (error) {
-    console.error('Update Report Status Error:', error);
-    console.error('Update Report Status - Request URL was:', apiToUse.defaults.baseURL + `/api/reports/${studentId}/${reportId}/status`);
-    console.error('Update Report Status - Response status:', error.response?.status);
-    console.error('Update Report Status - Response data:', error.response?.data);
+    logger.error('Failed to update report status', error);
     throw error;
   }
 };
@@ -182,8 +179,7 @@ export const updateReportOverview = async (studentId, reportId, parentOverview) 
 
 export const createStudent = async (studentData) => {
   try {
-    // Log the data being sent for debugging
-    console.log('Sending student data:', studentData);
+    logger.debug('Creating student');
     
     // Create a copy of the data to avoid modifying the original
     const formattedData = { ...studentData };
@@ -211,34 +207,25 @@ export const createStudent = async (studentData) => {
       formattedData.active_subjects = [];
     }
     
-    console.log('Formatted student data:', formattedData);
-    
     const response = await apiToUse.post('/api/students/', formattedData);
+    logger.debug('Student created successfully');
     return response.data;
   } catch (error) {
-    console.error('Create Student Error:', error);
-    // Log more detailed error information
-    if (error.response) {
-      console.error('Error response data:', error.response.data);
-      console.error('Error response status:', error.response.status);
-      console.error('Error response headers:', error.response.headers);
-    }
+    logger.error('Failed to create student', error);
     throw error;
   }
 };
 
 export const getStudents = async (accessLevel = null) => {
   try {
-    console.log('Using API:', apiToUse.defaults.baseURL);
-    console.log('Token in localStorage:', localStorage.getItem('token'));
-    console.log(`Making request to /api/students/for-parent${accessLevel ? `?access_level=${accessLevel}` : ''}`);
+    logger.debug('Fetching students', { accessLevel });
     
     // Add access_level as a query parameter if provided
     const response = await apiToUse.get('/api/students/for-parent', {
       params: accessLevel ? { access_level: accessLevel } : {}
     });
     
-    console.log('Students API response:', response);
+    logger.debug('Students fetched successfully', { count: response.data?.length });
     
     // Ensure IDs are in the correct format
     const students = response.data.map(student => {
@@ -252,17 +239,8 @@ export const getStudents = async (accessLevel = null) => {
     
     return students;
   } catch (error) {
-    console.error('Get Students Error:', {
-      message: error.message,
-      status: error.response?.status,
-      url: error.config?.url,
-      method: error.config?.method,
-      responseData: error.response?.data
-    });
-    
-    // For debugging purposes, return empty array instead of throwing error
-    console.log('Returning empty array instead of throwing error');
-    return [];
+    logger.error('Failed to fetch students', error);
+    throw error;
   }
 };
 
@@ -567,27 +545,21 @@ export const getLearningOutcome = async (studentId, learningOutcomeId) => {
 
 export const getEvidenceForLearningOutcome = async (studentId, learningOutcomeId) => {
   try {
-    console.log('Fetching evidence for:', { studentId, learningOutcomeId });
-    console.log('Current token:', localStorage.getItem('token'));
+    logger.debug('Fetching evidence', { studentId, learningOutcomeId });
     
     const response = await apiToUse.get(`/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`);
     
-    console.log('Evidence API response:', response);
+    logger.debug('Evidence fetched', { count: response.data?.length });
     return response.data;
   } catch (error) {
-    console.error('Error getting evidence:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      config: error.config
-    });
+    logger.error('Failed to fetch evidence', error);
     throw error;
   }
 };
 
 export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
   try {
-    console.log('Fetching latest evidence for outcomes:', { studentId, outcomeCodes });
+    logger.debug('Fetching latest evidence for outcomes', { studentId, count: outcomeCodes.length });
     
     // Use batch endpoint if there are multiple outcomes (more efficient)
     if (outcomeCodes.length > 1) {
@@ -609,7 +581,7 @@ export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
           evidenceMap[outcomeCode] = sortedEvidence[0];
         }
       } catch (err) {
-        console.error(`Error fetching evidence for outcome ${outcomeCode}:`, err);
+        logger.warn(`Failed to fetch evidence for outcome ${outcomeCode}`);
         // Continue with other outcomes even if one fails
         continue;
       }
@@ -617,7 +589,7 @@ export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
     
     return evidenceMap;
   } catch (error) {
-    console.error('Error getting latest evidence for outcomes:', error);
+    logger.error('Failed to get latest evidence for outcomes', error);
     return {};
   }
 };
@@ -628,21 +600,17 @@ export const getBatchEvidenceForOutcomes = async (studentId, outcomeCodes) => {
     // Combine all outcome codes into a comma-separated string
     const outcomeCodesParam = outcomeCodes.join(',');
     
-    console.log(`Fetching batch evidence for student ${studentId} with ${outcomeCodes.length} outcomes`);
+    logger.debug('Fetching batch evidence', { studentId, outcomeCount: outcomeCodes.length });
     
     // Make a single API call to get all evidence at once
     const response = await apiToUse.get(
       `/api/evidence/batch/student/${studentId}?outcomes=${outcomeCodesParam}`
     );
     
-    console.log(`Received batch evidence response with ${Object.keys(response.data).length} items`);
+    logger.debug('Batch evidence fetched', { resultCount: Object.keys(response.data).length });
     return response.data;
   } catch (error) {
-    console.error('Error fetching batch evidence:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data
-    });
+    logger.error('Failed to fetch batch evidence', error);
     return {}; // Return empty object on error
   }
 };
