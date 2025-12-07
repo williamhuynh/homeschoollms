@@ -351,15 +351,8 @@ class AdminService:
         students = []
         
         async for student in cursor:
-            student["id"] = str(student.pop("_id"))
-            # Convert ObjectId fields to strings
-            if "parent_ids" in student:
-                student["parent_ids"] = [str(pid) for pid in student.get("parent_ids", [])]
-            if "parent_access" in student:
-                for access in student.get("parent_access", []):
-                    if "parent_id" in access:
-                        access["parent_id"] = str(access["parent_id"])
-            students.append(student)
+            sanitized = AdminService._sanitize_student(student)
+            students.append(sanitized)
         
         return {
             "students": students,
@@ -389,15 +382,7 @@ class AdminService:
         if not student:
             raise HTTPException(status_code=404, detail="Student not found")
         
-        student["id"] = str(student.pop("_id"))
-        if "parent_ids" in student:
-            student["parent_ids"] = [str(pid) for pid in student.get("parent_ids", [])]
-        if "parent_access" in student:
-            for access in student.get("parent_access", []):
-                if "parent_id" in access:
-                    access["parent_id"] = str(access["parent_id"])
-        
-        return student
+        return AdminService._sanitize_student(student)
     
     @staticmethod
     async def create_impersonation_token(
@@ -524,8 +509,8 @@ class AdminService:
             "is_active": user.get("is_active", True),
             "is_verified": user.get("is_verified", False),
             "profile_image": user.get("profile_image"),
-            "created_at": user.get("created_at"),
-            "last_login": user.get("last_login"),
+            "created_at": AdminService._serialize_datetime(user.get("created_at")),
+            "last_login": AdminService._serialize_datetime(user.get("last_login")),
             "subscription_tier": user.get("subscription_tier", "free"),
             "subscription_status": user.get("subscription_status", "active"),
             "is_grandfathered": user.get("is_grandfathered", False),
@@ -534,8 +519,112 @@ class AdminService:
         if include_sensitive:
             result["stripe_customer_id"] = user.get("stripe_customer_id")
             result["stripe_subscription_id"] = user.get("stripe_subscription_id")
-            result["current_period_end"] = user.get("current_period_end")
+            result["current_period_end"] = AdminService._serialize_datetime(user.get("current_period_end"))
             result["organization_id"] = str(user.get("organization_id")) if user.get("organization_id") else None
             result["family_id"] = str(user.get("family_id")) if user.get("family_id") else None
+        
+        return result
+
+    @staticmethod
+    def _serialize_datetime(dt) -> Optional[str]:
+        """
+        Convert datetime/date objects to ISO format strings.
+        
+        Args:
+            dt: A datetime, date object, or None
+            
+        Returns:
+            ISO format string or None
+        """
+        if dt is None:
+            return None
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
+    @staticmethod
+    def _sanitize_student(student: dict) -> Dict[str, Any]:
+        """
+        Sanitize student data for API response.
+        Converts all BSON types (ObjectId, datetime, date) to JSON-serializable types.
+        
+        Args:
+            student: Raw student document from database
+            
+        Returns:
+            Sanitized student dict
+        """
+        result = {
+            "id": str(student.pop("_id")) if "_id" in student else student.get("id"),
+            "first_name": student.get("first_name"),
+            "last_name": student.get("last_name"),
+            "date_of_birth": AdminService._serialize_datetime(student.get("date_of_birth")),
+            "gender": student.get("gender"),
+            "grade_level": student.get("grade_level"),
+            "slug": student.get("slug"),
+            "avatar_path": student.get("avatar_path"),
+            "avatar_url": student.get("avatar_url"),
+            "avatar_thumbnail_url": student.get("avatar_thumbnail_url"),
+            "created_at": AdminService._serialize_datetime(student.get("created_at")),
+        }
+        
+        # Convert ObjectId fields to strings
+        if student.get("organization_id"):
+            result["organization_id"] = str(student["organization_id"])
+        else:
+            result["organization_id"] = None
+            
+        if student.get("family_id"):
+            result["family_id"] = str(student["family_id"])
+        else:
+            result["family_id"] = None
+        
+        # Convert parent_ids list
+        if "parent_ids" in student:
+            result["parent_ids"] = [str(pid) for pid in student.get("parent_ids", [])]
+        else:
+            result["parent_ids"] = []
+        
+        # Convert parent_access list
+        if "parent_access" in student:
+            sanitized_access = []
+            for access in student.get("parent_access", []):
+                sanitized_entry = {
+                    "access_level": access.get("access_level")
+                }
+                if "parent_id" in access:
+                    sanitized_entry["parent_id"] = str(access["parent_id"])
+                sanitized_access.append(sanitized_entry)
+            result["parent_access"] = sanitized_access
+        else:
+            result["parent_access"] = []
+        
+        # Convert active_subjects list
+        if "active_subjects" in student:
+            result["active_subjects"] = [str(sid) for sid in student.get("active_subjects", [])]
+        else:
+            result["active_subjects"] = []
+        
+        # Convert subjects dict (if present)
+        if "subjects" in student and student["subjects"]:
+            sanitized_subjects = {}
+            for key, value in student["subjects"].items():
+                if isinstance(value, dict):
+                    sanitized_value = {}
+                    for k, v in value.items():
+                        if isinstance(v, ObjectId):
+                            sanitized_value[k] = str(v)
+                        elif hasattr(v, 'isoformat'):
+                            sanitized_value[k] = v.isoformat()
+                        elif isinstance(v, list):
+                            sanitized_value[k] = [str(item) if isinstance(item, ObjectId) else item for item in v]
+                        else:
+                            sanitized_value[k] = v
+                    sanitized_subjects[str(key) if isinstance(key, ObjectId) else key] = sanitized_value
+                else:
+                    sanitized_subjects[str(key) if isinstance(key, ObjectId) else key] = value
+            result["subjects"] = sanitized_subjects
+        else:
+            result["subjects"] = {}
         
         return result
