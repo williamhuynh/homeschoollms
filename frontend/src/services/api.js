@@ -72,9 +72,10 @@ export const logout = async () => {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    logger.breadcrumb('auth', 'User logged out');
     return true;
   } catch (error) {
-    console.error('Logout Error:', error);
+    logger.error('Logout Error', error);
     throw error;
   }
 };
@@ -84,7 +85,7 @@ export const healthCheck = async () => {
     const response = await apiToUse.get('/health');
     return response.data;
   } catch (error) {
-    console.error('API Health Check Error:', error);
+    logger.error('API Health Check Error', error);
     throw error;
   }
 };
@@ -94,7 +95,7 @@ export const getCurrentUser = async () => {
     const response = await apiToUse.get('/api/users/me');
     return response.data;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    logger.error('Error getting current user', error);
     throw error;
   }
 };
@@ -105,19 +106,20 @@ export const getStudentReports = async (studentId, params = {}) => {
     const response = await apiToUse.get(`/api/reports/${studentId}`, { params });
     return response.data;
   } catch (error) {
-    console.error('Get Student Reports Error:', error);
+    logger.error('Get Student Reports Error', error);
     throw error;
   }
 };
 
 export const generateReport = async (studentId, reportData) => {
   try {
+    logger.breadcrumb('reports', 'Generating report', { studentId });
     const payload = { ...reportData };
     if (reportData.grade_level) payload.grade_level = reportData.grade_level;
     const response = await apiToUse.post(`/api/reports/${studentId}/generate`, payload);
     return response.data;
   } catch (error) {
-    console.error('Generate Report Error:', error);
+    logger.error('Generate Report Error', error);
     if (error.response?.data?.detail) {
       throw new Error(error.response.data.detail);
     }
@@ -127,10 +129,11 @@ export const generateReport = async (studentId, reportData) => {
 
 export const deleteReport = async (studentId, reportId) => {
   try {
+    logger.breadcrumb('reports', 'Deleting report', { studentId, reportId });
     const response = await apiToUse.delete(`/api/reports/${studentId}/${reportId}`);
     return response.data;
   } catch (error) {
-    console.error('Delete Report Error:', error);
+    logger.error('Delete Report Error', error);
     throw error;
   }
 };
@@ -140,7 +143,7 @@ export const updateReportTitle = async (studentId, reportId, title) => {
     const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/title`, { title });
     return response.data;
   } catch (error) {
-    console.error('Update Report Title Error:', error);
+    logger.error('Update Report Title Error', error);
     throw error;
   }
 };
@@ -159,10 +162,11 @@ export const updateReportStatus = async (studentId, reportId, status) => {
 
 export const regenerateReport = async (studentId, reportId) => {
   try {
+    logger.breadcrumb('reports', 'Regenerating report', { studentId, reportId });
     const response = await apiToUse.post(`/api/reports/${studentId}/${reportId}/regenerate`);
     return response.data;
   } catch (error) {
-    console.error('Regenerate Report Error:', error);
+    logger.error('Regenerate Report Error', error);
     throw error;
   }
 };
@@ -172,7 +176,7 @@ export const updateReportOverview = async (studentId, reportId, parentOverview) 
     const response = await apiToUse.put(`/api/reports/${studentId}/${reportId}/overview`, { parent_overview: parentOverview });
     return response.data;
   } catch (error) {
-    console.error('Update Report Overview Error:', error);
+    logger.error('Update Report Overview Error', error);
     throw error;
   }
 };
@@ -254,13 +258,7 @@ export const getStudentBySlug = async (slug) => {
     const response = await apiToUse.get(`/api/students/by-slug/${slug}`);
     return response.data;
   } catch (error) {
-    console.error('Get Student By Slug Error:', {
-      message: error.message,
-      status: error.response?.status,
-      url: error.config?.url,
-      method: error.config?.method,
-      responseData: error.response?.data
-    });
+    logger.error('Get Student By Slug Error', error);
     throw error;
   }
 };
@@ -273,10 +271,11 @@ export const deleteStudent = async (studentId) => {
   }
 
   try {
+    logger.breadcrumb('students', 'Deleting student', { studentId });
     const response = await apiToUse.delete(`/api/students/${studentId}`);
     return response.data;
   } catch (error) {
-    console.error('Delete Student Error:', error);
+    logger.error('Delete Student Error', error);
     throw error;
   }
 };
@@ -287,20 +286,21 @@ export const getStudentParents = async (studentId) => {
     const response = await apiToUse.get(`/api/students/${studentId}/parents`);
     return response.data;
   } catch (error) {
-    console.error('Get Student Parents Error:', error);
+    logger.error('Get Student Parents Error', error);
     throw error;
   }
 };
 
 export const addParentAccess = async (studentId, email, accessLevel) => {
   try {
+    logger.breadcrumb('access', 'Adding parent access', { studentId, accessLevel });
     const response = await apiToUse.post(`/api/students/${studentId}/parents`, {
       email,
       access_level: accessLevel
     });
     return response.data;
   } catch (error) {
-    console.error('Add Parent Access Error:', error);
+    logger.error('Add Parent Access Error', error);
     throw error;
   }
 };
@@ -312,17 +312,18 @@ export const updateParentAccess = async (studentId, parentId, accessLevel) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Update Parent Access Error:', error);
+    logger.error('Update Parent Access Error', error);
     throw error;
   }
 };
 
 export const removeParentAccess = async (studentId, parentId) => {
   try {
+    logger.breadcrumb('access', 'Removing parent access', { studentId, parentId });
     const response = await apiToUse.delete(`/api/students/${studentId}/parents/${parentId}`);
     return response.data;
   } catch (error) {
-    console.error('Remove Parent Access Error:', error);
+    logger.error('Remove Parent Access Error', error);
     throw error;
   }
 };
@@ -333,7 +334,7 @@ export const getContentBySubject = async (subjectId) => {
     const response = await apiToUse.get(`/api/content/subject/${subjectId}`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching content:', error);
+    logger.error('Error fetching content', error);
     throw error;
   }
 };
@@ -343,7 +344,7 @@ export const createContent = async (contentData) => {
     const response = await apiToUse.post('/api/content/', contentData);
     return response.data;
   } catch (error) {
-    console.error('Error creating content:', error);
+    logger.error('Error creating content', error);
     throw error;
   }
 };
@@ -354,19 +355,20 @@ export const updateProgress = async (studentId, contentId, progressData) => {
     const response = await apiToUse.post(`/api/progress/${studentId}/${contentId}`, progressData);
     return response.data;
   } catch (error) {
-    console.error('Error updating progress:', error);
+    logger.error('Error updating progress', error);
     throw error;
   }
 };
 
 export const updateStudentGrade = async (studentIdOrSlug, newGradeLevel) => {
   try {
+    logger.breadcrumb('students', 'Updating student grade', { newGradeLevel });
     const response = await apiToUse.patch(`/api/students/${studentIdOrSlug}/grade`, {
       new_grade_level: newGradeLevel
     });
     return response.data;
   } catch (error) {
-    console.error('Update Student Grade Error:', error);
+    logger.error('Update Student Grade Error', error);
     throw error;
   }
 };
@@ -374,6 +376,7 @@ export const updateStudentGrade = async (studentIdOrSlug, newGradeLevel) => {
 // Evidence and AI helpers (re-add)
 export const uploadEvidence = async (studentId, learningOutcomeId, formData) => {
   try {
+    logger.breadcrumb('evidence', 'Uploading evidence', { studentId, learningOutcomeId });
     const response = await apiToUse.post(
       `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,
       formData,
@@ -381,7 +384,7 @@ export const uploadEvidence = async (studentId, learningOutcomeId, formData) => 
     );
     return response.data;
   } catch (error) {
-    console.error('Error uploading evidence:', error);
+    logger.error('Error uploading evidence', error);
     throw error;
   }
 };
@@ -394,19 +397,20 @@ export const updateEvidence = async (studentId, learningOutcomeId, evidenceId, d
     );
     return response.data;
   } catch (error) {
-    console.error('Error updating evidence:', error);
+    logger.error('Error updating evidence', error);
     throw error;
   }
 };
 
 export const uploadEvidenceMultiOutcome = async (studentId, formData) => {
   try {
+    logger.breadcrumb('evidence', 'Uploading multi-outcome evidence', { studentId });
     const response = await apiToUse.post(`/api/evidence/${studentId}`, formData, {
       headers: { 'Content-Type': null }
     });
     return response.data;
   } catch (error) {
-    console.error('Error uploading multi-outcome evidence:', error);
+    logger.error('Error uploading multi-outcome evidence', error);
     throw error;
   }
 };
@@ -416,6 +420,7 @@ export const generateAIDescription = async (files, contextDescription) => {
     if (!files || files.length === 0) throw new Error('No files provided')
     if (!contextDescription) throw new Error('No context description provided')
 
+    logger.breadcrumb('ai', 'Generating AI description', { fileCount: files.length });
     const formData = new FormData()
     files.forEach((file) => formData.append('files', file))
     formData.append('context_description', contextDescription)
@@ -426,7 +431,7 @@ export const generateAIDescription = async (files, contextDescription) => {
     // Response now includes { description, title }
     return response.data
   } catch (error) {
-    console.error('Error generating AI description:', error)
+    logger.error('Error generating AI description', error)
     throw error
   }
 };
@@ -434,6 +439,7 @@ export const generateAIDescription = async (files, contextDescription) => {
 export const analyzeImageForQuestions = async (files) => {
   try {
     if (!files || files.length === 0) throw new Error('No files provided')
+    logger.breadcrumb('ai', 'Analyzing image for questions', { fileCount: files.length });
     const formData = new FormData()
     files.forEach((file) => formData.append('files', file))
     const response = await apiToUse.post('/api/v1/ai/analyze-image', formData, {
@@ -441,7 +447,7 @@ export const analyzeImageForQuestions = async (files) => {
     })
     return response.data
   } catch (error) {
-    console.error('Error analyzing image for questions:', error)
+    logger.error('Error analyzing image for questions', error)
     throw error
   }
 };
@@ -453,6 +459,7 @@ export const suggestLearningOutcomes = async (files, questionAnswers, curriculum
     if (!curriculumData) throw new Error('No curriculum data provided')
     if (!studentGrade) throw new Error('No student grade provided')
 
+    logger.breadcrumb('ai', 'Suggesting learning outcomes', { fileCount: files.length, studentGrade });
     const formData = new FormData()
     files.forEach((file) => formData.append('files', file))
     formData.append('question_answers', JSON.stringify(questionAnswers))
@@ -464,7 +471,7 @@ export const suggestLearningOutcomes = async (files, questionAnswers, curriculum
     })
     return response.data
   } catch (error) {
-    console.error('Error suggesting learning outcomes:', error)
+    logger.error('Error suggesting learning outcomes', error)
     throw error
   }
 };
@@ -475,7 +482,7 @@ export const getMigrationStatus = async () => {
     const response = await apiToUse.get('/api/files/migration/status');
     return response.data;
   } catch (error) {
-    console.error('Get Migration Status Error:', error);
+    logger.error('Get Migration Status Error', error);
     throw error;
   }
 };
@@ -487,7 +494,7 @@ export const listMigrationImages = async (imageType = 'public', limit = 50) => {
     });
     return response.data;
   } catch (error) {
-    console.error('List Migration Images Error:', error);
+    logger.error('List Migration Images Error', error);
     throw error;
   }
 };
@@ -497,7 +504,7 @@ export const migrateSingleImage = async (publicId) => {
     const response = await apiToUse.post('/api/files/migration/migrate-image', { public_id: publicId });
     return response.data;
   } catch (error) {
-    console.error('Migrate Single Image Error:', error);
+    logger.error('Migrate Single Image Error', error);
     throw error;
   }
 };
@@ -507,7 +514,7 @@ export const bulkMigrateImages = async (publicIds) => {
     const response = await apiToUse.post('/api/files/migration/bulk-migrate', { public_ids: publicIds });
     return response.data;
   } catch (error) {
-    console.error('Bulk Migrate Images Error:', error);
+    logger.error('Bulk Migrate Images Error', error);
     throw error;
   }
 };
@@ -517,7 +524,7 @@ export const setMigrationMode = async (mode) => {
     const response = await apiToUse.post('/api/files/migration/set-mode', { mode });
     return response.data;
   } catch (error) {
-    console.error('Set Migration Mode Error:', error);
+    logger.error('Set Migration Mode Error', error);
     throw error;
   }
 };
@@ -538,7 +545,7 @@ export const getLearningOutcome = async (studentId, learningOutcomeId) => {
     const response = await apiToUse.get(`/api/learning-outcomes/${studentId}/${learningOutcomeId}`);
     return response.data;
   } catch (error) {
-    console.error('Error getting learning outcome:', error);
+    logger.error('Error getting learning outcome', error);
     throw error;
   }
 };
@@ -621,7 +628,7 @@ export const getSignedUrl = async (request) => {
     const response = await apiToUse.post('/api/files/signed-url', request);
     return response.data;
   } catch (error) {
-    console.error('Error getting signed URL:', error);
+    logger.error('Error getting signed URL', error);
     throw error;
   }
 };
@@ -629,18 +636,20 @@ export const getSignedUrl = async (request) => {
 // Student profile update API
 export const updateStudent = async (studentIdOrSlug, updates) => {
   try {
+    logger.breadcrumb('students', 'Updating student profile');
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(studentIdOrSlug);
     const path = isObjectId ? `/api/students/${studentIdOrSlug}` : `/api/students/by-slug/${studentIdOrSlug}`;
     const response = await apiToUse.patch(path, updates);
     return response.data;
   } catch (error) {
-    console.error('Error updating student:', error);
+    logger.error('Error updating student', error);
     throw error;
   }
 };
 
 export const uploadStudentAvatar = async (studentIdOrSlug, file) => {
   try {
+    logger.breadcrumb('students', 'Uploading student avatar');
     const formData = new FormData();
     formData.append('file', file);
     const response = await apiToUse.post(`/api/students/${studentIdOrSlug}/avatar`, formData, {
@@ -648,7 +657,7 @@ export const uploadStudentAvatar = async (studentIdOrSlug, file) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Error uploading student avatar:', error);
+    logger.error('Error uploading student avatar', error);
     throw error;
   }
 };
@@ -661,7 +670,7 @@ export const updateLearningAreaSummary = async (studentId, reportId, learningAre
     );
     return response.data;
   } catch (error) {
-    console.error('Update Learning Area Summary Error:', error);
+    logger.error('Update Learning Area Summary Error', error);
     throw error;
   }
 };
@@ -671,20 +680,21 @@ export const getReportById = async (studentId, reportId) => {
     const response = await apiToUse.get(`/api/reports/${studentId}/${reportId}`);
     return response.data;
   } catch (error) {
-    console.error('Get Report Error:', error);
+    logger.error('Get Report Error', error);
     throw error;
   }
 };
 
 export const chatWithAI = async (studentId, messages) => {
   try {
+    logger.breadcrumb('ai', 'Sending AI chat message', { studentId });
     const response = await apiToUse.post('/api/v1/ai/chat', {
       student_id: studentId,
       messages,
     });
     return response.data;
   } catch (error) {
-    console.error('AI Chat Error:', error);
+    logger.error('AI Chat Error', error);
     if (error.response?.data?.detail) {
       throw new Error(error.response.data.detail);
     }
@@ -701,7 +711,7 @@ export const getSubscriptionPricing = async () => {
     const response = await apiToUse.get('/api/stripe/subscription/pricing');
     return response.data;
   } catch (error) {
-    console.error('Get Subscription Pricing Error:', error);
+    logger.error('Get Subscription Pricing Error', error);
     throw error;
   }
 };
@@ -711,7 +721,7 @@ export const getSubscriptionStatus = async () => {
     const response = await apiToUse.get('/api/stripe/subscription/status');
     return response.data;
   } catch (error) {
-    console.error('Get Subscription Status Error:', error);
+    logger.error('Get Subscription Status Error', error);
     throw error;
   }
 };
@@ -721,13 +731,14 @@ export const getSubscriptionUsage = async () => {
     const response = await apiToUse.get('/api/stripe/subscription/usage');
     return response.data;
   } catch (error) {
-    console.error('Get Subscription Usage Error:', error);
+    logger.error('Get Subscription Usage Error', error);
     throw error;
   }
 };
 
 export const createCheckoutSession = async (priceId, successUrl, cancelUrl) => {
   try {
+    logger.breadcrumb('subscription', 'Creating checkout session');
     const response = await apiToUse.post('/api/stripe/checkout/session', {
       price_id: priceId,
       success_url: successUrl,
@@ -735,7 +746,7 @@ export const createCheckoutSession = async (priceId, successUrl, cancelUrl) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Create Checkout Session Error:', error);
+    logger.error('Create Checkout Session Error', error);
     if (error.response?.data?.detail) {
       throw new Error(error.response.data.detail);
     }
@@ -745,12 +756,13 @@ export const createCheckoutSession = async (priceId, successUrl, cancelUrl) => {
 
 export const createPortalSession = async (returnUrl) => {
   try {
+    logger.breadcrumb('subscription', 'Creating portal session');
     const response = await apiToUse.post('/api/stripe/portal/session', {
       return_url: returnUrl,
     });
     return response.data;
   } catch (error) {
-    console.error('Create Portal Session Error:', error);
+    logger.error('Create Portal Session Error', error);
     if (error.response?.data?.detail) {
       throw new Error(error.response.data.detail);
     }
@@ -763,7 +775,7 @@ export const canAddStudent = async () => {
     const response = await apiToUse.get('/api/stripe/can-add-student');
     return response.data;
   } catch (error) {
-    console.error('Can Add Student Check Error:', error);
+    logger.error('Can Add Student Check Error', error);
     throw error;
   }
 };
@@ -773,7 +785,7 @@ export const canAddEvidence = async () => {
     const response = await apiToUse.get('/api/stripe/can-add-evidence');
     return response.data;
   } catch (error) {
-    console.error('Can Add Evidence Check Error:', error);
+    logger.error('Can Add Evidence Check Error', error);
     throw error;
   }
 };
@@ -783,7 +795,7 @@ export const canGenerateReports = async () => {
     const response = await apiToUse.get('/api/stripe/can-generate-reports');
     return response.data;
   } catch (error) {
-    console.error('Can Generate Reports Check Error:', error);
+    logger.error('Can Generate Reports Check Error', error);
     throw error;
   }
 };
@@ -797,7 +809,7 @@ export const adminListUsers = async (params = {}) => {
     const response = await apiToUse.get('/api/admin/users', { params });
     return response.data;
   } catch (error) {
-    console.error('Admin List Users Error:', error);
+    logger.error('Admin List Users Error', error);
     throw error;
   }
 };
@@ -807,7 +819,7 @@ export const adminGetUser = async (userId) => {
     const response = await apiToUse.get(`/api/admin/users/${userId}`);
     return response.data;
   } catch (error) {
-    console.error('Admin Get User Error:', error);
+    logger.error('Admin Get User Error', error);
     throw error;
   }
 };
@@ -817,59 +829,64 @@ export const adminGetUserByEmail = async (email) => {
     const response = await apiToUse.get(`/api/admin/users/by-email/${encodeURIComponent(email)}`);
     return response.data;
   } catch (error) {
-    console.error('Admin Get User By Email Error:', error);
+    logger.error('Admin Get User By Email Error', error);
     throw error;
   }
 };
 
 export const adminUpdateUserProfile = async (userId, updates) => {
   try {
+    logger.breadcrumb('admin', 'Updating user profile', { userId });
     const response = await apiToUse.put(`/api/admin/users/${userId}/profile`, updates);
     return response.data;
   } catch (error) {
-    console.error('Admin Update User Profile Error:', error);
+    logger.error('Admin Update User Profile Error', error);
     throw error;
   }
 };
 
 export const adminUpdateUserSubscription = async (userId, updates) => {
   try {
+    logger.breadcrumb('admin', 'Updating user subscription', { userId });
     const response = await apiToUse.put(`/api/admin/users/${userId}/subscription`, updates);
     return response.data;
   } catch (error) {
-    console.error('Admin Update User Subscription Error:', error);
+    logger.error('Admin Update User Subscription Error', error);
     throw error;
   }
 };
 
 export const adminDeactivateUser = async (userId) => {
   try {
+    logger.breadcrumb('admin', 'Deactivating user', { userId });
     const response = await apiToUse.post(`/api/admin/users/${userId}/deactivate`);
     return response.data;
   } catch (error) {
-    console.error('Admin Deactivate User Error:', error);
+    logger.error('Admin Deactivate User Error', error);
     throw error;
   }
 };
 
 export const adminReactivateUser = async (userId) => {
   try {
+    logger.breadcrumb('admin', 'Reactivating user', { userId });
     const response = await apiToUse.post(`/api/admin/users/${userId}/reactivate`);
     return response.data;
   } catch (error) {
-    console.error('Admin Reactivate User Error:', error);
+    logger.error('Admin Reactivate User Error', error);
     throw error;
   }
 };
 
 export const adminDeleteUser = async (userId, permanent = false) => {
   try {
+    logger.breadcrumb('admin', 'Deleting user', { userId, permanent });
     const response = await apiToUse.delete(`/api/admin/users/${userId}`, {
       data: { permanent }
     });
     return response.data;
   } catch (error) {
-    console.error('Admin Delete User Error:', error);
+    logger.error('Admin Delete User Error', error);
     throw error;
   }
 };
@@ -879,7 +896,7 @@ export const adminListAllStudents = async (params = {}) => {
     const response = await apiToUse.get('/api/admin/students', { params });
     return response.data;
   } catch (error) {
-    console.error('Admin List All Students Error:', error);
+    logger.error('Admin List All Students Error', error);
     throw error;
   }
 };
@@ -889,17 +906,18 @@ export const adminGetStudent = async (studentId) => {
     const response = await apiToUse.get(`/api/admin/students/${studentId}`);
     return response.data;
   } catch (error) {
-    console.error('Admin Get Student Error:', error);
+    logger.error('Admin Get Student Error', error);
     throw error;
   }
 };
 
 export const adminImpersonate = async (userId) => {
   try {
+    logger.breadcrumb('admin', 'Impersonating user', { userId });
     const response = await apiToUse.post('/api/admin/impersonate', { user_id: userId });
     return response.data;
   } catch (error) {
-    console.error('Admin Impersonate Error:', error);
+    logger.error('Admin Impersonate Error', error);
     throw error;
   }
 };
@@ -909,7 +927,7 @@ export const adminGetPlatformStats = async () => {
     const response = await apiToUse.get('/api/admin/stats');
     return response.data;
   } catch (error) {
-    console.error('Admin Get Platform Stats Error:', error);
+    logger.error('Admin Get Platform Stats Error', error);
     throw error;
   }
 };

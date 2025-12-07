@@ -10,6 +10,7 @@ import ImageGallery from '../../components/common/ImageGallery'
 import { getEvidenceForLearningOutcome } from '../../services/api'
 import RefreshButton from '../../components/common/RefreshButton'
 import { useSoftRefresh } from '../../hooks/useSoftRefresh'
+import { logger } from '../../utils/logger'
  
  // Feature flag for enabling SignedImage
  const USE_SIGNED_IMAGES = process.env.REACT_APP_USE_SIGNED_IMAGES === 'true' || true;
@@ -66,7 +67,7 @@ import { useSoftRefresh } from '../../hooks/useSoftRefresh'
            const evidenceData = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
            setEvidence(evidenceData)
          } catch (err) {
-           console.error('Error fetching evidence:', err)
+           logger.error('Error fetching evidence', err)
          } finally {
            setEvidenceLoading(false)
          }
@@ -81,7 +82,7 @@ import { useSoftRefresh } from '../../hooks/useSoftRefresh'
        })
        setError(null)
      } catch (err) {
-       console.error('Error:', err)
+       logger.error('Error loading learning outcome', err)
        setError(isOffline ? 
          'You appear to be offline. Some data may not be available.' : 
          'Failed to load data'
@@ -103,7 +104,7 @@ import { useSoftRefresh } from '../../hooks/useSoftRefresh'
        const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
        setEvidence(updatedEvidence)
      } catch (err) {
-       console.error('Error refreshing evidence after deletion:', err)
+       logger.error('Error refreshing evidence after deletion', err)
      } finally {
        setEvidenceLoading(false)
      }
@@ -115,7 +116,7 @@ import { useSoftRefresh } from '../../hooks/useSoftRefresh'
        const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
        setEvidence(updatedEvidence)
      } catch (err) {
-       console.error('Error refreshing evidence after upload:', err)
+       logger.error('Error refreshing evidence after upload', err)
      } finally {
        setEvidenceLoading(false)
      }

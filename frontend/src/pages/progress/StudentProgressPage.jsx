@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { getStudentBySlug, getLatestEvidenceForOutcomes, updateStudentGrade } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
 import { useStudents } from '../../contexts/StudentsContext'
+import { logger } from '../../utils/logger'
 
 const StudentProgressPage = () => {
   const navigate = useNavigate()
@@ -52,7 +53,7 @@ const StudentProgressPage = () => {
         if (data?.grade_level) {
           // Get stage for this grade level
           const stage = curriculumService.getStageForGrade(data.grade_level)
-          console.log('Student grade level:', data.grade_level, 'Stage:', stage)
+          logger.debug('Student grade level', { gradeLevel: data.grade_level, stage })
           
           setCurriculumLoading(true)
           
@@ -60,17 +61,17 @@ const StudentProgressPage = () => {
           try {
             // Get subjects for student's grade level
             const gradeSubjects = await curriculumService.getSubjects(data.grade_level)
-            console.log('Found subjects:', gradeSubjects)
+            logger.debug('Found subjects', { count: gradeSubjects.length })
             setSubjects(gradeSubjects)
           } catch (err) {
-            console.error('Error loading curriculum:', err)
+            logger.error('Error loading curriculum', err)
             // Still show the student page even if curriculum fails
           } finally {
             setCurriculumLoading(false)
           }
         }
       } catch (err) {
-        console.error('Error fetching student:', err)
+        logger.error('Error fetching student', err)
         setError(isOffline ? 
           'You appear to be offline. Some data may not be available.' : 
           'Failed to load student information'
@@ -106,14 +107,14 @@ const StudentProgressPage = () => {
               const percentage = total > 0 ? (withEvidence / total) * 100 : 0
               return [subject.code, { percentage, total, withEvidence }]
             } catch (err) {
-              console.error(`Failed computing progress for ${subject.code}:`, err)
+              logger.warn(`Failed computing progress for ${subject.code}`)
               return [subject.code, { percentage: 0, total: 0, withEvidence: 0 }]
             }
           })
         )
         setSubjectProgress(Object.fromEntries(entries))
       } catch (err) {
-        console.error('Error computing subject progress:', err)
+        logger.error('Error computing subject progress', err)
       } finally {
         setProgressLoading(false)
       }

@@ -33,6 +33,7 @@ import { useStudents } from '../../contexts/StudentsContext'
 import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence, uploadEvidenceMultiOutcome, generateAIDescription } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
 import ResponsiveImage from '../../components/common/ResponsiveImage'
+import { logger } from '../../utils/logger'
 
 const AIEvidenceUploadPage = () => {
   const navigate = useNavigate()
@@ -64,7 +65,7 @@ const AIEvidenceUploadPage = () => {
     const loadCurriculumData = async () => {
       if (student?.grade_level) {
         try {
-          console.log('Loading curriculum for grade:', student.grade_level)
+          logger.debug('Loading curriculum for grade', { grade: student.grade_level })
           
           // Get the stage for this grade level
           const stage = curriculumService.getStageForGrade(student.grade_level)
@@ -83,9 +84,9 @@ const AIEvidenceUploadPage = () => {
           }
           
           setCurriculumData(curriculumData)
-          console.log('Curriculum loaded successfully:', curriculumData?.learning_areas?.length || 0, 'learning areas')
+          logger.debug('Curriculum loaded successfully', { areasCount: curriculumData?.learning_areas?.length || 0 })
         } catch (error) {
-          console.error('Error loading curriculum:', error)
+          logger.error('Error loading curriculum', error)
           toast({
             title: 'Warning',
             description: 'Could not load curriculum data. AI suggestions may be limited.',
@@ -154,7 +155,7 @@ const AIEvidenceUploadPage = () => {
 
     setIsProcessing(true)
     try {
-      console.log('Analyzing images:', selectedFiles.map(f => f.file.name))
+      logger.breadcrumb('ai', 'Analyzing images', { count: selectedFiles.length })
       
       // Call AI service to analyze image and generate questions
       const files = selectedFiles.map(f => f.file)
@@ -175,7 +176,7 @@ const AIEvidenceUploadPage = () => {
       }
       
     } catch (error) {
-      console.error('Error analyzing images:', error)
+      logger.error('Error analyzing images', error)
       toast({
         title: 'Analysis failed',
         description: error.message || 'Unable to analyze the images. Please try again.',
@@ -218,7 +219,7 @@ const AIEvidenceUploadPage = () => {
 
     setIsProcessing(true)
     try {
-      console.log('Submitting answers:', questionAnswers)
+      logger.breadcrumb('ai', 'Submitting answers for outcome analysis')
       
       // Call AI service to suggest learning outcomes
       const files = selectedFiles.map(f => f.file)
@@ -257,7 +258,7 @@ const AIEvidenceUploadPage = () => {
       }
       
     } catch (error) {
-      console.error('Error getting outcome suggestions:', error)
+      logger.error('Error getting outcome suggestions', error)
       toast({
         title: 'Analysis failed',
         description: error.message || 'Unable to analyze learning outcomes. Please try again.',
@@ -319,10 +320,7 @@ const AIEvidenceUploadPage = () => {
   const handleFinalSubmit = async () => {
     setIsProcessing(true)
     try {
-      console.log('Uploading after review:', {
-        files: selectedFiles.map(f => f.file.name),
-        outcomes: selectedOutcomes,
-      })
+      logger.breadcrumb('upload', 'Uploading AI-analyzed evidence', { fileCount: selectedFiles.length, outcomeCount: selectedOutcomes.length })
 
       if (selectedOutcomes.length === 0) {
         throw new Error('Please select at least one learning outcome to proceed')
@@ -364,7 +362,7 @@ const AIEvidenceUploadPage = () => {
 
       navigate(`/students/${studentId}/progress`)
     } catch (error) {
-      console.error('Error uploading evidence:', error)
+      logger.error('Error uploading evidence', error)
       toast({
         title: 'Upload failed',
         description: error.message || 'Unable to upload evidence. Please try again.',
@@ -681,7 +679,7 @@ const AIEvidenceUploadPage = () => {
                 setTitle(`AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
               }
             } catch (err) {
-              console.error('AI description generation failed before review:', err)
+              logger.error('AI description generation failed before review', err)
               setDescription(buildFallbackDescription())
               setAIGenerationError('Could not generate AI description. A basic description has been provided. You can edit it below.')
             } finally {

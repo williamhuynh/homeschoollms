@@ -23,7 +23,7 @@ const StudentSelection = () => {
   }
 
   const handleStudentSelect = (student) => {
-    console.log('Selected student:', student)
+    logger.breadcrumb('navigation', 'Student selected');
     
     // Prefer slug if available, fall back to ID
     if (student.slug) {
@@ -34,7 +34,7 @@ const StudentSelection = () => {
       if (studentId) {
         navigate(`/students/${studentId}`)
       } else {
-        console.error('Student has no ID or slug:', student)
+        logger.error('Student has no ID or slug');
         toast({
           title: 'Error',
           description: 'Could not navigate to student details - missing identifier',
@@ -49,12 +49,11 @@ const StudentSelection = () => {
   const fetchStudents = useCallback(async () => {
     setLoading(true)
     try {
-      console.log('StudentSelection: Fetching students...')
+      logger.debug('StudentSelection: Fetching students');
       const data = await getStudents()
-      console.log('StudentSelection: Fetched students:', data)
+      logger.debug('StudentSelection: Fetched students', { count: data?.length });
       
       if (!data || data.length === 0) {
-        console.log('StudentSelection: No students returned or empty array')
         setStudents([])
         setError('No students found. Try adding a student or check your connection.')
       } else {
@@ -140,7 +139,7 @@ const StudentSelection = () => {
             <Button 
               colorScheme="green" 
               onClick={() => {
-                console.log('Manual refresh triggered');
+                logger.breadcrumb('user-action', 'Manual refresh triggered');
                 fetchStudents();
               }}
             >

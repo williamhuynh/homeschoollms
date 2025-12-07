@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { getSignedImageUrl, getResponsiveSrcset, getResponsiveSizes, isCloudinaryUrl } from '../../utils/imageUtils';
+import { logger } from '../../utils/logger';
 
 const Image = ({
   src,
@@ -44,7 +45,7 @@ const Image = ({
           setSizesAttr(sizesStr);
         }
       } catch (err) {
-        console.error('Error loading image:', err);
+        logger.error('Error loading image', err);
         setError(true);
         if (onError) onError(err);
       }

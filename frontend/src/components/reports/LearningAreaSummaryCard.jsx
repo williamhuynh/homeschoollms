@@ -25,6 +25,7 @@ import { updateLearningAreaSummary } from '../../services/api'
 import { useNavigate } from 'react-router-dom'
 import SummaryEditor from './SummaryEditor'
 import OptimizedEvidenceGallery from './OptimizedEvidenceGallery'
+import { logger } from '../../utils/logger'
 
 const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => {
   const toast = useToast()
@@ -63,7 +64,7 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
         isClosable: true,
       })
     } catch (error) {
-      console.error('Error updating summary:', error)
+      logger.error('Error updating summary', error)
       toast({
         title: 'Error updating summary',
         description: error.message || 'Failed to update summary',

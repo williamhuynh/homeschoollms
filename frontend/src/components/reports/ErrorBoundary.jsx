@@ -14,6 +14,7 @@ import {
   useDisclosure
 } from '@chakra-ui/react'
 import { RefreshCw, AlertTriangle, ChevronDown, ChevronUp } from 'react-feather'
+import { logger } from '../../utils/logger'
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -31,10 +32,10 @@ class ErrorBoundary extends React.Component {
       errorInfo: errorInfo
     })
     
-    // Log error to console for debugging
-    console.error('Report Error Boundary caught an error:', error, errorInfo)
+    // Log error and send to Sentry
+    logger.error('Report Error Boundary caught an error', error)
     
-    // You could also send error to logging service here
+    // Callback for custom handling
     if (this.props.onError) {
       this.props.onError(error, errorInfo)
     }
@@ -153,8 +154,7 @@ const ErrorFallback = ({ error, errorInfo, onRetry, fallbackComponent }) => {
 // Hook for functional components
 export const useErrorHandler = () => {
   const handleError = (error, errorInfo) => {
-    console.error('Component error:', error, errorInfo)
-    // Could send to error tracking service
+    logger.error('Component error', error)
   }
 
   return { handleError }

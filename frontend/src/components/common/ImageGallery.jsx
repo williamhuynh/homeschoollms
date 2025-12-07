@@ -3,6 +3,7 @@ import { Grid, Box, useBreakpointValue, VStack, Text } from '@chakra-ui/react'; 
 import LazyImage from './LazyImage';
 import SignedImage from './SignedImage'; // Import the new SignedImage component
 import ImageViewerModal from './ImageViewerModal';
+import { logger } from '../../utils/logger';
 
 // Feature flag to enable gradual migration
 const USE_SIGNED_IMAGE = process.env.REACT_APP_USE_SIGNED_IMAGE === 'true' || true; // Default to true, can be controlled via env var
@@ -98,7 +99,7 @@ const ImageGallery = ({
           
           // Skip images without valid data
           if (!imageKey || !originalUrl) {
-            console.warn('ImageGallery: Skipping image with missing ID or URL:', image);
+            logger.warn('ImageGallery: Skipping image with missing ID or URL');
             return null;
           }
           

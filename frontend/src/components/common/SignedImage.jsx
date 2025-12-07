@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSignedUrl } from '../../services/api';
 import placeholderImage from '../../assets/images/placeholder-photo.jpg';
+import { logger } from '../../utils/logger';
 
 /**
  * A component for displaying images using signed URLs from the backend.
@@ -50,8 +51,6 @@ const SignedImage = ({
       setLoading(true);
       setError(null);
 
-      console.log('[SignedImage] Processing src:', src);
-
       // Check if the src is already a Cloudinary authenticated URL
       const isCloudinaryAuthenticated = src.includes('/image/authenticated/') && src.includes('s--') && src.includes('--');
       
@@ -64,29 +63,15 @@ const SignedImage = ({
       // Check if it's a data URL (base64 encoded file)
       const isDataUrl = src.startsWith('data:');
 
-      if (isBlobUrl) {
-        console.log('[SignedImage] Using blob URL (local file preview):', src);
+      if (isBlobUrl || isDataUrl) {
+        logger.debug('[SignedImage] Using local preview URL');
         setImageUrl(src);
         setLoading(false);
         return;
       }
 
-      if (isDataUrl) {
-        console.log('[SignedImage] Using data URL (base64 file preview):', src.substring(0, 50) + '...');
-        setImageUrl(src);
-        setLoading(false);
-        return;
-      }
-
-      if (isCloudinaryAuthenticated) {
-        console.log('[SignedImage] Using Cloudinary authenticated URL (already signed):', src);
-        setImageUrl(src);
-        setLoading(false);
-        return;
-      }
-
-      if (isCloudinaryPublic) {
-        console.log('[SignedImage] Using public Cloudinary URL (legacy image):', src);
+      if (isCloudinaryAuthenticated || isCloudinaryPublic) {
+        logger.debug('[SignedImage] Using Cloudinary URL');
         setImageUrl(src);
         setLoading(false);
         return;
@@ -94,13 +79,13 @@ const SignedImage = ({
 
       // If it's any other http URL, use it directly
       if (src.startsWith('http')) {
-        console.log('[SignedImage] Using direct URL (external image):', src);
+        logger.debug('[SignedImage] Using direct URL');
         setImageUrl(src);
         setLoading(false);
         return;
       }
 
-      console.log('[SignedImage] Requesting signed URL for path:', src);
+      logger.debug('[SignedImage] Requesting signed URL');
       
       // Generate signed URL for private images
       const response = await getSignedUrl({
@@ -111,20 +96,18 @@ const SignedImage = ({
         expiration: 14400 // 4 hours - matches backend
       });
 
-      console.log('[SignedImage] Signed URL response:', response);
-
       if (response.signed_url) {
         setImageUrl(response.signed_url);
       } else {
         throw new Error('No signed URL received');
       }
     } catch (err) {
-      console.error('[SignedImage] Error fetching signed URL:', err);
+      logger.error('[SignedImage] Error fetching signed URL', err);
       setError(err.message || 'Failed to load image');
       
       // Try to use the original src as fallback for hybrid mode
       if (retryCount === 0 && src) {
-        console.log('[SignedImage] Using fallback - original src:', src);
+        logger.debug('[SignedImage] Using fallback source');
         setImageUrl(src);
       }
     } finally {
@@ -133,20 +116,18 @@ const SignedImage = ({
   };
 
   const handleImageError = (e) => {
-    console.error('[SignedImage] Image load error:', e);
-    console.error('[SignedImage] Failed URL was:', imageUrl);
-    console.error('[SignedImage] Retry count:', retryCount);
+    logger.debug('[SignedImage] Image load error, retry count:', retryCount);
     
     // Try retry logic
     if (retryCount < maxRetries) {
-      console.log('[SignedImage] Retrying... attempt', retryCount + 1);
+      logger.debug('[SignedImage] Retrying... attempt', retryCount + 1);
       setRetryCount(prev => prev + 1);
       return;
     }
 
     // Final fallback
     if (imageUrl !== fallbackSrc) {
-      console.log('[SignedImage] Using final fallback image:', fallbackSrc);
+      logger.debug('[SignedImage] Using final fallback image');
       setImageUrl(fallbackSrc);
       setError(null);
     } else {

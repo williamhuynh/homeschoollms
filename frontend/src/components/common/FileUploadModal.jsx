@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react' // Added useEffect
 import { generateAIDescription, uploadEvidence } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
+import { logger } from '../../utils/logger'
 import {
   Modal,
   ModalOverlay,
@@ -85,7 +86,7 @@ const FileUploadModal = ({
     if (isOpen) {
       // Add guard: Only proceed if studentGrade is valid
       if (!studentGrade) {
-        console.log('FileUploadModal: (Initial Effect) Waiting for valid studentGrade...');
+        logger.debug('FileUploadModal: Waiting for valid studentGrade');
         // Clear potentially stale state
         setLearningAreasList([]);
         setSelectedLearningArea(null);
@@ -103,7 +104,7 @@ const FileUploadModal = ({
           
           // Get student stage based on grade - No fallback needed now
           const stage = curriculumService.getStageForGrade(studentGrade)
-          console.log(`FileUploadModal: (Initial Effect) Using valid studentGrade: ${studentGrade} -> Stage: ${stage}`)
+          logger.debug('FileUploadModal: Stage derived from grade', { studentGrade, stage });
           setCurrentStage(stage); // Set the stage state here
 
           // If stage calculation failed, don't proceed
@@ -138,7 +139,7 @@ const FileUploadModal = ({
             }
           }
         } catch (err) {
-          console.error('Error loading curriculum:', err)
+          logger.error('Error loading curriculum', err)
           setCurriculumError(isOffline ? 
             'Curriculum data not available offline' : 
             'Failed to load curriculum data'
@@ -167,7 +168,7 @@ const FileUploadModal = ({
         try {
           setIsLoadingOutcomes(true)
           setCurriculumError(null)
-          console.log(`FileUploadModal: (Outcomes Effect) Using stored stage: ${currentStage} for area: ${selectedLearningArea.value}`) // Use stored stage
+          logger.debug('FileUploadModal: Loading outcomes', { stage: currentStage, area: selectedLearningArea.value });
 
           // Get outcomes using the stored stage
           const outcomes = await curriculumService.getOutcomes(currentStage, selectedLearningArea.value)
@@ -191,7 +192,7 @@ const FileUploadModal = ({
             }
           }
         } catch (err) {
-          console.error('Error loading outcomes:', err)
+          logger.error('Error loading outcomes', err)
           setCurriculumError(isOffline ? 
             'Learning outcomes not available offline' : 
             'Failed to load learning outcomes'
@@ -226,7 +227,7 @@ const FileUploadModal = ({
       return prevFiles; // Keep previous state if limit exceeded
     }
     setError(null); // Clear error if within limit
-    console.log('selectedFiles after handleFileSelect:', combined);
+    logger.debug('FileUploadModal: Files selected', { count: combined.length });
     return combined;
   });
   // Clear the input value to allow selecting the same file again after removing it
@@ -345,7 +346,7 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
         setTitle(result.title.trim())
       }
     } catch (err) {
-      console.error('Error generating AI description:', err)
+      logger.error('Error generating AI description', err)
       setGenerationError(err.message || 'Failed to generate description')
     } finally {
       setIsGenerating(false)

@@ -41,6 +41,7 @@ import ErrorBoundary from '../../components/reports/ErrorBoundary'
 import ReportTemplateSelector from '../../components/reports/ReportTemplateSelector'
 import { useUser } from '../../contexts/UserContext'
 import { UpgradeBanner } from '../../components/subscription/UpgradePrompt'
+import { logger } from '../../utils/logger'
 
 const ReportsPage = () => {
   const navigate = useNavigate()
@@ -96,7 +97,7 @@ const ReportsPage = () => {
       // Default grade selection to the student's current grade if not already set
       setFormData(prev => ({ ...prev, grade_level: prev.grade_level || data?.grade_level || '' }))
     } catch (error) {
-      console.error('Error fetching student:', error)
+      logger.error('Error fetching student', error)
     }
   }
 
@@ -106,7 +107,7 @@ const ReportsPage = () => {
       const data = await getStudentReports(studentId)
       setReports(data)
     } catch (error) {
-      console.error('Error fetching reports:', error)
+      logger.error('Error fetching reports', error)
       toast({
         title: 'Error loading reports',
         description: error.message || 'Failed to load reports',
@@ -135,7 +136,7 @@ const ReportsPage = () => {
       const reportId = (typeof report.id === 'string' && report.id) || (report._id && (report._id.$oid || report._id)) || report.id
       navigate(`/students/${studentId}/reports/${reportId}`)
     } catch (error) {
-      console.error('Error generating report:', error)
+      logger.error('Error generating report', error)
       toast({
         title: 'Error generating report',
         description: error.message || 'Failed to generate report',
@@ -164,7 +165,7 @@ const ReportsPage = () => {
       })
       fetchReports()
     } catch (error) {
-      console.error('Error deleting report:', error)
+      logger.error('Error deleting report', error)
       toast({
         title: 'Error deleting report',
         description: error.message || 'Failed to delete report',
@@ -213,7 +214,7 @@ const ReportsPage = () => {
     <ErrorBoundary
       onRetry={fetchReports}
       onError={(error, errorInfo) => {
-        console.error('Reports page error:', error, errorInfo)
+        logger.error('Reports page error', error)
       }}
     >
       <Container maxW="container.sm" py={4} pb="80px">

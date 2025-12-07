@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { logger } from '../utils/logger'
 
 // Get Supabase URL and anon key from environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL'
@@ -11,7 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export const getSession = async () => {
   const { data, error } = await supabase.auth.getSession()
   if (error) {
-    console.error('Error getting session:', error)
+    logger.error('Error getting session', error)
     return null
   }
   return data.session
@@ -21,7 +22,7 @@ export const getSession = async () => {
 export const getCurrentUser = async () => {
   const { data, error } = await supabase.auth.getUser()
   if (error) {
-    console.error('Error getting user:', error)
+    logger.error('Error getting user', error)
     return null
   }
   return data.user
@@ -38,10 +39,11 @@ export const signUp = async (email, password, metadata = {}) => {
   })
   
   if (error) {
-    console.error('Error signing up:', error)
+    logger.error('Error signing up', error)
     throw error
   }
   
+  logger.breadcrumb('auth', 'User signed up')
   return data
 }
 
@@ -53,7 +55,7 @@ export const signIn = async (email, password) => {
   })
   
   if (error) {
-    console.error('Error signing in:', error)
+    logger.error('Error signing in', error)
     throw error
   }
   
@@ -65,7 +67,7 @@ export const signOut = async () => {
   const { error } = await supabase.auth.signOut()
   
   if (error) {
-    console.error('Error signing out:', error)
+    logger.error('Error signing out', error)
     throw error
   }
   
@@ -79,10 +81,11 @@ export const resetPassword = async (email) => {
   })
   
   if (error) {
-    console.error('Error resetting password:', error)
+    logger.error('Error resetting password', error)
     throw error
   }
   
+  logger.breadcrumb('auth', 'Password reset requested')
   return data
 }
 
@@ -91,7 +94,7 @@ export const updateUser = async (attributes) => {
   const { data, error } = await supabase.auth.updateUser(attributes)
   
   if (error) {
-    console.error('Error updating user:', error)
+    logger.error('Error updating user', error)
     throw error
   }
   

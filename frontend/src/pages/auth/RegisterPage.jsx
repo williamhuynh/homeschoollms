@@ -14,6 +14,7 @@ import {
   FormHelperText
 } from '@chakra-ui/react';
 import { signUp } from '../../services/supabase';
+import { logger } from '../../utils/logger';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ const RegisterPage = () => {
       );
       
       if (user) {
-        console.log('Registration successful:', user);
+        logger.breadcrumb('auth', 'Registration successful');
         
         // Check if email confirmation is required
         if (user.identities && user.identities.length === 0) {
@@ -92,7 +93,7 @@ const RegisterPage = () => {
         }
       }
     } catch (error) {
-      console.error('Registration failed:', error);
+      logger.error('Registration failed', error);
       setError(error.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);

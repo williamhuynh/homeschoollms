@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { Box, Button, Text, FormControl, FormLabel, Input, VStack, Alert, AlertIcon, Link as ChakraLink } from '@chakra-ui/react';
 import { signIn } from '../../services/supabase';
+import { logger } from '../../utils/logger';
 
 const LoginPage = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ const handleLogin = async () => {
     const { session } = await signIn(credentials.email, credentials.password);
     
     if (session) {
-      console.log('Login successful, session:', session);
+      logger.breadcrumb('auth', 'Login successful');
       
       // Update authentication state
       setIsAuthenticated(true);
@@ -49,7 +50,7 @@ const handleLogin = async () => {
       throw new Error('No session returned after login');
     }
   } catch (error) {
-    console.error('Login failed:', error);
+    logger.error('Login failed', error);
     setError(
       error.message || 
       'Login failed. Please check your credentials and try again.'

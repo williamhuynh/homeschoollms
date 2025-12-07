@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger';
+
 let curriculumInstance = null;
 
 export class NSWCurriculum {
@@ -14,7 +16,7 @@ export class NSWCurriculum {
 
   async initializeDB() {
     if (!window.indexedDB) {
-      console.warn('IndexedDB not supported. Offline curriculum will not be available.');
+      logger.warn('IndexedDB not supported. Offline curriculum will not be available.');
       return false;
     }
 
@@ -33,19 +35,19 @@ export class NSWCurriculum {
         
         request.onsuccess = (event) => {
           this.db = event.target.result;
-          console.log('Curriculum IndexedDB initialized');
+          logger.debug('Curriculum IndexedDB initialized');
           resolve(true);
         };
         
         request.onerror = (event) => {
-          console.error('Error initializing curriculum IndexedDB:', event.target.error);
+          logger.error('Error initializing curriculum IndexedDB', event.target.error);
           reject(event.target.error);
         };
       });
       
       return await dbPromise;
     } catch (err) {
-      console.error('Failed to initialize IndexedDB:', err);
+      logger.error('Failed to initialize IndexedDB', err);
       return false;
     }
   }
@@ -80,7 +82,7 @@ export class NSWCurriculum {
         stageData = await this.getFromDB(stage);
         
         if (stageData) {
-          console.log(`Loaded ${stage} from IndexedDB`);
+          logger.debug(`Loaded ${stage} from IndexedDB`);
           this.data[stage] = stageData;
           this.isLoading[stage] = false;
           return stageData;
@@ -88,23 +90,20 @@ export class NSWCurriculum {
       }
       
       // If not in DB or DB not available, fetch from network
-      console.log(`Fetching ${stage} from network`);
+      logger.debug(`Fetching ${stage} from network`);
       const filePath = this.getFilePath(stage);
-      console.log(`Curriculum URL: ${new URL(filePath, window.location.origin).href}`);
       
       const response = await fetch(filePath);
       const contentType = response.headers.get('content-type');
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`HTTP error ${response.status}. First 100 chars: ${errorText.substring(0, 100)}...`);
+        logger.error(`Curriculum fetch failed with status ${response.status}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       // Check if response is actually JSON
       if (!contentType || !contentType.includes('application/json')) {
-        const errorText = await response.text();
-        console.error(`Expected JSON but got ${contentType}. First 100 chars: ${errorText.substring(0, 100)}...`);
+        logger.error(`Expected JSON but got ${contentType}`);
         throw new Error(`Invalid response format: expected JSON, got ${contentType || 'unknown type'}`);
       }
       
@@ -116,7 +115,7 @@ export class NSWCurriculum {
       // Save to IndexedDB if available
       if (dbInitialized && this.db) {
         await this.saveToDB(stage, stageData);
-        console.log(`Saved ${stage} to IndexedDB`);
+        logger.debug(`Saved ${stage} to IndexedDB`);
       }
       
       return stageData;
@@ -127,7 +126,7 @@ export class NSWCurriculum {
         ? 'You are offline and curriculum data is not available locally' 
         : err.message;
         
-      console.error(`Failed to load curriculum for ${stage}:`, errorMessage);
+      logger.error(`Failed to load curriculum for ${stage}`, { errorMessage });
       throw new Error(`Failed to load curriculum for ${stage}: ${errorMessage}`);
     } finally {
       this.isLoading[stage] = false;
@@ -143,11 +142,11 @@ export class NSWCurriculum {
         
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => {
-          console.error('Error reading from IndexedDB:', request.error);
+          logger.warn('Error reading from IndexedDB');
           resolve(null); // Resolve with null on error to allow fallback
         };
       } catch (err) {
-        console.error('Error accessing IndexedDB:', err);
+        logger.warn('Error accessing IndexedDB');
         resolve(null); // Resolve with null on error to allow fallback
       }
     });
@@ -162,11 +161,11 @@ export class NSWCurriculum {
         
         request.onsuccess = () => resolve();
         request.onerror = () => {
-          console.error('Error writing to IndexedDB:', request.error);
+          logger.warn('Error writing to IndexedDB');
           resolve(); // Resolve anyway to prevent blocking
         };
       } catch (err) {
-        console.error('Error accessing IndexedDB for writing:', err);
+        logger.warn('Error accessing IndexedDB for writing');
         resolve(); // Resolve anyway to prevent blocking
       }
     });
@@ -248,7 +247,7 @@ export class NSWCurriculum {
       const stageData = await this.load(stage);
       return stageData.subjects || [];
     } catch (err) {
-      console.error(`Error getting subjects for ${grade}:`, err);
+      logger.error(`Error getting subjects for ${grade}`, err);
       return []; // Return empty array on error
     }
   }
@@ -267,7 +266,7 @@ export class NSWCurriculum {
       const subject = stageData.subjects.find(s => s.code === subjectCode);
       return subject ? subject.outcomes : [];
     } catch (err) {
-      console.error(`Error getting outcomes for ${stage}/${subjectCode}:`, err);
+      logger.error(`Error getting outcomes for ${stage}/${subjectCode}`, err);
       return []; // Return empty array on error
     }
   }
@@ -280,12 +279,12 @@ export class NSWCurriculum {
   // Clear all cached data (useful for development/testing)
   async clearCache() {
     if (!this.dbReady) {
-      console.warn('IndexedDB not ready, cannot clear cache.');
+      logger.warn('IndexedDB not ready, cannot clear cache.');
       return;
     }
     const dbInitialized = await this.dbReady;
     if (!dbInitialized || !this.db) {
-      console.warn('IndexedDB not available, cannot clear cache.');
+      logger.warn('IndexedDB not available, cannot clear cache.');
       return;
     }
 
@@ -296,17 +295,17 @@ export class NSWCurriculum {
         const request = store.clear(); // Clear all entries in the store
 
         request.onsuccess = () => {
-          console.log('Curriculum IndexedDB cache cleared.');
+          logger.debug('Curriculum IndexedDB cache cleared.');
           // Also clear the in-memory cache
           this.data = {};
           resolve();
         };
         request.onerror = () => {
-          console.error('Error clearing IndexedDB cache:', request.error);
+          logger.error('Error clearing IndexedDB cache', request.error);
           reject(request.error);
         };
       } catch (err) {
-        console.error('Error accessing IndexedDB for clearing:', err);
+        logger.error('Error accessing IndexedDB for clearing', err);
         reject(err);
       }
     });
