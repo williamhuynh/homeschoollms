@@ -108,26 +108,28 @@ const AdminPage = () => {
               
               {/* Super Admin Tabs - Distinguished with red styling */}
               {isSuperAdmin() && (
-                <>
-                  <Tab {...superAdminTabStyle}>
-                    <HStack spacing={1}>
-                      <BarChart2 size={16} />
-                      <Text>Platform Stats</Text>
-                    </HStack>
-                  </Tab>
-                  <Tab {...superAdminTabStyle}>
-                    <HStack spacing={1}>
-                      <Users size={16} />
-                      <Text>All Users</Text>
-                    </HStack>
-                  </Tab>
-                  <Tab {...superAdminTabStyle}>
-                    <HStack spacing={1}>
-                      <BookOpen size={16} />
-                      <Text>All Students</Text>
-                    </HStack>
-                  </Tab>
-                </>
+                <Tab {...superAdminTabStyle}>
+                  <HStack spacing={1}>
+                    <BarChart2 size={16} />
+                    <Text>Platform Stats</Text>
+                  </HStack>
+                </Tab>
+              )}
+              {isSuperAdmin() && (
+                <Tab {...superAdminTabStyle}>
+                  <HStack spacing={1}>
+                    <Users size={16} />
+                    <Text>All Users</Text>
+                  </HStack>
+                </Tab>
+              )}
+              {isSuperAdmin() && (
+                <Tab {...superAdminTabStyle}>
+                  <HStack spacing={1}>
+                    <BookOpen size={16} />
+                    <Text>All Students</Text>
+                  </HStack>
+                </Tab>
               )}
             </TabList>
             
@@ -155,42 +157,43 @@ const AdminPage = () => {
                 </TabPanel>
               )}
               
-              {/* Super Admin Tabs */}
+              {/* Platform Stats Tab (Super Admin) */}
               {isSuperAdmin() && (
-                <>
-                  {/* Platform Stats Tab */}
-                  <TabPanel>
-                    <Box>
-                      <HStack mb={4}>
-                        <Heading size="md">Platform Statistics</Heading>
-                        <Badge colorScheme="red">Super Admin</Badge>
-                      </HStack>
-                      <PlatformStats />
-                    </Box>
-                  </TabPanel>
-                  
-                  {/* User Management Tab */}
-                  <TabPanel>
-                    <Box>
-                      <HStack mb={4}>
-                        <Heading size="md">User Management</Heading>
-                        <Badge colorScheme="red">Super Admin</Badge>
-                      </HStack>
-                      <UserManagement onImpersonate={handleImpersonate} />
-                    </Box>
-                  </TabPanel>
-                  
-                  {/* All Students Tab */}
-                  <TabPanel>
-                    <Box>
-                      <HStack mb={4}>
-                        <Heading size="md">All Students (System-wide)</Heading>
-                        <Badge colorScheme="red">Super Admin</Badge>
-                      </HStack>
-                      <AllStudentsView />
-                    </Box>
-                  </TabPanel>
-                </>
+                <TabPanel>
+                  <Box>
+                    <HStack mb={4}>
+                      <Heading size="md">Platform Statistics</Heading>
+                      <Badge colorScheme="red">Super Admin</Badge>
+                    </HStack>
+                    <PlatformStats />
+                  </Box>
+                </TabPanel>
+              )}
+              
+              {/* User Management Tab (Super Admin) */}
+              {isSuperAdmin() && (
+                <TabPanel>
+                  <Box>
+                    <HStack mb={4}>
+                      <Heading size="md">User Management</Heading>
+                      <Badge colorScheme="red">Super Admin</Badge>
+                    </HStack>
+                    <UserManagement onImpersonate={handleImpersonate} />
+                  </Box>
+                </TabPanel>
+              )}
+              
+              {/* All Students Tab (Super Admin) */}
+              {isSuperAdmin() && (
+                <TabPanel>
+                  <Box>
+                    <HStack mb={4}>
+                      <Heading size="md">All Students (System-wide)</Heading>
+                      <Badge colorScheme="red">Super Admin</Badge>
+                    </HStack>
+                    <AllStudentsView />
+                  </Box>
+                </TabPanel>
               )}
             </TabPanels>
           </Tabs>
