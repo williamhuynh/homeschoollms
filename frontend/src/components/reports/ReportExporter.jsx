@@ -19,6 +19,7 @@ import {
 import { Download, Printer, FileText, Share2, ChevronDown } from 'react-feather'
 import { useState } from 'react'
 import { generatePrintableHTML, formatReportPeriod, formatDate } from './exportUtils'
+import { logger } from '../../utils/logger'
 
 const ReportExporter = ({ report, student, className = '' }) => {
   const toast = useToast()
@@ -241,7 +242,7 @@ const ReportExporter = ({ report, student, className = '' }) => {
         }, 500)
       }
     } catch (error) {
-      console.error('Print error:', error)
+      logger.error('Print error', error)
       toast({
         title: 'Print failed',
         description: 'Unable to open print dialog',
@@ -274,7 +275,7 @@ const ReportExporter = ({ report, student, className = '' }) => {
         isClosable: true,
       })
     } catch (error) {
-      console.error('Download error:', error)
+      logger.error('Download error', error)
       toast({
         title: 'Download failed',
         description: 'Unable to download report',
@@ -295,7 +296,7 @@ const ReportExporter = ({ report, student, className = '' }) => {
         })
       } catch (error) {
         if (error.name !== 'AbortError') {
-          console.error('Share error:', error)
+          logger.error('Share error', error)
         }
       }
     } else {

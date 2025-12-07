@@ -10,6 +10,7 @@ import SignedImage from '../../components/common/SignedImage'
 import placeholderImage from '../../assets/images/placeholder-photo.jpg'
 import RefreshButton from '../../components/common/RefreshButton'
 import { useSoftRefresh } from '../../hooks/useSoftRefresh'
+import { logger } from '../../utils/logger'
  
  
 // Feature flag for enabling SignedImage
@@ -66,7 +67,7 @@ const SubjectContentPage = () => {
       }
       setError(null)
     } catch (err) {
-      console.error('Error:', err)
+      logger.error('Error loading subject content', err)
       setError(isOffline ? 
         'You appear to be offline. Some data may not be available.' : 
         'Failed to load data'
@@ -96,7 +97,7 @@ const SubjectContentPage = () => {
            const evidence = await getLatestEvidenceForOutcomes(student._id, outcomeCodes)
            setEvidenceMap(evidence)
          } catch (err) {
-           console.error('Error fetching evidence:', err)
+           logger.error('Error fetching evidence', err)
            // Don't show an error message for evidence loading failures when offline
            // The UI will show placeholders instead
          } finally {
@@ -127,7 +128,7 @@ const SubjectContentPage = () => {
            setSubjectData(foundSubject)
          }
        } catch (err) {
-         console.error('Failed to derive subject from URL:', err)
+         logger.error('Failed to derive subject from URL', err)
        }
      }
  

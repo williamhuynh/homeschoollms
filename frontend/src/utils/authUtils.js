@@ -1,4 +1,5 @@
 import { supabase, getSession, signOut } from '../services/supabase';
+import { logger } from './logger';
 
 // Helper function to safely access localStorage
 const safeLocalStorage = {
@@ -6,7 +7,7 @@ const safeLocalStorage = {
     try {
       return localStorage.getItem(key);
     } catch (error) {
-      console.warn('localStorage not available:', error);
+      logger.warn('localStorage not available');
       return null;
     }
   },
@@ -14,14 +15,14 @@ const safeLocalStorage = {
     try {
       localStorage.setItem(key, value);
     } catch (error) {
-      console.warn('localStorage not available:', error);
+      logger.warn('localStorage not available');
     }
   },
   removeItem: (key) => {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.warn('localStorage not available:', error);
+      logger.warn('localStorage not available');
     }
   }
 };
@@ -45,14 +46,14 @@ export const isTokenExpired = (token) => {
     // Check if token will expire in the next 5 minutes
     return exp * 1000 < Date.now() + 5 * 60 * 1000;
   } catch (error) {
-    console.error('Error checking token expiration:', error);
+    logger.error('Error checking token expiration', error);
     return true; // If we can't verify, assume it's expired
   }
 };
 
 // Force logout and redirect to login page
 export const forceLogout = async () => {
-  console.log('Forcing logout due to invalid token');
+  logger.breadcrumb('auth', 'Forcing logout due to invalid session');
   try {
     // Remove token from localStorage
     safeLocalStorage.removeItem('token');
@@ -63,7 +64,7 @@ export const forceLogout = async () => {
     // Redirect to login
     window.location.href = '/login?reason=session_expired';
   } catch (error) {
-    console.error('Error during forced logout:', error);
+    logger.error('Error during forced logout', error);
     // Still redirect to login even if signOut fails
     window.location.href = '/login?reason=session_expired';
   }
@@ -80,24 +81,24 @@ export const getAuthToken = async () => {
       return currentToken;
     }
     
-    console.log('Token expired or missing, attempting refresh');
+    logger.debug('Token expired or missing, attempting refresh');
     
     // If no token or token is expired, try to refresh
     const session = await getSession();
     
     if (session && session.access_token) {
-      console.log('Got fresh token from session');
+      logger.debug('Session refreshed successfully');
       // Save the fresh token
       safeLocalStorage.setItem('token', session.access_token);
       return session.access_token;
     } else {
-      console.warn('No valid session available, forcing logout');
+      logger.warn('No valid session available, forcing logout');
       // No session or token, user needs to log in again
       await forceLogout();
       return null;
     }
   } catch (error) {
-    console.error('Error getting auth token:', error);
+    logger.error('Error getting auth token', error);
     await forceLogout();
     return null;
   }
@@ -127,13 +128,13 @@ export const authorizedFetch = async (url, options = {}) => {
     // Handle 401 Unauthorized errors
     if (response.status === 401) {
       const data = await response.json();
-      console.error('Authentication failed:', data);
+      logger.warn('Authentication failed, attempting token refresh');
       
       // Try to get a fresh token one more time
       const freshToken = await getAuthToken();
       
       if (freshToken && freshToken !== token) {
-        console.log('Got fresh token after 401, retrying request');
+        logger.debug('Retrying request with refreshed token');
         // If we got a different token, retry the request
         const retryHeaders = {
           ...options.headers,
@@ -153,7 +154,7 @@ export const authorizedFetch = async (url, options = {}) => {
     
     return response;
   } catch (error) {
-    console.error('Error making authorized fetch:', error);
+    logger.error('Error making authorized fetch', error);
     throw error;
   }
 }; 

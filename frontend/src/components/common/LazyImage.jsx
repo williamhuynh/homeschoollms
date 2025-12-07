@@ -62,7 +62,7 @@ const LazyImage = ({
   };
 
   const handleImageError = (e) => {
-    console.error('Lazy image failed to load:', e);
+    // Image load error handled silently
   };
 
   return (

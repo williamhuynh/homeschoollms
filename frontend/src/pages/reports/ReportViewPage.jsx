@@ -28,6 +28,7 @@ import { getReportById, getStudentBySlug, updateReportTitle, updateReportStatus,
 import LearningAreaSummaryCard from '../../components/reports/LearningAreaSummaryCard'
 import ReportGenerationProgress from '../../components/reports/ReportGenerationProgress'
 import { generatePrintableHTML } from '../../components/reports/exportUtils'
+import { logger } from '../../utils/logger'
 
 const ReportViewPage = () => {
   const navigate = useNavigate()
@@ -71,7 +72,7 @@ const ReportViewPage = () => {
       setTitleInput(reportData.title || '')
       setOverviewInput(reportData.parent_overview || reportData.ai_generated_overview || '')
     } catch (error) {
-      console.error('Error fetching report:', error)
+      logger.error('Error fetching report', error)
       toast({
         title: 'Error loading report',
         description: error.message || 'Failed to load report',
@@ -143,7 +144,7 @@ const ReportViewPage = () => {
       setEditingTitle(false)
       toast({ title: 'Title updated', status: 'success', duration: 1500, isClosable: true })
     } catch (error) {
-      console.error('Error updating title:', error)
+      logger.error('Error updating title', error)
       toast({ title: 'Failed to update title', description: error.message, status: 'error' })
     } finally {
       setSavingTitle(false)
@@ -155,9 +156,9 @@ const ReportViewPage = () => {
     try {
       setUpdatingStatus(true)
       const target = report.status === 'submitted' ? 'draft' : 'submitted'
-      console.log('handleToggleStatus - studentId:', studentId, 'reportId:', reportId, 'target:', target)
+      logger.breadcrumb('reports', 'Toggling report status', { target })
       if (!studentId || !reportId) {
-        console.error('handleToggleStatus - Missing studentId or reportId')
+        logger.error('handleToggleStatus - Missing studentId or reportId')
         toast({ title: 'Error', description: 'Missing student or report ID', status: 'error' })
         return
       }
@@ -166,8 +167,7 @@ const ReportViewPage = () => {
       const statusLabel = updated.status === 'submitted' ? 'Submitted' : 'Draft'
       toast({ title: `Marked as ${statusLabel}`, status: 'success', duration: 1500, isClosable: true })
     } catch (error) {
-      console.error('Error updating status:', error)
-      console.error('Error response:', error.response?.data)
+      logger.error('Error updating status', error)
       toast({ title: 'Failed to update status', description: error.response?.data?.detail || error.message, status: 'error' })
     } finally {
       setUpdatingStatus(false)
@@ -182,7 +182,7 @@ const ReportViewPage = () => {
       setEditingOverview(false)
       toast({ title: 'Overview updated', status: 'success', duration: 1500, isClosable: true })
     } catch (error) {
-      console.error('Error updating overview:', error)
+      logger.error('Error updating overview', error)
       toast({ title: 'Failed to update overview', description: error.message, status: 'error' })
     } finally {
       setSavingOverview(false)
@@ -196,7 +196,7 @@ const ReportViewPage = () => {
       setReport(updated)
       toast({ title: 'Report regenerated', status: 'success', duration: 2000, isClosable: true })
     } catch (error) {
-      console.error('Error regenerating report:', error)
+      logger.error('Error regenerating report', error)
       toast({ title: 'Failed to regenerate report', description: error.message, status: 'error' })
     } finally {
       setRegenerating(false)
@@ -226,7 +226,7 @@ const ReportViewPage = () => {
         }, 500)
       }
     } catch (error) {
-      console.error('Print error:', error)
+      logger.error('Print error', error)
       toast({ title: 'Print failed', description: 'Unable to open print dialog', status: 'error', duration: 3000, isClosable: true })
     }
   }
@@ -245,7 +245,7 @@ const ReportViewPage = () => {
       URL.revokeObjectURL(url)
       toast({ title: 'Report downloaded', description: 'HTML report saved to your downloads', status: 'success', duration: 2000, isClosable: true })
     } catch (error) {
-      console.error('Download error:', error)
+      logger.error('Download error', error)
       toast({ title: 'Download failed', description: 'Unable to download report', status: 'error', duration: 3000, isClosable: true })
     }
   }
@@ -260,7 +260,7 @@ const ReportViewPage = () => {
         })
       } catch (error) {
         if (error.name !== 'AbortError') {
-          console.error('Share error:', error)
+          logger.error('Share error', error)
         }
       }
     } else {

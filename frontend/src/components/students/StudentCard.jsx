@@ -3,7 +3,6 @@ import styles from '../../styles/StudentCard.module.css'
 
 const StudentCard = ({ student, onClick }) => {
   const handleClick = () => {
-    console.log('Card clicked!', student) // Add this debug log
     if (onClick) {
       onClick(student)
     }

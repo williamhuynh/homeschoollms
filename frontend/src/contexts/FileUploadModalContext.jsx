@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStudents } from './StudentsContext'
 import FileUploadModal from '../components/common/FileUploadModal'
+import { logger } from '../utils/logger'
 
 // Create context
 const FileUploadModalContext = createContext(null)
@@ -34,11 +35,9 @@ export const FileUploadModalProvider = ({ children }) => {
     const receivedStudentIdProp = props.studentId;
     const paramsStudentId = params.studentId; // Params at Provider level
     const studentId = receivedStudentIdProp || paramsStudentId // Determine the ID to use
-    console.log(`FileUploadModalProvider: openModal called. Received prop studentId: ${receivedStudentIdProp}, Params studentId: ${paramsStudentId}, Determined studentId: ${studentId}`); // Log details
+    logger.debug('FileUploadModalProvider: openModal called', { hasStudentId: !!studentId });
 
     let studentGrade = props.studentGrade
-    // Log before attempting to find grade
-    console.log(`FileUploadModalProvider: Checking conditions to find grade. Has studentId: ${!!studentId}, Has studentGrade prop: ${!!props.studentGrade}, Has students context: ${!!students}`);
     if (studentId && !studentGrade && students) { // <-- Needs a valid studentId AND no explicit grade prop AND students context
       
       let student = null;
@@ -46,26 +45,20 @@ export const FileUploadModalProvider = ({ children }) => {
       const isObjectIdFormat = /^[0-9a-fA-F]{24}$/.test(studentId);
       
       if (isObjectIdFormat) {
-        console.log(`FileUploadModalProvider: Attempting to find student by _id: ${studentId}`);
         student = students.find(s => s._id === studentId);
       }
       
       // If not found by _id or if it's not ObjectId format, try finding by slug
       if (!student) {
-        console.log(`FileUploadModalProvider: Attempting to find student by slug: ${studentId}`);
         student = students.find(s => s.slug === studentId);
       }
       
       if (student) {
         studentGrade = student.grade_level // <-- Derives grade if student found
-        console.log(`FileUploadModalProvider: Found student by ${isObjectIdFormat && student ? '_id' : 'slug'} (${studentId}), setting grade: ${studentGrade}`); // Modify Log
+        logger.debug('FileUploadModalProvider: Found student, setting grade', { studentGrade });
       } else {
-        console.warn(`FileUploadModalProvider: Student not found in context for ID or slug: ${studentId}`); // Modify Log
+        logger.warn('FileUploadModalProvider: Student not found in context');
       }
-    } else if (studentGrade) {
-      console.log(`FileUploadModalProvider: Using provided studentGrade prop: ${studentGrade}`);
-    } else {
-      console.log(`FileUploadModalProvider: Did not derive grade (conditions not met or studentGrade prop already present).`);
     }
     
     // Store modal props without callbacks
@@ -80,7 +73,6 @@ export const FileUploadModalProvider = ({ children }) => {
     
     // Store callbacks separately
     if (props.onSuccess && typeof props.onSuccess === 'function') {
-      console.log('Setting onSuccess callback:', typeof props.onSuccess);
       setOnSuccessCallback(() => props.onSuccess);
     } else {
       setOnSuccessCallback(null);
@@ -108,9 +100,7 @@ export const FileUploadModalProvider = ({ children }) => {
   
   // Handle submission
   const handleSubmit = (result) => {
-    console.log('handleSubmit called with result:', result);
-    console.log('onSubmitCallback type:', typeof onSubmitCallback);
-    console.log('onSuccessCallback type:', typeof onSuccessCallback);
+    logger.breadcrumb('upload', 'Evidence upload submitted');
     
     // If there's a custom onSubmit handler, call it
     if (onSubmitCallback && typeof onSubmitCallback === 'function') {
@@ -127,11 +117,10 @@ export const FileUploadModalProvider = ({ children }) => {
       
       // Use a small timeout to ensure the modal is closed first
       setTimeout(() => {
-        console.log('Calling onSuccess callback...');
         try {
           successCallback();  // Don't pass result, as handleEvidenceUploaded doesn't expect args
         } catch (err) {
-          console.error('Error calling onSuccess callback:', err);
+          logger.error('Error calling onSuccess callback', err);
         }
       }, 100)
     }

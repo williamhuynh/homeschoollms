@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { getCurrentUser, getSubscriptionStatus, getSubscriptionUsage } from '../services/api'
+import { logger } from '../utils/logger'
 
 const UserContext = createContext()
 
@@ -21,7 +22,7 @@ export const UserProvider = ({ children }) => {
       const userData = await getCurrentUser()
       setUser(userData)
     } catch (err) {
-      console.error("Failed to fetch user data:", err)
+      logger.error("Failed to fetch user data", err)
       setError("Failed to load user information.")
     } finally {
       setLoading(false)
@@ -41,7 +42,7 @@ export const UserProvider = ({ children }) => {
       setSubscription(statusData)
       setUsage(usageData)
     } catch (err) {
-      console.error("Failed to fetch subscription data:", err)
+      logger.error("Failed to fetch subscription data", err)
       // Don't set error - subscription data is supplementary
     } finally {
       setSubscriptionLoading(false)

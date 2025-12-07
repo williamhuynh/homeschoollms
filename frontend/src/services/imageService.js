@@ -1,6 +1,7 @@
 /**
  * Service for handling image-related operations
  */
+import { logger } from '../utils/logger';
 
 /**
  * Get the appropriate thumbnail URL based on required dimensions
@@ -121,7 +122,7 @@ export const getAuthenticatedImageUrl = async (url) => {
     const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession();
     
     if (refreshError) {
-      console.error('Token refresh error for image:', refreshError);
+      logger.warn('Token refresh error for image');
       // Return the original URL if refresh fails
       return url;
     }
@@ -130,7 +131,7 @@ export const getAuthenticatedImageUrl = async (url) => {
     const freshToken = sessionData?.session?.access_token;
     
     if (!freshToken) {
-      console.warn('No fresh token available for authenticated image');
+      logger.warn('No fresh token available for authenticated image');
       return url;
     }
     
@@ -143,7 +144,7 @@ export const getAuthenticatedImageUrl = async (url) => {
     if (isApiUrl) {
       // Add or update the auth token parameter
       parsedUrl.searchParams.set('auth_token', freshToken);
-      console.log('Added auth_token to API URL');
+      logger.debug('Added auth_token to API URL');
     } else if (parsedUrl.hostname.includes('backblazeb2.com')) {
       // For direct Backblaze URLs, transform them to use our API
       const bucketName = 'homeschoollms'; // Your Backblaze bucket name
@@ -164,14 +165,14 @@ export const getAuthenticatedImageUrl = async (url) => {
         // Add the fresh auth token
         apiUrl.searchParams.set('auth_token', freshToken);
         
-        console.log('Converted Backblaze URL to authenticated API URL');
+        logger.debug('Converted Backblaze URL to authenticated API URL');
         return apiUrl.toString();
       }
     }
     
     return parsedUrl.toString();
   } catch (error) {
-    console.error('Error getting authenticated image URL:', error);
+    logger.error('Error getting authenticated image URL', error);
     return url;
   }
 };

@@ -4,6 +4,7 @@ import { Home, Plus, User, FileText, Zap } from 'react-feather' // Added Zap for
 import { useNavigate, useLocation, useParams, useMatch } from 'react-router-dom'
 import { useStudents } from '../../contexts/StudentsContext'
 import { curriculumService } from '../../services/curriculum'
+import { logger } from '../../utils/logger'
 
 const BottomNav = () => {
   const navigate = useNavigate()
@@ -24,17 +25,16 @@ const BottomNav = () => {
 
   const handleOpenAIUpload = () => {
     if (studentId) { // Only navigate if we have a student context
-       console.log(`BottomNav: Opening AI upload for studentId: ${studentId}`) // Log
+       logger.breadcrumb('navigation', 'Opening AI upload');
        navigate(`/students/${studentId}/ai-upload`);
     } else {
-      console.warn("BottomNav: Cannot open AI upload: No active student ID found in URL.");
-      // Optionally show a message to the user (e.g., using a Toast)
+      logger.warn("BottomNav: Cannot open AI upload - no active student");
     }
   }
 
   const handleOpenAIChat = async () => {
     if (!studentId) {
-      console.warn("BottomNav: Cannot open AI chat: No active student ID found in URL.")
+      logger.warn("BottomNav: Cannot open AI chat - no active student")
       return
     }
 
@@ -75,11 +75,11 @@ const BottomNav = () => {
           }
         }
       } catch (err) {
-        console.warn('BottomNav: Failed to build learning outcome context for AI chat:', err)
+        logger.warn('BottomNav: Failed to build learning outcome context for AI chat');
       }
     }
 
-    console.log(`BottomNav: Opening AI chat for studentId: ${studentId}`)
+    logger.breadcrumb('navigation', 'Opening AI chat');
     navigate(`/students/${studentId}/ai-chat`, navigationState ? { state: navigationState } : undefined)
   }
 

@@ -45,6 +45,7 @@ import { curriculumService } from '../../services/curriculum';
 import Select from 'react-select';
 import { updateEvidence } from '../../services/api';
 import { HamburgerIcon } from '@chakra-ui/icons';
+import { logger } from '../../utils/logger';
 
 const ImageViewerModal = ({ 
   isOpen, 
@@ -80,8 +81,7 @@ const ImageViewerModal = ({
   const [selectedLearningOutcome, setSelectedLearningOutcome] = useState(null);
   const [isBottomDrawerOpen, setIsBottomDrawerOpen] = useState(false);
 
-  // Diagnostic log to confirm component mount
-  console.log('ImageViewerModal mounted');
+  // Component mounted - no log needed in production
 
   /**
    * Helper function to detect and format old JSON descriptions
@@ -127,17 +127,17 @@ const ImageViewerModal = ({
   };
 
   const refreshToken = async () => {
-    console.log('Refreshing token...');
+    logger.debug('Refreshing token...');
     const { supabase } = await import('../../services/supabase');
     
     const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession();
     
     if (refreshError) {
-      console.error('Token refresh error:', refreshError);
+      logger.error('Token refresh error', refreshError);
       throw new Error('Your session has expired. Please log out and log back in.');
     }
     
-    console.log('Token refresh successful:', sessionData ? 'New token obtained' : 'Failed to get new token');
+    logger.debug('Token refresh successful');
     
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -180,7 +180,7 @@ const ImageViewerModal = ({
         isClosable: true,
       });
     } catch (error) {
-      console.error('Download error:', error);
+      logger.error('Download error', error);
       toast({
         title: 'Download failed',
         description: error.message,
@@ -225,7 +225,7 @@ const ImageViewerModal = ({
         isClosable: true,
       });
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share error', error);
       toast({
         title: 'Failed to generate share link',
         description: error.message,
@@ -255,7 +255,7 @@ const ImageViewerModal = ({
       );
 
       if (response.status === 404) {
-        console.log('Evidence not found, likely already deleted');
+        logger.debug('Evidence not found, likely already deleted');
         toast({
           title: 'Image already removed',
           description: 'The evidence was already deleted or does not exist.',
@@ -294,7 +294,7 @@ const ImageViewerModal = ({
         onImageDeleted(image._id);
       }
     } catch (error) {
-      console.error('Delete error:', error);
+      logger.error('Delete error', error);
       toast({
         title: 'Delete failed',
         description: error.message || 'An unknown error occurred',
@@ -313,10 +313,9 @@ const ImageViewerModal = ({
 
   // Extract curriculum loading into reusable function
   const loadCurriculumData = async () => {
-    console.log('loadCurriculumData called with:', { studentGrade, imageExists: !!image, studentId });
+    logger.debug('loadCurriculumData called', { hasImage: !!image });
     
     if (!image) {
-      console.log('Missing image, returning empty data');
       return { areas: [], outcomes: [] };
     }
 
@@ -324,24 +323,22 @@ const ImageViewerModal = ({
     let gradeToUse = studentGrade;
     
     if (!gradeToUse && studentId) {
-      console.log('studentGrade not provided, fetching student data...');
+      logger.debug('studentGrade not provided, fetching student data');
       try {
         // Import the API functions to get student data
         const { getStudents, getStudentBySlug } = await import('../../services/api');
         
         // First try to get student by slug (if studentId looks like a slug)
         if (typeof studentId === 'string' && !studentId.match(/^[0-9a-fA-F]{24}$/)) {
-          console.log('Trying to fetch student by slug:', studentId);
           const student = await getStudentBySlug(studentId);
           if (student?.grade_level) {
             gradeToUse = student.grade_level;
-            console.log('Fetched student grade from slug API:', gradeToUse);
+            logger.debug('Fetched student grade from slug API', { gradeToUse });
           }
         }
         
         // If still no grade, try getting all students and find by ID or slug
         if (!gradeToUse) {
-          console.log('Trying to fetch all students and find by ID/slug');
           const students = await getStudents();
           const student = students.find(s => 
             s._id === studentId || 
@@ -350,19 +347,18 @@ const ImageViewerModal = ({
           );
           if (student?.grade_level) {
             gradeToUse = student.grade_level;
-            console.log('Fetched student grade from students list:', gradeToUse);
+            logger.debug('Fetched student grade from students list', { gradeToUse });
           } else {
-            console.log('Could not find student or grade from students list');
-            console.log('Available students:', students.map(s => ({ id: s._id || s.id, slug: s.slug, grade: s.grade_level })));
+            logger.debug('Could not find student or grade from students list');
           }
         }
       } catch (error) {
-        console.error('Error fetching student data:', error);
+        logger.error('Error fetching student data', error);
       }
     }
 
     if (!gradeToUse) {
-      console.log('No student grade available, cannot load curriculum');
+      logger.debug('No student grade available, cannot load curriculum');
       return { areas: [], outcomes: [] };
     }
     
@@ -371,19 +367,18 @@ const ImageViewerModal = ({
     
           try {
         const stage = curriculumService.getStageForGrade(gradeToUse);
-        console.log('Stage for grade:', gradeToUse, '→', stage);
+        logger.debug('Stage for grade', { gradeToUse, stage });
         setCurrentStage(stage);
         
         if (!stage) {
-          console.log('No stage found for grade:', gradeToUse);
+          logger.debug('No stage found for grade', { gradeToUse });
           setIsLoadingAreas(false);
           setIsLoadingOutcomes(false);
           return { areas: [], outcomes: [] };
         }
         
-        console.log('Loading subjects for grade:', gradeToUse);
+        logger.debug('Loading subjects for grade', { gradeToUse });
         const subjects = await curriculumService.getSubjects(gradeToUse);
-      console.log('Raw subjects loaded:', subjects);
       
       const formattedAreas = subjects.map(subject => ({
         value: subject.code,
@@ -391,20 +386,17 @@ const ImageViewerModal = ({
         subject
       }));
       
-      console.log('Formatted areas:', formattedAreas);
-      console.log('Subject codes in curriculum:', subjects.map(s => s.code));
+      logger.debug('Formatted areas loaded', { count: formattedAreas.length });
       setLearningAreasList(formattedAreas);
       setIsLoadingAreas(false);
 
       // Load outcomes for ALL areas (needed for edit mode multi-select)
-      console.log('Loading outcomes for all areas...');
+      logger.debug('Loading outcomes for all areas');
       const allOutcomes = [];
       
       for (const area of formattedAreas) {
         try {
-          console.log(`Loading outcomes for area: ${area.value}`);
           const outcomes = await curriculumService.getOutcomes(stage, area.value);
-          console.log(`Loaded ${outcomes.length} outcomes for area ${area.value}`);
           
           const formattedOutcomes = outcomes.map(outcome => ({
             value: outcome.code,
@@ -413,11 +405,11 @@ const ImageViewerModal = ({
           }));
           allOutcomes.push(...formattedOutcomes);
         } catch (error) {
-          console.warn(`Failed to load outcomes for area ${area.value}:`, error);
+          logger.warn(`Failed to load outcomes for area ${area.value}`);
         }
       }
       
-      console.log('Total outcomes loaded:', allOutcomes.length);
+      logger.debug('Total outcomes loaded', { count: allOutcomes.length });
       setLearningOutcomesList(allOutcomes);
       setIsLoadingOutcomes(false);
 
@@ -430,11 +422,10 @@ const ImageViewerModal = ({
       const outcomeOption = allOutcomes.find(o => o.value === currentOutcome) || null;
       setSelectedLearningOutcome(outcomeOption);
       
-      console.log('Returning curriculum data:', { areas: formattedAreas.length, outcomes: allOutcomes.length });
       return { areas: formattedAreas, outcomes: allOutcomes };
       
     } catch (error) {
-      console.error('Error loading curriculum data:', error);
+      logger.error('Error loading curriculum data', error);
       setIsLoadingAreas(false);
       setIsLoadingOutcomes(false);
       return { areas: [], outcomes: [] };
@@ -442,7 +433,6 @@ const ImageViewerModal = ({
   };
 
   useEffect(() => {
-    console.log('useEffect triggered', { isOpen, studentGrade, image, studentId });
     if (isOpen && image) {
       // Load curriculum data - it will handle missing studentGrade by fetching student data
       loadCurriculumData();
@@ -478,13 +468,9 @@ const ImageViewerModal = ({
     setEditErrors({});
     setIsSaving(false);
 
-    console.log('Starting edit mode...');
-    console.log('Available learning areas (before loading):', learningAreasList.length);
-    console.log('Available learning outcomes (before loading):', learningOutcomesList.length);
-    console.log('Props available:', { studentGrade, studentId: !!studentId });
+    logger.debug('Starting edit mode');
 
     // Always reload curriculum data fresh for edit mode
-    console.log('Loading curriculum data for edit mode...');
     const { areas, outcomes } = await loadCurriculumData();
     
     // Use the fresh loaded data and update the state
@@ -499,8 +485,7 @@ const ImageViewerModal = ({
       setLearningOutcomesList(outcomes);
     }
 
-    console.log('Using areas (after loading):', availableAreas.length);
-    console.log('Using outcomes (after loading):', availableOutcomes.length);
+    logger.debug('Curriculum data loaded for edit', { areasCount: availableAreas.length, outcomesCount: availableOutcomes.length });
 
     // Wait a moment to ensure state is updated
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -512,12 +497,6 @@ const ImageViewerModal = ({
     // Remove duplicate area codes
     const uniqueAreaCodes = [...new Set(currentAreaCodes)];
     
-    console.log('Current area codes:', currentAreaCodes);
-    console.log('Unique area codes:', uniqueAreaCodes);
-    console.log('Current outcome codes:', currentOutcomeCodes);
-    console.log('Available areas for matching:', availableAreas.map(a => ({ value: a.value, label: a.label })));
-    console.log('All available area codes:', availableAreas.map(a => a.value));
-    
     const selectedAreasOptions = uniqueAreaCodes.map(code => {
       // First try direct match
       let found = availableAreas.find(a => a.value === code);
@@ -525,32 +504,27 @@ const ImageViewerModal = ({
       // If not found, try to find subject by outcome prefix
       // (e.g., ENE outcomes are in ENG subject)
       if (!found) {
-        console.log(`Direct match failed for ${code}, trying outcome prefix match...`);
         found = availableAreas.find(a => {
           // Check if this subject contains outcomes that start with the code prefix
           if (a.subject && a.subject.outcomes) {
             const hasMatchingOutcomes = a.subject.outcomes.some(outcome => 
               outcome.code.startsWith(code + '-')
             );
-            console.log(`Subject ${a.subject.code} has outcomes starting with ${code}-:`, hasMatchingOutcomes);
             return hasMatchingOutcomes;
           }
           return false;
         });
       }
       
-      console.log(`Looking for area code ${code}, found:`, found);
       return found;
     }).filter(Boolean);
     
     const selectedOutcomesOptions = currentOutcomeCodes.map(code => {
       const found = availableOutcomes.find(o => o.value === code);
-      console.log(`Looking for outcome code ${code}, found:`, found);
       return found;
     }).filter(Boolean);
     
-    console.log('Selected areas for edit:', selectedAreasOptions);
-    console.log('Selected outcomes for edit:', selectedOutcomesOptions);
+    logger.debug('Edit mode initialized', { areasSelected: selectedAreasOptions.length, outcomesSelected: selectedOutcomesOptions.length });
     
     setEditLearningAreas(selectedAreasOptions);
     setEditLearningOutcomes(selectedOutcomesOptions);

@@ -13,6 +13,7 @@ import {
   Link as ChakraLink
 } from '@chakra-ui/react';
 import { resetPassword } from '../../services/supabase';
+import { logger } from '../../utils/logger';
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ const ResetPasswordPage = () => {
       await resetPassword(email);
       setSuccess('Password reset instructions have been sent to your email.');
     } catch (error) {
-      console.error('Password reset failed:', error);
+      logger.error('Password reset failed', error);
       setError(error.message || 'Password reset failed. Please try again.');
     } finally {
       setIsLoading(false);
