@@ -21,6 +21,31 @@ export const formatDate = (dateString) => {
   });
 };
 
+/**
+ * Converts markdown formatting to HTML.
+ * Supports **bold**, *italic*, and preserves line breaks.
+ * Escapes HTML entities first to prevent XSS.
+ */
+export const formatMarkdownToHTML = (text) => {
+  if (!text) return '';
+
+  // Escape HTML entities first to prevent XSS
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  // Convert markdown to HTML
+  // Bold first: **text** -> <strong>text</strong>
+  // Then italic: *text* -> <em>text</em>
+  // Order matters - bold markers are removed first so italic regex won't match them
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+};
+
 export const generatePrintableHTML = (report, student) => {
   const printStyles = `
       <style>
@@ -194,7 +219,7 @@ export const generatePrintableHTML = (report, student) => {
                   </div>
 
                   <div class="summary-text">
-                    ${(summary.user_edited_summary || summary.ai_generated_summary || 'No summary available.').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}
+                    ${formatMarkdownToHTML(summary.user_edited_summary || summary.ai_generated_summary || 'No summary available.')}
                   </div>
 
                   ${summary.evidence_examples?.length > 0 ? `
