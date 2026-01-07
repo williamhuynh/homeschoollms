@@ -139,9 +139,15 @@ git push
 
 **subscription_service.py** (14KB) - Stripe checkout/webhooks, usage tracking, limit enforcement (per tier), grandfathered user support
 
+**admin_service.py** (22KB) - Platform statistics, user management, impersonation, image migration tools
+
+**curriculum_service.py** - NSW Curriculum file loader for backend AI context
+
+**supabase_service.py** - Supabase client wrapper for backend auth verification
+
 ### Frontend Services
 
-**api.js** (936 lines) - Central API client, all backend endpoints wrapped, token injection, error handling with Sentry
+**api.js** (935 lines) - Central API client, all backend endpoints wrapped, token injection, error handling with Sentry
 
 **curriculum.js** - NSW Curriculum loader with IndexedDB caching, grade-to-stage mapping, lazy loading
 
@@ -297,3 +303,4 @@ FRONTEND_URL=                 # For CORS and redirects
 - **Offline:** `docs/OFFLINE_ARCHITECTURE.md`
 - **Image Optimization:** `docs/image-optimization.md`, `docs/signed-images-guide.md`
 - **Cloudinary Migration:** `docs/cloudinary-private-migration-guide.md`
+- **Admin Tools:** `docs/admin-tools-implementation-plan.md`
