@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom'
 import SummaryEditor from './SummaryEditor'
 import OptimizedEvidenceGallery from './OptimizedEvidenceGallery'
 import { logger } from '../../utils/logger'
+import { formatMarkdownToHTML } from './exportUtils'
 
 const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => {
   const toast = useToast()
@@ -164,11 +165,15 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
               maxLength={3500}
             />
           ) : (
-            <Box>
-              <Text whiteSpace="pre-wrap" lineHeight="tall">
-                {displaySummary}
-              </Text>
-            </Box>
+            <Box
+              whiteSpace="pre-wrap"
+              lineHeight="tall"
+              sx={{
+                '& strong': { fontWeight: 'bold' },
+                '& em': { fontStyle: 'italic' }
+              }}
+              dangerouslySetInnerHTML={{ __html: formatMarkdownToHTML(displaySummary) }}
+            />
           )}
 
           {/* Expandable Details */}
