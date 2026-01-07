@@ -4,15 +4,27 @@ This guide explains how to set up and configure the Stripe subscription system f
 
 ## Overview
 
-The subscription system provides two tiers:
+The subscription system provides two tiers with a 14-day free trial for the Basic plan:
 
 | Feature | Free Tier | Basic Tier ($10/mo or $108/yr) |
 |---------|-----------|-------------------------------|
+| Free Trial | N/A | **14 days** |
 | Students | 1 | 3 |
 | Evidence Uploads | 15 | 1,000 |
 | Report Generation | ❌ | ✅ |
 | Progress Tracking | ✅ | ✅ |
 | Curriculum Alignment | ✅ | ✅ |
+
+### New Features (v2)
+
+✅ **14-day free trial** - No payment required upfront
+✅ **Webhook retry logic** - Automatic recovery from processing failures
+✅ **Payment failure notifications** - In-app alerts when payments fail
+✅ **Subscription expiry warnings** - Alerts 7 days before subscription ends
+✅ **Trial ending alerts** - Notifications 3 days before trial expires
+✅ **Rate limiting** - Protection against checkout session spam (5/hour per user)
+✅ **Idempotency keys** - Prevents duplicate charges
+✅ **Usage indicators** - Proactive warnings at 80% of evidence limit
 
 ## Stripe Setup
 
@@ -198,16 +210,55 @@ Copy the webhook signing secret it provides.
 
 ## Database Schema
 
-Users get these new fields:
+### Users Collection
+
+Users get these subscription-related fields:
 
 ```json
 {
   "subscription_tier": "free",          // "free" | "basic"
-  "subscription_status": "active",      // "active" | "canceled" | "past_due"
+  "subscription_status": "active",      // "active" | "canceled" | "past_due" | "trialing"
   "stripe_customer_id": "cus_xxx",      // Stripe customer ID
   "stripe_subscription_id": "sub_xxx",  // Stripe subscription ID
   "current_period_end": "2025-01-01",   // Subscription end date
+  "trial_end": "2025-01-15",           // Trial end date (new in v2)
   "is_grandfathered": false             // True for early adopters
+}
+```
+
+### Webhook Events Collection (New in v2)
+
+Logs all webhook events for debugging and retry:
+
+```json
+{
+  "event_type": "customer.subscription.updated",
+  "event_id": "evt_xxx",
+  "data": { ... },                     // Full Stripe event data
+  "success": true,                      // Processing status
+  "error": null,                        // Error message if failed
+  "processed_at": "2025-01-01T12:00:00Z",
+  "retry_count": 0
+}
+```
+
+### Notifications Collection (New in v2)
+
+In-app notifications for users:
+
+```json
+{
+  "user_id": ObjectId("xxx"),
+  "type": "payment_failed",             // "payment_failed" | "subscription_expiring"
+  "title": "Payment Failed",
+  "message": "Your recent payment failed...",
+  "link": "/subscription",
+  "read": false,
+  "created_at": "2025-01-01T12:00:00Z",
+  "metadata": {
+    "invoice_id": "in_xxx",
+    "days_remaining": 7
+  }
 }
 ```
 

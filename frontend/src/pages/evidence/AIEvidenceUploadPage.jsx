@@ -27,22 +27,28 @@ import {
   CardBody,
   Progress
 } from '@chakra-ui/react'
-import { ArrowLeft, Upload, CheckCircle } from 'react-feather'
+import { ArrowLeft, Upload, CheckCircle, AlertTriangle } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStudents } from '../../contexts/StudentsContext'
+import { useUser } from '../../contexts/UserContext'
 import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence, uploadEvidenceMultiOutcome, generateAIDescription } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
 import ResponsiveImage from '../../components/common/ResponsiveImage'
 import { logger } from '../../utils/logger'
+import { UpgradeBanner } from '../../components/subscription/UpgradePrompt'
 
 const AIEvidenceUploadPage = () => {
   const navigate = useNavigate()
   const { studentId } = useParams()
   const { students } = useStudents()
+  const { usage, canAddEvidence } = useUser()
   const toast = useToast()
-  
+
   // Find current student
   const student = students.find(s => s._id === studentId || s.slug === studentId)
+
+  // Check if user can add evidence
+  const canAdd = canAddEvidence()
   
   // State management
   const [currentStep, setCurrentStep] = useState(1) // 1: Upload, 2: Questions, 3: Outcomes, 4: Review
@@ -747,6 +753,32 @@ const AIEvidenceUploadPage = () => {
             )}
           </VStack>
         </HStack>
+
+        {/* Usage Limit Warning */}
+        {usage && (
+          <Box>
+            {/* Show warning when approaching limit (80%) */}
+            {usage.evidence_count >= usage.max_evidence * 0.8 && !canAdd && (
+              <UpgradeBanner
+                message={`You've reached your evidence limit (${usage.evidence_count}/${usage.max_evidence}). Upgrade to continue uploading.`}
+                feature="more evidence uploads"
+                variant="warning"
+              />
+            )}
+            {/* Show info when approaching limit but still can add */}
+            {usage.evidence_count >= usage.max_evidence * 0.8 && canAdd && (
+              <Alert status="info" borderRadius="md">
+                <AlertIcon as={AlertTriangle} />
+                <Box>
+                  <Text fontWeight="bold">Approaching evidence limit</Text>
+                  <Text fontSize="sm">
+                    {usage.evidence_remaining} of {usage.max_evidence} uploads remaining
+                  </Text>
+                </Box>
+              </Alert>
+            )}
+          </Box>
+        )}
 
         {/* Progress indicator */}
         <Box>
