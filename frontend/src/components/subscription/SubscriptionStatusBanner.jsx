@@ -76,8 +76,8 @@ function SubscriptionStatusBanner() {
     )
   }
 
-  // Show banner for trial ending soon (3 days or less)
-  if (isTrialing && trialDaysRemaining !== null && trialDaysRemaining <= 3) {
+  // Show banner for trial ending soon (3 days or less, but not expired)
+  if (isTrialing && trialDaysRemaining !== null && trialDaysRemaining <= 3 && trialDaysRemaining > 0) {
     return (
       <Alert status="warning" position="relative">
         <AlertIcon as={Clock} />

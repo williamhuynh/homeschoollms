@@ -24,6 +24,7 @@ from bson.errors import InvalidId
 from .utils.error_handlers import http_error_handler, invalid_object_id_handler
 from .utils.database_utils import Database
 from .services.file_storage_service import file_storage_service  # Add import for file storage service
+from .utils.rate_limiter import get_rate_limiter  # Add import for rate limiter
 import time
 
 import os
@@ -93,13 +94,18 @@ app.add_exception_handler(InvalidId, invalid_object_id_handler)
 async def startup_db_client():
     app.mongodb_client = AsyncIOMotorClient(settings.mongodb_url)  # Use settings here too
     app.mongodb = app.mongodb_client.homeschool_lms
-    
+
     # Initialize the database connection for Database utility
     Database.initialize(app.mongodb)
-    
+
     # Initialize the file storage service
     app.file_storage_service = file_storage_service
     logging.info("File storage service initialized")
+
+    # Start rate limiter cleanup task
+    rate_limiter = get_rate_limiter()
+    rate_limiter.start_cleanup()
+    logging.info("Rate limiter cleanup task started")
 
 @app.get("/health")
 async def health_check():
