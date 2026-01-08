@@ -23,10 +23,17 @@ class RateLimiter:
         if self._cleanup_task is None:
             self._cleanup_task = asyncio.create_task(self._cleanup_loop())
 
+    def stop_cleanup(self):
+        """Stop background cleanup task"""
+        if self._cleanup_task is not None:
+            self._cleanup_task.cancel()
+            self._cleanup_task = None
+            logger.info("Rate limiter cleanup task stopped")
+
     async def _cleanup_loop(self):
         """Periodically clean up old entries"""
-        while True:
-            try:
+        try:
+            while True:
                 await asyncio.sleep(300)  # Clean up every 5 minutes
                 now = datetime.utcnow()
                 keys_to_delete = []
@@ -45,8 +52,12 @@ class RateLimiter:
 
                 logger.debug(f"Rate limiter cleanup: removed {len(keys_to_delete)} keys")
 
-            except Exception as e:
-                logger.error(f"Rate limiter cleanup error: {e}")
+        except asyncio.CancelledError:
+            # Task was cancelled, clean exit
+            logger.debug("Rate limiter cleanup task cancelled gracefully")
+            raise
+        except Exception as e:
+            logger.error(f"Rate limiter cleanup error: {e}")
 
     def check_rate_limit(
         self,

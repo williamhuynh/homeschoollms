@@ -123,4 +123,9 @@ async def health_check():
     
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    # Stop rate limiter cleanup task
+    rate_limiter = get_rate_limiter()
+    rate_limiter.stop_cleanup()
+
+    # Close database connection
     await Database.close_db()

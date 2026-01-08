@@ -383,12 +383,9 @@ class SubscriptionService:
             "subscription_tier": tier,
             "subscription_status": mapped_status,
             "stripe_subscription_id": subscription.get("id"),
-            "current_period_end": datetime.fromtimestamp(current_period_end) if current_period_end else None,
+            "current_period_end": datetime.utcfromtimestamp(current_period_end) if current_period_end else None,
+            "trial_end": datetime.utcfromtimestamp(trial_end) if trial_end else None,
         }
-
-        # Add trial end date if in trial
-        if trial_end:
-            update_data["trial_end"] = datetime.fromtimestamp(trial_end)
 
         try:
             result = await db.users.update_one(
