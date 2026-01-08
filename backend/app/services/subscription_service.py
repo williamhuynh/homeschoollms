@@ -97,21 +97,15 @@ class SubscriptionService:
 
         logger.debug(f"Counting evidence for {len(students)} students: {student_ids_str}")
 
-        # Count evidence across all learning outcomes for these students
+        # Count evidence from the student_evidence collection
         # Query for both string and ObjectId formats to be safe
-        total_evidence = 0
-
-        async for lo in db.learning_outcomes.find({
+        total_evidence = await db.student_evidence.count_documents({
             "$or": [
                 {"student_id": {"$in": student_ids_str}},
                 {"student_id": {"$in": student_ids_obj}}
-            ]
-        }):
-            evidence_list = lo.get("evidence", [])
-            # Only count non-deleted evidence
-            active_evidence = [e for e in evidence_list if not e.get("is_deleted", False)]
-            total_evidence += len(active_evidence)
-            logger.debug(f"Learning outcome {lo.get('_id')} has {len(active_evidence)} active evidence items")
+            ],
+            "deleted": {"$ne": True}  # Only count non-deleted evidence
+        })
 
         logger.info(f"Total evidence count for user {user_id}: {total_evidence}")
         return total_evidence
