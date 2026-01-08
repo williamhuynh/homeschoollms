@@ -14,6 +14,7 @@ from ..models.schemas.subscription import (
 )
 from ..services.subscription_service import SubscriptionService
 from ..utils.auth_utils import get_current_user, get_admin_user
+from ..utils.rate_limiter import get_rate_limiter
 
 # Configure Stripe
 if settings.stripe_secret_key:
@@ -52,10 +53,24 @@ async def create_checkout_session(
     request: CreateCheckoutSessionRequest,
     current_user: UserInDB = Depends(get_current_user)
 ):
-    """Create a Stripe Checkout session for subscription"""
+    """Create a Stripe Checkout session for subscription with rate limiting"""
     if not settings.stripe_secret_key:
         raise HTTPException(status_code=503, detail="Payment system not configured")
-    
+
+    # Rate limit: 5 checkout sessions per hour per user
+    rate_limiter = get_rate_limiter()
+    allowed, remaining, reset_in = rate_limiter.check_rate_limit(
+        key=f"checkout:{current_user.id}",
+        max_requests=5,
+        window_seconds=3600
+    )
+
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many checkout requests. Please try again in {reset_in} seconds."
+        )
+
     result = await SubscriptionService.create_checkout_session(
         user_id=str(current_user.id),
         email=current_user.email,
@@ -63,7 +78,9 @@ async def create_checkout_session(
         success_url=request.success_url,
         cancel_url=request.cancel_url
     )
-    
+
+    logger.info(f"Checkout session created for user {current_user.id}. Rate limit remaining: {remaining}")
+
     return CreateCheckoutSessionResponse(**result)
 
 
@@ -89,13 +106,13 @@ async def stripe_webhook(
     request: Request,
     stripe_signature: Optional[str] = Header(None, alias="stripe-signature")
 ):
-    """Handle Stripe webhook events"""
+    """Handle Stripe webhook events with logging and retry support"""
     if not settings.stripe_webhook_secret:
         logger.warning("Stripe webhook secret not configured")
         raise HTTPException(status_code=503, detail="Webhook not configured")
-    
+
     payload = await request.body()
-    
+
     try:
         event = stripe.Webhook.construct_event(
             payload,
@@ -108,33 +125,60 @@ async def stripe_webhook(
     except stripe.error.SignatureVerificationError as e:
         logger.error(f"Invalid webhook signature: {e}")
         raise HTTPException(status_code=400, detail="Invalid signature")
-    
+
     event_type = event["type"]
+    event_id = event["id"]
     data = event["data"]["object"]
-    
-    logger.info(f"Received Stripe webhook: {event_type}")
-    
-    # Handle subscription events
-    if event_type in [
-        "customer.subscription.created",
-        "customer.subscription.updated",
-    ]:
-        await SubscriptionService.handle_subscription_updated(data)
-    
-    elif event_type == "customer.subscription.deleted":
-        await SubscriptionService.handle_subscription_deleted(data)
-    
-    elif event_type == "checkout.session.completed":
-        # Session completed - subscription should already be handled
-        logger.info(f"Checkout session completed: {data.get('id')}")
-    
-    elif event_type == "invoice.payment_succeeded":
-        logger.info(f"Payment succeeded for invoice: {data.get('id')}")
-    
-    elif event_type == "invoice.payment_failed":
-        logger.warning(f"Payment failed for invoice: {data.get('id')}")
-        # Could send notification to user here
-    
+
+    logger.info(f"Received Stripe webhook: {event_type} (ID: {event_id})")
+
+    # Process webhook event with error handling
+    success = True
+    error_message = None
+
+    try:
+        # Handle subscription events
+        if event_type in [
+            "customer.subscription.created",
+            "customer.subscription.updated",
+        ]:
+            await SubscriptionService.handle_subscription_updated(data)
+
+        elif event_type == "customer.subscription.deleted":
+            await SubscriptionService.handle_subscription_deleted(data)
+
+        elif event_type == "checkout.session.completed":
+            # Session completed - subscription should already be handled
+            logger.info(f"Checkout session completed: {data.get('id')}")
+
+        elif event_type == "invoice.payment_succeeded":
+            logger.info(f"Payment succeeded for invoice: {data.get('id')}")
+
+        elif event_type == "invoice.payment_failed":
+            logger.warning(f"Payment failed for invoice: {data.get('id')}")
+            # Extract user from subscription or customer
+            subscription_id = data.get("subscription")
+            if subscription_id:
+                try:
+                    subscription = stripe.Subscription.retrieve(subscription_id)
+                    user_id = subscription.get("metadata", {}).get("user_id")
+                    if user_id:
+                        await SubscriptionService.notify_payment_failure(user_id, data.get('id'))
+                except Exception as e:
+                    logger.error(f"Failed to notify user of payment failure: {e}")
+
+    except Exception as e:
+        success = False
+        error_message = str(e)
+        logger.error(f"Failed to process webhook {event_type} (ID: {event_id}): {e}", exc_info=True)
+
+    # Log webhook event for debugging and potential retry
+    await SubscriptionService.log_webhook_event(event_type, event_id, data, success, error_message)
+
+    if not success:
+        # Return 500 so Stripe will retry
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
+
     return {"status": "received"}
 
 

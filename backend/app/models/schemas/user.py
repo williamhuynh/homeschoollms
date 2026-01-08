@@ -31,6 +31,7 @@ class UserBase(MongoBaseModel):
     stripe_customer_id: Optional[str] = None
     stripe_subscription_id: Optional[str] = None
     current_period_end: Optional[datetime] = None
+    trial_end: Optional[datetime] = None
     is_grandfathered: bool = False
 
 class Organization(MongoBaseModel):

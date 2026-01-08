@@ -390,6 +390,9 @@ function SubscriptionPage() {
                       </Badge>
                     )}
                   </HStack>
+                  <Badge colorScheme="purple" fontSize="sm" mt={2}>
+                    14-day free trial
+                  </Badge>
                   <Text color="gray.500" mt={2}>
                     Everything you need for homeschooling
                   </Text>
@@ -483,6 +486,12 @@ function SubscriptionPage() {
               Frequently Asked Questions
             </Heading>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <Box bg={cardBg} p={6} borderRadius="lg" border="1px" borderColor={borderColor}>
+                <Text fontWeight="bold" mb={2}>How does the free trial work?</Text>
+                <Text color="gray.500">
+                  Start with a 14-day free trial of Basic plan. No payment required upfront. Add your payment method anytime during the trial to continue after it ends.
+                </Text>
+              </Box>
               <Box bg={cardBg} p={6} borderRadius="lg" border="1px" borderColor={borderColor}>
                 <Text fontWeight="bold" mb={2}>Can I cancel anytime?</Text>
                 <Text color="gray.500">
