@@ -78,7 +78,7 @@ class SubscriptionService:
     async def get_evidence_count(user_id: str) -> int:
         """Get the total evidence count for all students owned by user"""
         db = Database.get_db()
-        
+
         # Get all students for this user
         students = await db.students.find({
             "$or": [
@@ -86,19 +86,34 @@ class SubscriptionService:
                 {"parent_access.parent_id": ObjectId(user_id)}
             ]
         }).to_list(None)
-        
+
         if not students:
+            logger.debug(f"No students found for user {user_id}")
             return 0
-        
-        student_ids = [str(s["_id"]) for s in students]
-        
+
+        # Create both string and ObjectId versions for robust querying
+        student_ids_str = [str(s["_id"]) for s in students]
+        student_ids_obj = [s["_id"] for s in students]
+
+        logger.debug(f"Counting evidence for {len(students)} students: {student_ids_str}")
+
         # Count evidence across all learning outcomes for these students
+        # Query for both string and ObjectId formats to be safe
         total_evidence = 0
-        
-        async for lo in db.learning_outcomes.find({"student_id": {"$in": student_ids}}):
+
+        async for lo in db.learning_outcomes.find({
+            "$or": [
+                {"student_id": {"$in": student_ids_str}},
+                {"student_id": {"$in": student_ids_obj}}
+            ]
+        }):
             evidence_list = lo.get("evidence", [])
-            total_evidence += len(evidence_list)
-        
+            # Only count non-deleted evidence
+            active_evidence = [e for e in evidence_list if not e.get("is_deleted", False)]
+            total_evidence += len(active_evidence)
+            logger.debug(f"Learning outcome {lo.get('_id')} has {len(active_evidence)} active evidence items")
+
+        logger.info(f"Total evidence count for user {user_id}: {total_evidence}")
         return total_evidence
     
     @staticmethod
