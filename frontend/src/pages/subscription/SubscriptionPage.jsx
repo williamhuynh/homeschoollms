@@ -262,7 +262,7 @@ function SubscriptionPage() {
             <FormLabel htmlFor="billing-toggle" mb="0" ml={2} color="gray.500">
               Annual
             </FormLabel>
-            <Badge colorScheme="green" ml={2}>Save 15%</Badge>
+            <Badge colorScheme="green" ml={2}>Save 10%</Badge>
           </FormControl>
 
           {/* Pricing Cards */}
