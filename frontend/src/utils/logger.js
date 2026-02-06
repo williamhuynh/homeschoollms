@@ -56,24 +56,56 @@ function warn(...args) {
 }
 
 /**
+ * Extract structured debug info from an error (especially AxiosError).
+ * Returns a plain object safe for Sentry extra context.
+ */
+function extractErrorDetails(err) {
+  if (!err) return {}
+
+  const details = {}
+
+  // Axios-specific fields
+  if (err.response) {
+    details.httpStatus = err.response.status
+    details.httpStatusText = err.response.statusText
+    details.responseBody = err.response.data
+    details.backendDetail = err.response.data?.detail
+  }
+  if (err.config) {
+    details.requestUrl = err.config.url
+    details.requestMethod = err.config.method?.toUpperCase()
+  }
+  if (err.code) {
+    details.errorCode = err.code // e.g. "ERR_NETWORK", "ECONNABORTED"
+  }
+
+  return details
+}
+
+/**
  * Error level - always logs, captures to Sentry in prod
  * Use for actual errors that need attention
+ *
+ * @param {string} message - Human-readable description of what failed
+ * @param {Error|Object} errorOrContext - The thrown error or a context object
+ * @param {Object} [extra] - Additional structured context (e.g. { step, fileCount })
  */
-function error(message, errorOrContext) {
-  // Always log to console
-  console.error('[ERROR]', message, errorOrContext)
-  
+function error(message, errorOrContext, extra = {}) {
+  const axiosDetails = errorOrContext instanceof Error ? extractErrorDetails(errorOrContext) : {}
+  const mergedExtra = { message, ...axiosDetails, ...extra }
+
+  // Always log to console with full detail
+  console.error('[ERROR]', message, errorOrContext, mergedExtra)
+
   if (isProd) {
     if (errorOrContext instanceof Error) {
-      // Capture the actual error with context
       Sentry.captureException(errorOrContext, {
-        extra: { message }
+        extra: mergedExtra
       })
     } else {
-      // Capture as a message with context
       Sentry.captureMessage(message, {
         level: 'error',
-        extra: errorOrContext
+        extra: { ...mergedExtra, context: errorOrContext }
       })
     }
   }

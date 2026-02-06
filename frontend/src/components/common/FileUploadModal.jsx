@@ -350,8 +350,15 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
         setTitle(result.title.trim())
       }
     } catch (err) {
-      logger.error('Error generating AI description', err)
-      setGenerationError(err.message || 'Failed to generate description')
+      const status = err.response?.status
+      const detail = err.response?.data?.detail
+      logger.error('FileUploadModal: generateAIDescription failed', err, {
+        step: 'generate-description',
+        fileCount: selectedFiles.length,
+        studentId,
+      })
+      const statusHint = status ? ` (HTTP ${status})` : ''
+      setGenerationError(detail || err.message || `Failed to generate description${statusHint}`)
     } finally {
       setIsGenerating(false)
     }
@@ -362,11 +369,11 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
       setError('Cannot upload files while offline')
       return
     }
-    
+
     if (!validateForm()) {
       return
     }
-    
+
     if (selectedFiles.length === 0) {
       setError('Please select at least one file')
       return
@@ -381,37 +388,45 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
 
     try {
       const formData = new FormData()
-      
+
       // Append each file with the key 'files'
       selectedFiles.forEach(({ file }) => {
-        formData.append('files', file) 
+        formData.append('files', file)
       });
-      
+
       // Required fields
       formData.append('title', title)
-      
+
       // Optional fields
       formData.append('description', description)
-      
+
       // New fields
       if (location) formData.append('location', location)
       if (selectedLearningArea) formData.append('learning_area_code', selectedLearningArea.value)
       if (selectedLearningOutcome) formData.append('learning_outcome_code', selectedLearningOutcome.value)
-      
+
       // Add student grade and outcome description for better context
       if (studentGrade) formData.append('student_grade', studentGrade)
       if (learningOutcomeDescription) formData.append('learning_outcome_description', learningOutcomeDescription)
-      
+
       // Use the API service instead of direct fetch
       const result = await uploadEvidence(studentId, learningOutcomeId, formData)
-      
+
       onSubmit(result)
       onClose()
     } catch (err) {
-      // Surface subscription-limit message from the backend
-      const is403 = err.response?.status === 403
-      const backendMessage = err.response?.data?.detail
-      setError((is403 && backendMessage) ? backendMessage : (err.message || 'Upload failed. Please try again.'))
+      const status = err.response?.status
+      const detail = err.response?.data?.detail
+      logger.error('FileUploadModal: uploadEvidence failed', err, {
+        step: 'upload-evidence',
+        fileCount: selectedFiles.length,
+        studentId,
+        learningOutcomeId,
+        learningArea: selectedLearningArea?.value,
+        learningOutcome: selectedLearningOutcome?.value,
+      })
+      const statusHint = status ? ` (HTTP ${status})` : ''
+      setError(detail || err.message || `Upload failed${statusHint}. Please try again.`)
     } finally {
       setIsLoading(false)
     }
