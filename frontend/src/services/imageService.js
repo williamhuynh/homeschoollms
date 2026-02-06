@@ -106,6 +106,110 @@ export const isWebPSupported = () => {
 };
 
 /**
+ * Maximum image dimension (width or height) after compression.
+ * Keeps enough detail for AI analysis and evidence records while
+ * staying well under Vercel's 4.5 MB proxy body-size limit.
+ */
+const MAX_DIMENSION = 2048;
+const COMPRESSION_QUALITY = 0.8;
+const MAX_FILE_SIZE = 1.5 * 1024 * 1024; // 1.5 MB
+
+/**
+ * Compress a single image File using Canvas.
+ * Resizes if either dimension exceeds MAX_DIMENSION and re-encodes as JPEG.
+ * Returns the original file if it is already small enough or is not an image.
+ *
+ * @param {File} file - The image file to compress
+ * @returns {Promise<File>} - Compressed image file
+ */
+export const compressImage = (file) => {
+  return new Promise((resolve) => {
+    // Skip non-image files
+    if (!file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+
+    // Skip files that are already small enough
+    if (file.size <= MAX_FILE_SIZE) {
+      resolve(file);
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      let { width, height } = img;
+
+      // Scale down if larger than MAX_DIMENSION
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        if (width > height) {
+          height = Math.round(height * (MAX_DIMENSION / width));
+          width = MAX_DIMENSION;
+        } else {
+          width = Math.round(width * (MAX_DIMENSION / height));
+          height = MAX_DIMENSION;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file); // fallback to original
+            return;
+          }
+
+          // Preserve original filename but switch extension to .jpg
+          const name = file.name.replace(/\.[^.]+$/, '.jpg');
+          const compressed = new File([blob], name, {
+            type: 'image/jpeg',
+            lastModified: file.lastModified,
+          });
+
+          logger.debug('Image compressed', {
+            original: `${(file.size / 1024).toFixed(0)}KB`,
+            compressed: `${(compressed.size / 1024).toFixed(0)}KB`,
+            dimensions: `${width}x${height}`,
+          });
+
+          resolve(compressed);
+        },
+        'image/jpeg',
+        COMPRESSION_QUALITY
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      logger.warn('Image compression failed, using original file', { name: file.name });
+      resolve(file); // fallback to original on error
+    };
+
+    img.src = objectUrl;
+  });
+};
+
+/**
+ * Compress an array of image files.
+ *
+ * @param {File[]} files - Array of image files to compress
+ * @returns {Promise<File[]>} - Array of compressed image files
+ */
+export const compressImages = (files) => {
+  return Promise.all(files.map(compressImage));
+};
+
+/**
  * Get an authenticated image URL with a fresh token
  *
  * @param {string} url - Original image URL

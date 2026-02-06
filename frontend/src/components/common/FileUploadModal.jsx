@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react' // Added useEffect
 import { generateAIDescription, uploadEvidence } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
+import { compressImage } from '../../services/imageService'
 import { logger } from '../../utils/logger'
 import {
   Modal,
@@ -210,14 +211,17 @@ const FileUploadModal = ({
     }
   }, [selectedLearningArea, currentStage, initialLearningOutcomeCode, isOpen, isOffline])
 
-  const handleFileSelect = useCallback((event) => {
+  const handleFileSelect = useCallback(async (event) => {
   const files = Array.from(event.target.files);
-  const newFiles = files.filter(file => 
+  const newFiles = files.filter(file =>
     !selectedFiles.some(existingFile => existingFile.name === file.name && existingFile.lastModified === file.lastModified)
   );
 
+  // Compress images before storing to avoid exceeding Vercel's proxy body-size limit
+  const compressed = await Promise.all(newFiles.map(f => compressImage(f)));
+
   // Add unique identifiers to files for key prop
-  const filesWithIds = newFiles.map(file => ({ file, id: crypto.randomUUID() }));
+  const filesWithIds = compressed.map(file => ({ file, id: crypto.randomUUID() }));
 
   setSelectedFiles(prevFiles => {
     const combined = [...prevFiles, ...filesWithIds];
@@ -231,7 +235,7 @@ const FileUploadModal = ({
     return combined;
   });
   // Clear the input value to allow selecting the same file again after removing it
-  event.target.value = null; 
+  event.target.value = null;
 }, [selectedFiles]);
 
 const handleRemoveFile = useCallback((fileIdToRemove) => {
@@ -404,7 +408,10 @@ const handleRemoveFile = useCallback((fileIdToRemove) => {
       onSubmit(result)
       onClose()
     } catch (err) {
-      setError(err.message || 'Upload failed. Please try again.')
+      // Surface subscription-limit message from the backend
+      const is403 = err.response?.status === 403
+      const backendMessage = err.response?.data?.detail
+      setError((is403 && backendMessage) ? backendMessage : (err.message || 'Upload failed. Please try again.'))
     } finally {
       setIsLoading(false)
     }

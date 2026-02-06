@@ -34,6 +34,7 @@ import { useUser } from '../../contexts/UserContext'
 import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence, uploadEvidenceMultiOutcome, generateAIDescription } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
 import ResponsiveImage from '../../components/common/ResponsiveImage'
+import { compressImage } from '../../services/imageService'
 import { logger } from '../../utils/logger'
 import { UpgradeBanner } from '../../components/subscription/UpgradePrompt'
 
@@ -121,14 +122,17 @@ const AIEvidenceUploadPage = () => {
     }
   }, [])
 
-  const handleFileSelect = (event) => {
+  const handleFileSelect = async (event) => {
     const files = Array.from(event.target.files)
-    const newFiles = files.filter(file => 
+    const newFiles = files.filter(file =>
       !selectedFiles.some(existingFile => existingFile.name === file.name && existingFile.lastModified === file.lastModified)
     )
 
-    const filesWithIds = newFiles.map(file => ({ 
-      file, 
+    // Compress images before storing to avoid exceeding Vercel's proxy body-size limit
+    const compressed = await Promise.all(newFiles.map(f => compressImage(f)))
+
+    const filesWithIds = compressed.map(file => ({
+      file,
       id: crypto.randomUUID(),
       preview: URL.createObjectURL(file)
     }))
@@ -369,11 +373,16 @@ const AIEvidenceUploadPage = () => {
       navigate(`/students/${studentId}/progress`)
     } catch (error) {
       logger.error('Error uploading evidence', error)
+
+      // Surface subscription-limit message from the backend
+      const is403 = error.response?.status === 403
+      const backendMessage = error.response?.data?.detail
+
       toast({
-        title: 'Upload failed',
-        description: error.message || 'Unable to upload evidence. Please try again.',
+        title: is403 ? 'Upload limit reached' : 'Upload failed',
+        description: (is403 && backendMessage) ? backendMessage : (error.message || 'Unable to upload evidence. Please try again.'),
         status: 'error',
-        duration: 5000,
+        duration: 7000,
         isClosable: true,
       })
     } finally {
