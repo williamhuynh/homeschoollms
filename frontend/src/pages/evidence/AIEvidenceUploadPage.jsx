@@ -34,8 +34,24 @@ import { useUser } from '../../contexts/UserContext'
 import { analyzeImageForQuestions, suggestLearningOutcomes, uploadEvidence, uploadEvidenceMultiOutcome, generateAIDescription } from '../../services/api'
 import { curriculumService } from '../../services/curriculum'
 import ResponsiveImage from '../../components/common/ResponsiveImage'
+import { compressImage } from '../../services/imageService'
 import { logger } from '../../utils/logger'
 import { UpgradeBanner } from '../../components/subscription/UpgradePrompt'
+
+/** Build a user-visible error description that includes actionable detail. */
+function describeUploadError(error, fallback) {
+  const status = error.response?.status
+  const detail = error.response?.data?.detail
+  const parts = []
+
+  if (detail) parts.push(detail)
+  else if (error.message) parts.push(error.message)
+  else parts.push(fallback)
+
+  if (status) parts.push(`(HTTP ${status})`)
+
+  return parts.join(' ')
+}
 
 const AIEvidenceUploadPage = () => {
   const navigate = useNavigate()
@@ -121,14 +137,17 @@ const AIEvidenceUploadPage = () => {
     }
   }, [])
 
-  const handleFileSelect = (event) => {
+  const handleFileSelect = async (event) => {
     const files = Array.from(event.target.files)
-    const newFiles = files.filter(file => 
+    const newFiles = files.filter(file =>
       !selectedFiles.some(existingFile => existingFile.name === file.name && existingFile.lastModified === file.lastModified)
     )
 
-    const filesWithIds = newFiles.map(file => ({ 
-      file, 
+    // Compress images before storing to avoid exceeding Vercel's proxy body-size limit
+    const compressed = await Promise.all(newFiles.map(f => compressImage(f)))
+
+    const filesWithIds = compressed.map(file => ({
+      file,
       id: crypto.randomUUID(),
       preview: URL.createObjectURL(file)
     }))
@@ -160,13 +179,14 @@ const AIEvidenceUploadPage = () => {
     }
 
     setIsProcessing(true)
+    const fileSizes = selectedFiles.map(f => `${f.file.name}:${(f.file.size / 1024).toFixed(0)}KB`)
     try {
-      logger.breadcrumb('ai', 'Analyzing images', { count: selectedFiles.length })
-      
+      logger.breadcrumb('ai', 'Step 1: Analyzing images', { count: selectedFiles.length, fileSizes })
+
       // Call AI service to analyze image and generate questions
       const files = selectedFiles.map(f => f.file)
       const response = await analyzeImageForQuestions(files)
-      
+
       if (response?.questions && response.questions.length > 0) {
         setAnalysisQuestions(response.questions)
         setCurrentStep(2)
@@ -180,14 +200,19 @@ const AIEvidenceUploadPage = () => {
       } else {
         throw new Error('No questions generated from AI analysis')
       }
-      
+
     } catch (error) {
-      logger.error('Error analyzing images', error)
+      logger.error('Step 1 failed: analyzeImageForQuestions', error, {
+        step: 'analyze-image',
+        fileCount: selectedFiles.length,
+        fileSizes,
+        studentId,
+      })
       toast({
         title: 'Analysis failed',
-        description: error.message || 'Unable to analyze the images. Please try again.',
+        description: describeUploadError(error, 'Unable to analyze the images. Please try again.'),
         status: 'error',
-        duration: 5000,
+        duration: 7000,
         isClosable: true,
       })
     } finally {
@@ -264,12 +289,17 @@ const AIEvidenceUploadPage = () => {
       }
       
     } catch (error) {
-      logger.error('Error getting outcome suggestions', error)
+      logger.error('Step 2 failed: suggestLearningOutcomes', error, {
+        step: 'suggest-outcomes',
+        fileCount: selectedFiles.length,
+        studentId,
+        gradeLevel: student?.grade_level,
+      })
       toast({
-        title: 'Analysis failed',
-        description: error.message || 'Unable to analyze learning outcomes. Please try again.',
+        title: 'Outcome analysis failed',
+        description: describeUploadError(error, 'Unable to analyze learning outcomes. Please try again.'),
         status: 'error',
-        duration: 5000,
+        duration: 7000,
         isClosable: true,
       })
     } finally {
@@ -368,12 +398,19 @@ const AIEvidenceUploadPage = () => {
 
       navigate(`/students/${studentId}/progress`)
     } catch (error) {
-      logger.error('Error uploading evidence', error)
+      logger.error('Step 4 failed: uploadEvidenceMultiOutcome', error, {
+        step: 'upload-evidence',
+        fileCount: selectedFiles.length,
+        selectedOutcomes,
+        studentId,
+      })
+
+      const is403 = error.response?.status === 403
       toast({
-        title: 'Upload failed',
-        description: error.message || 'Unable to upload evidence. Please try again.',
+        title: is403 ? 'Upload limit reached' : 'Upload failed',
+        description: describeUploadError(error, 'Unable to upload evidence. Please try again.'),
         status: 'error',
-        duration: 5000,
+        duration: 7000,
         isClosable: true,
       })
     } finally {
@@ -685,9 +722,15 @@ const AIEvidenceUploadPage = () => {
                 setTitle(`AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
               }
             } catch (err) {
-              logger.error('AI description generation failed before review', err)
+              logger.error('Step 3 failed: generateAIDescription', err, {
+                step: 'generate-description',
+                fileCount: selectedFiles.length,
+                selectedOutcomes,
+                studentId,
+              })
               setDescription(buildFallbackDescription())
-              setAIGenerationError('Could not generate AI description. A basic description has been provided. You can edit it below.')
+              const statusHint = err.response?.status ? ` (HTTP ${err.response.status})` : ''
+              setAIGenerationError(`Could not generate AI description${statusHint}. A basic description has been provided. You can edit it below.`)
             } finally {
               setIsProcessing(false)
               setCurrentStep(4)
