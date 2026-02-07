@@ -390,9 +390,11 @@ function SubscriptionPage() {
                       </Badge>
                     )}
                   </HStack>
-                  <Badge colorScheme="purple" fontSize="sm" mt={2}>
-                    14-day free trial
-                  </Badge>
+                  {!hasActiveSubscription && !isGrandfathered() && (
+                    <Badge colorScheme="purple" fontSize="sm" mt={2}>
+                      14-day free trial
+                    </Badge>
+                  )}
                   <Text color="gray.500" mt={2}>
                     Everything you need for homeschooling
                   </Text>
