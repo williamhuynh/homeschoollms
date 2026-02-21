@@ -9,30 +9,6 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Grade-to-stage mapping for filtering evidence by curriculum stage.
-# Grades within the same stage share the same curriculum outcomes.
-GRADE_TO_STAGE = {
-    "K": "Early Stage 1", "Kindergarten": "Early Stage 1",
-    "1": "Stage 1", "Year 1": "Stage 1",
-    "2": "Stage 1", "Year 2": "Stage 1",
-    "3": "Stage 2", "Year 3": "Stage 2",
-    "4": "Stage 2", "Year 4": "Stage 2",
-    "5": "Stage 3", "Year 5": "Stage 3",
-    "6": "Stage 3", "Year 6": "Stage 3",
-    "7": "Stage 4", "Year 7": "Stage 4",
-    "8": "Stage 4", "Year 8": "Stage 4",
-    "9": "Stage 5", "Year 9": "Stage 5",
-    "10": "Stage 5", "Year 10": "Stage 5",
-    "11": "Stage 6", "Year 11": "Stage 6",
-    "12": "Stage 6", "Year 12": "Stage 6",
-}
-
-def _get_grades_for_same_stage(student_grade: str) -> list:
-    """Return all grade values that map to the same stage as the given grade."""
-    target_stage = GRADE_TO_STAGE.get(student_grade)
-    if not target_stage:
-        return []
-    return [grade for grade, stage in GRADE_TO_STAGE.items() if stage == target_stage]
 
 
 class LearningOutcomeService:
@@ -280,28 +256,23 @@ class LearningOutcomeService:
                 "deleted": {"$ne": True}
             }
 
-            # Filter by grade/stage when student_grade is provided.
-            # This prevents evidence uploaded for one stage from appearing
-            # in another stage when the student's grade is changed.
+            # Filter by exact grade when student_grade is provided.
+            # Evidence uploaded in Year 3 should only appear when viewing Year 3,
+            # not when the student moves to Year 4 (even if outcomes are the same).
             if student_grade:
-                matching_grades = _get_grades_for_same_stage(student_grade)
-                if matching_grades:
-                    # Include evidence that matches the stage OR legacy evidence without a grade
-                    query["$or"] = [
-                        {"student_grade": {"$in": matching_grades}},
-                        {"student_grade": None},
-                        {"student_grade": {"$exists": False}}
+                grade_filter = [
+                    {"student_grade": student_grade},
+                    {"student_grade": None},
+                    {"student_grade": {"$exists": False}}
+                ]
+                base_conditions = {k: v for k, v in query.items()}
+                query = {
+                    "$and": [
+                        base_conditions,
+                        {"$or": grade_filter}
                     ]
-                    # Merge with existing query by restructuring
-                    base_conditions = {k: v for k, v in query.items() if k != "$or"}
-                    grade_filter = query["$or"]
-                    query = {
-                        "$and": [
-                            base_conditions,
-                            {"$or": grade_filter}
-                        ]
-                    }
-                    logger.info(f"Applied grade filter for stage matching grades: {matching_grades}")
+                }
+                logger.info(f"Applied exact grade filter: {student_grade}")
             
             logger.info(f"Querying evidence with: {query}")
             evidence = await db.student_evidence.find(query).to_list(None)
@@ -476,25 +447,22 @@ class LearningOutcomeService:
                 "deleted": {"$ne": True}
             }
 
-            # Filter by grade/stage when student_grade is provided
+            # Filter by exact grade when student_grade is provided
             if student_grade:
-                matching_grades = _get_grades_for_same_stage(student_grade)
-                if matching_grades:
-                    grade_filter = [
-                        {"student_grade": {"$in": matching_grades}},
-                        {"student_grade": None},
-                        {"student_grade": {"$exists": False}}
+                grade_filter = [
+                    {"student_grade": student_grade},
+                    {"student_grade": None},
+                    {"student_grade": {"$exists": False}}
+                ]
+                query = {
+                    "$and": [
+                        {"student_id": student_obj_id},
+                        {"$or": outcome_conditions},
+                        {"deleted": {"$ne": True}},
+                        {"$or": grade_filter}
                     ]
-                    # Restructure query to combine outcome $or with grade filter
-                    query = {
-                        "$and": [
-                            {"student_id": student_obj_id},
-                            {"$or": outcome_conditions},
-                            {"deleted": {"$ne": True}},
-                            {"$or": grade_filter}
-                        ]
-                    }
-                    logger.info(f"Applied grade filter for stage matching grades: {matching_grades}")
+                }
+                logger.info(f"Applied exact grade filter: {student_grade}")
             
             logger.info(f"Querying evidence with: {query}")
             
