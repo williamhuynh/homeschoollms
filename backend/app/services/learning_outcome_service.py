@@ -410,8 +410,8 @@ class LearningOutcomeService:
         """
         Retrieve the latest evidence for multiple learning outcomes at once.
         Returns a map of outcome_code -> latest evidence item.
-        When student_grade is provided, only evidence from the same curriculum
-        stage (or legacy evidence without a grade) is returned.
+        When student_grade is provided, only evidence from the exact same
+        grade (or legacy evidence without a grade) is returned.
         """
         import logging
         logger = logging.getLogger(__name__)
