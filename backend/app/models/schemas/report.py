@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from .base import MongoBaseModel, PyObjectId
 from pydantic import BaseModel, Field
@@ -35,7 +35,7 @@ class LearningAreaSummary(BaseModel):
     outcomes_with_evidence: int = 0
     total_outcomes: int = 0
     progress_percentage: float = 0.0
-    last_updated: datetime = Field(default_factory=datetime.utcnow)
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class ExportSettings(BaseModel):
     include_thumbnails: bool = True
@@ -50,7 +50,7 @@ class StudentReport(MongoBaseModel):
     title: Optional[str] = None
     learning_area_summaries: List[LearningAreaSummary] = []
     generated_at: Optional[datetime] = None
-    last_modified: datetime = Field(default_factory=datetime.utcnow)
+    last_modified: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: PyObjectId
     modified_by: Optional[PyObjectId] = None
     status: ReportStatus = ReportStatus.DRAFT
