@@ -101,7 +101,7 @@ const StudentProgressPage = () => {
               if (outcomeCodes.length === 0) {
                 return [subject.code, { percentage: 0, total: 0, withEvidence: 0 }]
               }
-              const evidenceMap = await getLatestEvidenceForOutcomes(student._id, outcomeCodes)
+              const evidenceMap = await getLatestEvidenceForOutcomes(student._id, outcomeCodes, student.grade_level)
               const withEvidence = Object.keys(evidenceMap || {}).length
               const total = outcomeCodes.length
               const percentage = total > 0 ? (withEvidence / total) * 100 : 0

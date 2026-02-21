@@ -64,7 +64,7 @@ import { logger } from '../../utils/logger'
        if (!isOffline) {
          setEvidenceLoading(true)
          try {
-           const evidenceData = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+           const evidenceData = await getEvidenceForLearningOutcome(studentId, learningOutcomeId, student?.grade_level)
            setEvidence(evidenceData)
          } catch (err) {
            logger.error('Error fetching evidence', err)
@@ -101,7 +101,7 @@ import { logger } from '../../utils/logger'
    const handleImageDeleted = async (imageId) => {
      try {
        setEvidenceLoading(true)
-       const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+       const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId, student?.grade_level)
        setEvidence(updatedEvidence)
      } catch (err) {
        logger.error('Error refreshing evidence after deletion', err)
@@ -109,11 +109,11 @@ import { logger } from '../../utils/logger'
        setEvidenceLoading(false)
      }
    }
- 
+
    const handleEvidenceUploaded = async () => {
      try {
        setEvidenceLoading(true)
-       const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId)
+       const updatedEvidence = await getEvidenceForLearningOutcome(studentId, learningOutcomeId, student?.grade_level)
        setEvidence(updatedEvidence)
      } catch (err) {
        logger.error('Error refreshing evidence after upload', err)

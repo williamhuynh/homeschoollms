@@ -132,16 +132,17 @@ async def get_student_learning_outcome(
 async def get_evidence(
     student_id: str,
     learning_outcome_id: str,
+    student_grade: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_user)
 ):
     # Verify user has access to this student's evidence
     await ensure_student_access(student_id, current_user, "view")
-    
+
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     try:
-        logger.info(f"Fetching evidence for student {resolved_student_id} and outcome {learning_outcome_id}")
-        evidence = await LearningOutcomeService.get_evidence(resolved_student_id, learning_outcome_id)
+        logger.info(f"Fetching evidence for student {resolved_student_id} and outcome {learning_outcome_id} (grade filter: {student_grade})")
+        evidence = await LearningOutcomeService.get_evidence(resolved_student_id, learning_outcome_id, student_grade=student_grade)
         logger.info(f"Found {len(evidence)} evidence records")
         if evidence and len(evidence) > 0:
             logger.info(f"First evidence item: {evidence[0].get('title', 'No title')} - {evidence[0].get('fileUrl', 'No URL')}")
@@ -154,19 +155,20 @@ async def get_evidence(
 async def get_batch_evidence(
     student_id: str,
     outcomes: str,
+    student_grade: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_user)
 ):
     # Verify user has access to this student's evidence
     await ensure_student_access(student_id, current_user, "view")
-    
+
     db = Database.get_db()
     resolved_student_id = await resolve_student_id(student_id, db)
     try:
         outcome_codes = [code.strip() for code in outcomes.split(',') if code.strip()]
-        logger.info(f"Fetching batch evidence for student {resolved_student_id} and outcomes: {outcome_codes}")
+        logger.info(f"Fetching batch evidence for student {resolved_student_id} and outcomes: {outcome_codes} (grade filter: {student_grade})")
         if not outcome_codes:
             return {}
-        evidence_map = await LearningOutcomeService.get_batch_evidence(resolved_student_id, outcome_codes)
+        evidence_map = await LearningOutcomeService.get_batch_evidence(resolved_student_id, outcome_codes, student_grade=student_grade)
         logger.info(f"Found evidence for {len(evidence_map)} outcomes")
         return evidence_map
     except Exception as e:
@@ -293,6 +295,7 @@ async def upload_evidence_multi_outcome(
                 "learning_outcome_codes": outcome_codes,  # Array of codes
                 "outcome_obj_ids": validated_obj_ids,     # Array of ObjectIds
                 "learning_area_codes": area_codes,        # Array of area codes
+                "student_grade": student_grade,           # Grade at time of upload
                 "location": location,
                 "file_path": file_path,
                 "file_type": file.content_type,
@@ -537,6 +540,7 @@ async def upload_evidence(
                 "learning_outcome_codes": [outcome_code_to_use], # Array format
                 "outcome_obj_ids": [outcome_obj_id],             # Array format
                 "learning_area_codes": [learning_area_code] if learning_area_code else [], # Array format
+                "student_grade": student_grade,                  # Grade at time of upload
                 "location": location,
                 "file_path": file_path,
                 "file_type": file.content_type,

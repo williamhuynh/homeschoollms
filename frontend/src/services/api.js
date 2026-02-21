@@ -550,12 +550,18 @@ export const getLearningOutcome = async (studentId, learningOutcomeId) => {
   }
 };
 
-export const getEvidenceForLearningOutcome = async (studentId, learningOutcomeId) => {
+export const getEvidenceForLearningOutcome = async (studentId, learningOutcomeId, studentGrade = null) => {
   try {
-    logger.debug('Fetching evidence', { studentId, learningOutcomeId });
-    
-    const response = await apiToUse.get(`/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`);
-    
+    logger.debug('Fetching evidence', { studentId, learningOutcomeId, studentGrade });
+
+    const params = {};
+    if (studentGrade) params.student_grade = studentGrade;
+
+    const response = await apiToUse.get(
+      `/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence`,
+      { params }
+    );
+
     logger.debug('Evidence fetched', { count: response.data?.length });
     return response.data;
   } catch (error) {
@@ -564,22 +570,22 @@ export const getEvidenceForLearningOutcome = async (studentId, learningOutcomeId
   }
 };
 
-export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
+export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes, studentGrade = null) => {
   try {
-    logger.debug('Fetching latest evidence for outcomes', { studentId, count: outcomeCodes.length });
-    
+    logger.debug('Fetching latest evidence for outcomes', { studentId, count: outcomeCodes.length, studentGrade });
+
     // Use batch endpoint if there are multiple outcomes (more efficient)
     if (outcomeCodes.length > 1) {
-      return await getBatchEvidenceForOutcomes(studentId, outcomeCodes);
+      return await getBatchEvidenceForOutcomes(studentId, outcomeCodes, studentGrade);
     }
-    
+
     // Fallback to individual requests for a single outcome or empty array
     const evidenceMap = {};
-    
+
     // Fetch evidence for each outcome code
     for (const outcomeCode of outcomeCodes) {
       try {
-        const evidence = await getEvidenceForLearningOutcome(studentId, outcomeCode);
+        const evidence = await getEvidenceForLearningOutcome(studentId, outcomeCode, studentGrade);
         if (evidence && evidence.length > 0) {
           // Sort by uploaded_at date (newest first) and take the first one
           const sortedEvidence = evidence.sort((a, b) => {
@@ -593,7 +599,7 @@ export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
         continue;
       }
     }
-    
+
     return evidenceMap;
   } catch (error) {
     logger.error('Failed to get latest evidence for outcomes', error);
@@ -602,18 +608,22 @@ export const getLatestEvidenceForOutcomes = async (studentId, outcomeCodes) => {
 };
 
 // New function to get evidence for multiple outcomes in a single request
-export const getBatchEvidenceForOutcomes = async (studentId, outcomeCodes) => {
+export const getBatchEvidenceForOutcomes = async (studentId, outcomeCodes, studentGrade = null) => {
   try {
     // Combine all outcome codes into a comma-separated string
     const outcomeCodesParam = outcomeCodes.join(',');
-    
-    logger.debug('Fetching batch evidence', { studentId, outcomeCount: outcomeCodes.length });
-    
+
+    logger.debug('Fetching batch evidence', { studentId, outcomeCount: outcomeCodes.length, studentGrade });
+
+    // Build query params
+    let url = `/api/evidence/batch/student/${studentId}?outcomes=${outcomeCodesParam}`;
+    if (studentGrade) {
+      url += `&student_grade=${encodeURIComponent(studentGrade)}`;
+    }
+
     // Make a single API call to get all evidence at once
-    const response = await apiToUse.get(
-      `/api/evidence/batch/student/${studentId}?outcomes=${outcomeCodesParam}`
-    );
-    
+    const response = await apiToUse.get(url);
+
     logger.debug('Batch evidence fetched', { resultCount: Object.keys(response.data).length });
     return response.data;
   } catch (error) {

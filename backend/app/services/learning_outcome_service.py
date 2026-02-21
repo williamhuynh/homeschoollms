@@ -9,6 +9,32 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Grade-to-stage mapping for filtering evidence by curriculum stage.
+# Grades within the same stage share the same curriculum outcomes.
+GRADE_TO_STAGE = {
+    "K": "Early Stage 1", "Kindergarten": "Early Stage 1",
+    "1": "Stage 1", "Year 1": "Stage 1",
+    "2": "Stage 1", "Year 2": "Stage 1",
+    "3": "Stage 2", "Year 3": "Stage 2",
+    "4": "Stage 2", "Year 4": "Stage 2",
+    "5": "Stage 3", "Year 5": "Stage 3",
+    "6": "Stage 3", "Year 6": "Stage 3",
+    "7": "Stage 4", "Year 7": "Stage 4",
+    "8": "Stage 4", "Year 8": "Stage 4",
+    "9": "Stage 5", "Year 9": "Stage 5",
+    "10": "Stage 5", "Year 10": "Stage 5",
+    "11": "Stage 6", "Year 11": "Stage 6",
+    "12": "Stage 6", "Year 12": "Stage 6",
+}
+
+def _get_grades_for_same_stage(student_grade: str) -> list:
+    """Return all grade values that map to the same stage as the given grade."""
+    target_stage = GRADE_TO_STAGE.get(student_grade)
+    if not target_stage:
+        return []
+    return [grade for grade, stage in GRADE_TO_STAGE.items() if stage == target_stage]
+
+
 class LearningOutcomeService:
     @staticmethod
     async def create_learning_outcome(
@@ -211,16 +237,16 @@ class LearningOutcomeService:
         }
 
     @staticmethod
-    async def get_evidence(student_id: str, learning_outcome_id: str):
+    async def get_evidence(student_id: str, learning_outcome_id: str, student_grade: Optional[str] = None):
         import logging
         logger = logging.getLogger(__name__)
-        
+
         try:
             db = Database.get_db()
-            
+
             logger.info(f"Converting IDs: student_id={student_id}, learning_outcome_id={learning_outcome_id}")
             student_obj_id = ObjectId(student_id)
-            
+
             # Try to find outcome by ObjectId first
             try:
                 outcome_obj_id = ObjectId(learning_outcome_id)
@@ -228,14 +254,14 @@ class LearningOutcomeService:
             except:
                 outcome_obj_id = None
                 logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
-                
+
             # If not found by ObjectId, try to find by code (case-insensitive)
             outcome_code = learning_outcome_id
             if not outcome_obj_id:
                 logger.info(f"Looking up learning outcome by code: {learning_outcome_id}")
                 logger.info(f"Database name: {db.name}")
                 logger.info(f"Collection stats: {await db.learning_outcomes.count_documents({})}")
-                
+
                 import re
                 code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
                 outcome = await db.learning_outcomes.find_one({"code": {"$regex": code_pattern}})
@@ -244,7 +270,7 @@ class LearningOutcomeService:
                     logger.info(f"Found learning outcome with ID: {outcome_obj_id}")
                 else:
                     logger.info(f"No learning outcome found with code: {learning_outcome_id}")
-            
+
             # Simple query using new array-based schema only (case-insensitive)
             import re
             outcome_code_pattern = re.compile(f"^{re.escape(outcome_code)}$", re.IGNORECASE)
@@ -253,6 +279,29 @@ class LearningOutcomeService:
                 "learning_outcome_codes": {"$elemMatch": {"$regex": outcome_code_pattern}},
                 "deleted": {"$ne": True}
             }
+
+            # Filter by grade/stage when student_grade is provided.
+            # This prevents evidence uploaded for one stage from appearing
+            # in another stage when the student's grade is changed.
+            if student_grade:
+                matching_grades = _get_grades_for_same_stage(student_grade)
+                if matching_grades:
+                    # Include evidence that matches the stage OR legacy evidence without a grade
+                    query["$or"] = [
+                        {"student_grade": {"$in": matching_grades}},
+                        {"student_grade": None},
+                        {"student_grade": {"$exists": False}}
+                    ]
+                    # Merge with existing query by restructuring
+                    base_conditions = {k: v for k, v in query.items() if k != "$or"}
+                    grade_filter = query["$or"]
+                    query = {
+                        "$and": [
+                            base_conditions,
+                            {"$or": grade_filter}
+                        ]
+                    }
+                    logger.info(f"Applied grade filter for stage matching grades: {matching_grades}")
             
             logger.info(f"Querying evidence with: {query}")
             evidence = await db.student_evidence.find(query).to_list(None)
@@ -386,18 +435,20 @@ class LearningOutcomeService:
             raise Exception(f"Failed to fetch evidence: {str(e)}")
             
     @staticmethod
-    async def get_batch_evidence(student_id: str, learning_outcome_codes: list):
+    async def get_batch_evidence(student_id: str, learning_outcome_codes: list, student_grade: Optional[str] = None):
         """
         Retrieve the latest evidence for multiple learning outcomes at once.
         Returns a map of outcome_code -> latest evidence item.
+        When student_grade is provided, only evidence from the same curriculum
+        stage (or legacy evidence without a grade) is returned.
         """
         import logging
         logger = logging.getLogger(__name__)
-        
+
         try:
             # Validate student_id
             db = Database.get_db()
-            
+
             try:
                 student_obj_id = ObjectId(student_id)
             except:
@@ -408,9 +459,9 @@ class LearningOutcomeService:
                 else:
                     logger.error(f"Invalid student ID or slug: {student_id}")
                     return {}
-            
-            logger.info(f"Fetching batch evidence for student {student_obj_id} and {len(learning_outcome_codes)} outcomes")
-            
+
+            logger.info(f"Fetching batch evidence for student {student_obj_id} and {len(learning_outcome_codes)} outcomes (grade filter: {student_grade})")
+
             # Simple query using new array-based schema only (case-insensitive)
             import re
             # Create case-insensitive regex conditions for each outcome code
@@ -418,12 +469,32 @@ class LearningOutcomeService:
             for code in learning_outcome_codes:
                 pattern = re.compile(f"^{re.escape(code)}$", re.IGNORECASE)
                 outcome_conditions.append({"learning_outcome_codes": {"$elemMatch": {"$regex": pattern}}})
-            
+
             query = {
                 "student_id": student_obj_id,
                 "$or": outcome_conditions,
                 "deleted": {"$ne": True}
             }
+
+            # Filter by grade/stage when student_grade is provided
+            if student_grade:
+                matching_grades = _get_grades_for_same_stage(student_grade)
+                if matching_grades:
+                    grade_filter = [
+                        {"student_grade": {"$in": matching_grades}},
+                        {"student_grade": None},
+                        {"student_grade": {"$exists": False}}
+                    ]
+                    # Restructure query to combine outcome $or with grade filter
+                    query = {
+                        "$and": [
+                            {"student_id": student_obj_id},
+                            {"$or": outcome_conditions},
+                            {"deleted": {"$ne": True}},
+                            {"$or": grade_filter}
+                        ]
+                    }
+                    logger.info(f"Applied grade filter for stage matching grades: {matching_grades}")
             
             logger.info(f"Querying evidence with: {query}")
             
