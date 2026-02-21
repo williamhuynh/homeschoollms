@@ -2,7 +2,7 @@ from ..utils.database_utils import Database
 from ..models.schemas.progress import Progress
 from fastapi import HTTPException
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 class ProgressService:
@@ -14,11 +14,11 @@ class ProgressService:
             "content_id": ObjectId(content_id),
             "status": status,
             "score": score,
-            "last_updated": datetime.utcnow()
+            "last_updated": datetime.now(timezone.utc)
         }
         
         if status == "completed":
-            progress_data["completion_date"] = datetime.utcnow()
+            progress_data["completion_date"] = datetime.now(timezone.utc)
         
         result = await db.progress.update_one(
             {

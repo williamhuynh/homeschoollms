@@ -93,8 +93,23 @@ async def get_current_user_info(current_user: UserInDB = Depends(get_current_use
     return current_user
 
 @router.post("/verify-token")
-async def verify_token(authorization: Optional[str] = Header(None)):
+async def verify_token(request: Request, authorization: Optional[str] = Header(None)):
     """Verify a token and return basic user info if valid"""
+    # Rate limit: 20 verify-token requests per minute per IP
+    client_ip = request.client.host if request.client else "unknown"
+    rate_limiter = get_rate_limiter()
+
+    allowed, remaining, reset_in = rate_limiter.check_rate_limit(
+        key=f"verify_token:ip:{client_ip}",
+        max_requests=20,
+        window_seconds=60
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many token verification requests. Please try again in {reset_in} seconds."
+        )
+
     if not authorization:
         raise HTTPException(
             status_code=401,

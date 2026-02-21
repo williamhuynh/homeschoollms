@@ -30,7 +30,7 @@ async def ensure_student_access(student_id: str, current_user: UserInDB, require
     # Resolve student ID
     try:
         student_obj_id = ObjectId(student_id)
-    except:
+    except Exception:
         # Try to find by slug
         student = await db.students.find_one({"slug": student_id})
         if student:
@@ -95,7 +95,7 @@ async def get_student_reports(
         return reports
     except Exception as e:
         logger.error(f"Error fetching reports: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.get("/reports/{student_id}/{report_id}", response_model=StudentReport)
 async def get_report(
@@ -116,7 +116,7 @@ async def get_report(
             db = Database.get_db()
             try:
                 student_obj_id = ObjectId(student_id)
-            except:
+            except Exception:
                 student = await db.students.find_one({"slug": student_id})
                 if student:
                     student_obj_id = student["_id"]
@@ -131,7 +131,7 @@ async def get_report(
         raise
     except Exception as e:
         logger.error(f"Error fetching report: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.post("/reports/{student_id}/generate", response_model=StudentReport)
 async def generate_report(
@@ -159,7 +159,7 @@ async def generate_report(
         raise
     except Exception as e:
         logger.error(f"Error generating report: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.put("/reports/{student_id}/{report_id}/learning-area/{learning_area_code}", response_model=StudentReport)
 async def update_learning_area_summary(
@@ -181,7 +181,7 @@ async def update_learning_area_summary(
         db = Database.get_db()
         try:
             student_obj_id = ObjectId(student_id)
-        except:
+        except Exception:
             student = await db.students.find_one({"slug": student_id})
             if student:
                 student_obj_id = student["_id"]
@@ -203,7 +203,7 @@ async def update_learning_area_summary(
         raise
     except Exception as e:
         logger.error(f"Error updating learning area summary: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.delete("/reports/{student_id}/{report_id}")
 async def delete_report(
@@ -223,7 +223,7 @@ async def delete_report(
         db = Database.get_db()
         try:
             student_obj_id = ObjectId(student_id)
-        except:
+        except Exception:
             student = await db.students.find_one({"slug": student_id})
             if student:
                 student_obj_id = student["_id"]
@@ -243,7 +243,7 @@ async def delete_report(
         raise
     except Exception as e:
         logger.error(f"Error deleting report: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.put("/reports/{student_id}/{report_id}/title", response_model=StudentReport)
 async def update_report_title(
@@ -259,7 +259,7 @@ async def update_report_title(
     db = Database.get_db()
     try:
         student_obj_id = ObjectId(student_id)
-    except:
+    except Exception:
         student = await db.students.find_one({"slug": student_id})
         if student:
             student_obj_id = student["_id"]
@@ -284,7 +284,7 @@ async def update_report_status(
     db = Database.get_db()
     try:
         student_obj_id = ObjectId(student_id)
-    except:
+    except Exception:
         student = await db.students.find_one({"slug": student_id})
         if student:
             student_obj_id = student["_id"]
@@ -311,7 +311,7 @@ async def update_report_overview(
     db = Database.get_db()
     try:
         student_obj_id = ObjectId(student_id)
-    except:
+    except Exception:
         student = await db.students.find_one({"slug": student_id})
         if student:
             student_obj_id = student["_id"]

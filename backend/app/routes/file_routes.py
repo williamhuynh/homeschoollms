@@ -10,7 +10,7 @@ from ..services.file_storage_service import FileStorageService
 from ..services.user_service import UserService
 from ..services.auth_service import AuthService
 import cloudinary.api
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ async def get_signed_url(
         logger.error(f"Error generating URL: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Error generating URL: {str(e)}"
+            detail="Error generating URL"
         )
 
 @router.get("/files/check-existence", summary="Check if file exists")
@@ -100,7 +100,7 @@ async def check_file_existence(
         logger.error(f"Error checking file existence: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to check file existence: {str(e)}"
+            detail="Failed to check file existence"
         )
 
 @router.post("/signed-url")
@@ -124,11 +124,11 @@ async def get_signed_url(
         
         return {
             "signed_url": signed_url,
-            "expires_at": (datetime.utcnow() + timedelta(seconds=request.expiration or 3600)).isoformat()
+            "expires_at": (datetime.now(timezone.utc) + timedelta(seconds=request.expiration or 3600)).isoformat()
         }
     except Exception as e:
         logger.error(f"Error generating signed URL: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 # Migration API endpoints
 @router.get("/migration/status")
@@ -165,7 +165,7 @@ async def get_migration_status(current_user: UserInDB = Depends(get_current_user
         }
     except Exception as e:
         logger.error(f"Error getting migration status: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.get("/migration/images")
 async def list_migration_images(
@@ -203,7 +203,7 @@ async def list_migration_images(
         }
     except Exception as e:
         logger.error(f"Error listing images: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.post("/migration/migrate-image")
 async def migrate_single_image(
@@ -242,7 +242,7 @@ async def migrate_single_image(
         }
     except Exception as e:
         logger.error(f"Error migrating image: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.post("/migration/bulk-migrate")
 async def bulk_migrate_images(
@@ -293,7 +293,7 @@ async def bulk_migrate_images(
         }
     except Exception as e:
         logger.error(f"Error in bulk migration: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.post("/migration/set-mode")
 async def set_migration_mode(
@@ -321,7 +321,7 @@ async def set_migration_mode(
         }
     except Exception as e:
         logger.error(f"Error setting migration mode: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.post("/migration/cleanup/delete-all-public")
 async def delete_all_public_images(
@@ -369,7 +369,7 @@ async def delete_all_public_images(
         }
     except Exception as e:
         logger.error(f"Error deleting public images: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.post("/migration/cleanup/delete-all-private")
 async def delete_all_private_images(
@@ -417,7 +417,7 @@ async def delete_all_private_images(
         }
     except Exception as e:
         logger.error(f"Error deleting private images: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.post("/migration/cleanup/delete-all-cloudinary")
 async def delete_all_cloudinary_images(
@@ -475,4 +475,4 @@ async def delete_all_cloudinary_images(
         }
     except Exception as e:
         logger.error(f"Error in nuclear cleanup: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail="An internal error occurred") 

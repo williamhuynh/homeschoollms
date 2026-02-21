@@ -4,7 +4,7 @@ from ..services.user_service import UserService
 from fastapi import HTTPException, Depends, UploadFile
 from bson import ObjectId
 from typing import List, Dict, Any, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import re
 from ..models.schemas.user import UserInDB
 from ..utils.auth_utils import get_current_user
@@ -178,7 +178,7 @@ class StudentService:
         subject = StudentSubject(
             subject_id=ObjectId(subject_id),
             current_grade_level=grade_level,
-            start_date=datetime.now().date()
+            start_date=datetime.now(timezone.utc).date()
         )
         
         # Convert the subject dict and handle the date
@@ -223,7 +223,7 @@ class StudentService:
         except Exception as e:
             raise HTTPException(
                 status_code=400,
-                detail=f"Error deleting student: {str(e)}"
+                detail="Error deleting student"
             )
     
     @staticmethod

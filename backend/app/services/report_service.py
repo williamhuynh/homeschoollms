@@ -16,13 +16,25 @@ from ..services.student_service import StudentService
 from ..services.curriculum_service import CurriculumService
 from fastapi import HTTPException
 from bson import ObjectId
+from pymongo.errors import DuplicateKeyError
 from typing import List, Optional, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import asyncio
 import re
 
 logger = logging.getLogger(__name__)
+
+
+async def ensure_report_indexes():
+    """Create unique index to prevent duplicate reports for the same student/grade."""
+    db = Database.get_db()
+    await db.student_reports.create_index(
+        [("student_id", 1), ("grade_level", 1)],
+        unique=True,
+        name="unique_student_grade_report",
+        partialFilterExpression={"grade_level": {"$exists": True, "$ne": None}},
+    )
 
 class ReportService:
     # Preferred display order for learning area subjects in reports.
@@ -77,7 +89,7 @@ class ReportService:
         # Resolve student ID (similar to learning outcome routes)
         try:
             student_obj_id = ObjectId(student_id)
-        except:
+        except Exception:
             # Try to find by slug
             student = await db.students.find_one({"slug": student_id})
             if student:
@@ -170,19 +182,19 @@ class ReportService:
     ) -> StudentReport:
         """Generate a new AI-powered report for a student."""
         db = Database.get_db()
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         # Resolve student ID and get student info
         try:
             student_obj_id = ObjectId(student_id)
-        except:
+        except Exception:
             # Try to find by slug
             student = await db.students.find_one({"slug": student_id})
             if student:
                 student_obj_id = student["_id"]
             else:
                 raise HTTPException(status_code=404, detail=f"Student not found: {student_id}")
-        
+
         student = await StudentService.get_student_by_id(str(student_obj_id))
         
         # Check if report already exists for this grade
@@ -244,9 +256,15 @@ class ReportService:
         if isinstance(report_doc.get("report_period"), ReportPeriod):
             report_doc["report_period"] = report_doc["report_period"].value
 
-        result = await db.student_reports.insert_one(report_doc)
+        try:
+            result = await db.student_reports.insert_one(report_doc)
+        except DuplicateKeyError:
+            raise HTTPException(
+                status_code=400,
+                detail="Report already exists for this grade. Delete existing report first."
+            )
         report_id = result.inserted_id
-        
+
         try:
             # Get curriculum data for the selected grade (fallback to student's current grade)
             selected_grade_level = request.grade_level or student.grade_level
@@ -299,7 +317,7 @@ class ReportService:
             summaries = ReportService.sort_summaries(summaries)
 
             # Calculate generation time
-            generation_time = (datetime.utcnow() - start_time).total_seconds()
+            generation_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             
             logger.info(f"Report generation completed in {generation_time:.2f} seconds")
             logger.info(f"Generated {len(summaries)} learning area summaries")
@@ -341,7 +359,7 @@ class ReportService:
                         "learning_area_summaries": summaries_data,
                         "ai_generated_overview": ai_overview,
                         "status": ReportStatus.DRAFT.value,
-                        "generated_at": datetime.utcnow(),
+                        "generated_at": datetime.now(timezone.utc),
                         "generation_time_seconds": generation_time
                     }
                 }
@@ -376,7 +394,7 @@ class ReportService:
                 {"$set": {"status": ReportStatus.DRAFT.value}}
             )
             logger.error(f"Report generation failed: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
+            raise HTTPException(status_code=500, detail="Report generation failed")
     
     @staticmethod
     async def update_learning_area_summary(
@@ -407,7 +425,7 @@ class ReportService:
             if summary["learning_area_code"] == learning_area_code:
                 summary["user_edited_summary"] = update_request.user_edited_summary
                 summary["is_edited"] = True
-                summary["last_updated"] = datetime.utcnow()
+                summary["last_updated"] = datetime.now(timezone.utc)
                 updated = True
                 break
         
@@ -420,7 +438,7 @@ class ReportService:
             {
                 "$set": {
                     "learning_area_summaries": report["learning_area_summaries"],
-                    "last_modified": datetime.utcnow(),
+                    "last_modified": datetime.now(timezone.utc),
                     "modified_by": ObjectId(current_user.id)
                 }
             }
@@ -602,7 +620,7 @@ class ReportService:
                     thumbnail_url=evidence.get("thumbnail_url", ""),
                     title=evidence.get("title", ""),
                     description=evidence.get("description", ""),
-                    uploaded_at=evidence.get("uploaded_at", datetime.utcnow())
+                    uploaded_at=evidence.get("uploaded_at", datetime.now(timezone.utc))
                 ))
         
         # Sort evidence examples by uploaded_at descending for consistent display
@@ -814,7 +832,7 @@ class ReportService:
             raise HTTPException(status_code=404, detail="Report not found")
         await db.student_reports.update_one(
             {"_id": report["_id"]},
-            {"$set": {"title": title, "last_modified": datetime.utcnow(), "modified_by": ObjectId(current_user.id)}}
+            {"$set": {"title": title, "last_modified": datetime.now(timezone.utc), "modified_by": ObjectId(current_user.id)}}
         )
         updated = await db.student_reports.find_one({"_id": report["_id"]})
         return StudentReport(**updated)
@@ -864,7 +882,7 @@ class ReportService:
             raise HTTPException(status_code=400, detail="Invalid status update")
         await db.student_reports.update_one(
             {"_id": report["_id"]},
-            {"$set": {"status": status.value if hasattr(status, 'value') else str(status), "last_modified": datetime.utcnow(), "modified_by": ObjectId(current_user.id)}}
+            {"$set": {"status": status.value if hasattr(status, 'value') else str(status), "last_modified": datetime.now(timezone.utc), "modified_by": ObjectId(current_user.id)}}
         )
         updated = await db.student_reports.find_one({"_id": report["_id"]})
         # Normalize
@@ -903,7 +921,7 @@ class ReportService:
             {"_id": report["_id"]},
             {"$set": {
                 "parent_overview": parent_overview,
-                "last_modified": datetime.utcnow(),
+                "last_modified": datetime.now(timezone.utc),
                 "modified_by": ObjectId(current_user.id)
             }}
         )
@@ -952,7 +970,7 @@ class ReportService:
         # Set status to generating
         await db.student_reports.update_one(
             {"_id": report["_id"]},
-            {"$set": {"status": ReportStatus.GENERATING.value, "last_modified": datetime.utcnow(), "modified_by": ObjectId(current_user.id)}}
+            {"$set": {"status": ReportStatus.GENERATING.value, "last_modified": datetime.now(timezone.utc), "modified_by": ObjectId(current_user.id)}}
         )
         # Re-run generation using existing report_period and grade_level
         generate_request = GenerateReportRequest(
@@ -962,7 +980,7 @@ class ReportService:
             grade_level=report.get("grade_level")
         )
         # Instead of creating a new document, reuse same report id: call internal logic below
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         student = await StudentService.get_student_by_id(str(student_obj_id))
         # Load curriculum
         selected_grade_level = generate_request.grade_level or student.grade_level
@@ -1006,16 +1024,16 @@ class ReportService:
             logger.error(f"Failed to regenerate AI overview: {e}")
             ai_overview = f"{student_first_name} has made wonderful progress during this period."
         
-        generation_time = (datetime.utcnow() - start_time).total_seconds()
+        generation_time = (datetime.now(timezone.utc) - start_time).total_seconds()
         await db.student_reports.update_one(
             {"_id": report["_id"]},
             {"$set": {
                 "learning_area_summaries": [s.dict() for s in summaries],
                 "ai_generated_overview": ai_overview,
                 "status": ReportStatus.DRAFT.value,
-                "generated_at": datetime.utcnow(),
+                "generated_at": datetime.now(timezone.utc),
                 "generation_time_seconds": generation_time,
-                "last_modified": datetime.utcnow()
+                "last_modified": datetime.now(timezone.utc)
             }}
         )
         updated = await db.student_reports.find_one({"_id": report["_id"]})

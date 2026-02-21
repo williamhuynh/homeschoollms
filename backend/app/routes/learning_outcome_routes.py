@@ -8,7 +8,7 @@ from ..models.schemas.learning_outcome import LearningOutcome
 from ..utils.auth_utils import get_current_user, get_current_user_with_org, is_admin_user
 from typing import List, Optional, Dict, Any # Added List
 from ..models.schemas.user import UserInDB
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import uuid # Added for unique filenames
 import logging # Added for better logging control
@@ -292,7 +292,7 @@ async def upload_evidence_multi_outcome(
                     "subject_id": None,
                     "grade_level": student_grade,
                     "is_standard": True,
-                    "created_at": datetime.now()
+                    "created_at": datetime.now(timezone.utc)
                 }
                 
                 # Determine stage from grade if available
@@ -371,7 +371,7 @@ async def upload_evidence_multi_outcome(
                 "thumbnail_url": thumbnail_url,
                 "title": title,
                 "description": description,
-                "uploaded_at": datetime.now(),
+                "uploaded_at": datetime.now(timezone.utc),
                 "uploaded_by": ObjectId(current_user.id),
                 "deleted": False
             }
@@ -394,7 +394,7 @@ async def upload_evidence_multi_outcome(
             
         except Exception as e:
             logger.error(f"Error uploading file {file.filename}: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Failed to upload file {file.filename}: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to upload file")
     
     logger.info(f"Successfully uploaded {len(uploaded_files)} files with multi-outcome evidence")
     
@@ -490,7 +490,7 @@ async def upload_evidence(
                     "subject_id": None,  # We don't have subject_id here
                     "grade_level": student_grade,  # Use provided grade level
                     "is_standard": True,
-                    "created_at": datetime.now()
+                    "created_at": datetime.now(timezone.utc)
                 }
                 
                 # Determine stage from grade if available
@@ -526,7 +526,7 @@ async def upload_evidence(
                         "type": "learning_outcome_auto_created",
                         "outcome_code": outcome_code_to_use,
                         "outcome_id": outcome_obj_id,
-                        "created_at": datetime.now(),
+                        "created_at": datetime.now(timezone.utc),
                         "created_by": ObjectId(current_user.id) if current_user else None,
                         "context": {
                             "student_id": resolved_student_id,
@@ -542,7 +542,7 @@ async def upload_evidence(
                     logger.warning(f"Failed to create auto-creation log: {str(log_err)}")
             except Exception as e:
                 logger.error(f"Failed to auto-create learning outcome: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Failed to auto-create learning outcome: {str(e)}")
+                raise HTTPException(status_code=500, detail="Failed to auto-create learning outcome")
         else:
             outcome_obj_id = outcome["_id"]
             logger.info(f"Found existing learning outcome with ID: {outcome_obj_id} for code {outcome_code_to_use}")
@@ -569,7 +569,7 @@ async def upload_evidence(
             await file.seek(0) 
 
             # Generate unique file path using UUID
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
             unique_id = uuid.uuid4()
             # Get the file extension without the dot and ensure it's lowercase
             file_extension = os.path.splitext(file.filename)[1].lower()
@@ -620,7 +620,7 @@ async def upload_evidence(
                 "thumbnail_url": thumbnail_url,
                 "title": title,
                 "description": description,
-                "uploaded_at": datetime.now(),
+                "uploaded_at": datetime.now(timezone.utc),
                 "uploaded_by": ObjectId(current_user.id),
                 "deleted": False
             }
@@ -646,7 +646,7 @@ async def upload_evidence(
             logger.error(f"Error processing file {file.filename}: {str(e)}")
             # Decide whether to continue with other files or raise immediately
             # For now, let's raise immediately to signal a partial failure
-            raise HTTPException(status_code=500, detail=f"Error processing file {file.filename}: {str(e)}")
+            raise HTTPException(status_code=500, detail="Error processing file")
         finally:
             # Ensure file is closed even if errors occur
              await file.close()
@@ -692,7 +692,7 @@ async def delete_evidence(
         raise he
     except Exception as e:
         logger.error(f"Unexpected error when deleting evidence: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.get("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}/download")
 async def download_evidence(
@@ -724,7 +724,7 @@ async def download_evidence(
         raise he
     except Exception as e:
         logger.error(f"Unexpected error when generating download URL: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.post("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}/share")
 async def share_evidence(
@@ -756,7 +756,7 @@ async def share_evidence(
         raise he
     except Exception as e:
         logger.error(f"Unexpected error when generating share URL: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 @router.patch("/learning-outcomes/{student_id}/{learning_outcome_id}/evidence/{evidence_id}")
 async def update_evidence(
