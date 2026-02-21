@@ -18,7 +18,7 @@ import {
 } from '@chakra-ui/react'
 import { Download, Printer, FileText, Share2, ChevronDown } from 'react-feather'
 import { useState } from 'react'
-import { generatePrintableHTML, formatReportPeriod, formatDate } from './exportUtils'
+import { generatePrintableHTML, formatReportPeriod, formatDate, sortLearningAreaSummaries } from './exportUtils'
 import { logger } from '../../utils/logger'
 
 const ReportExporter = ({ report, student, className = '' }) => {
@@ -163,7 +163,7 @@ const ReportExporter = ({ report, student, className = '' }) => {
             <!-- Learning Area Summaries -->
             <div>
               <h2>Learning Area Progress</h2>
-              ${report.learning_area_summaries?.map(summary => `
+              ${sortLearningAreaSummaries(report.learning_area_summaries)?.map(summary => `
                 <div class="learning-area">
                   <h3>${summary.learning_area_name}</h3>
                   

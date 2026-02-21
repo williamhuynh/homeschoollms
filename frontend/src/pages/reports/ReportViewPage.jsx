@@ -27,7 +27,7 @@ import { useEffect, useState } from 'react'
 import { getReportById, getStudentBySlug, updateReportTitle, updateReportStatus, regenerateReport, updateReportOverview } from '../../services/api'
 import LearningAreaSummaryCard from '../../components/reports/LearningAreaSummaryCard'
 import ReportGenerationProgress from '../../components/reports/ReportGenerationProgress'
-import { generatePrintableHTML } from '../../components/reports/exportUtils'
+import { generatePrintableHTML, sortLearningAreaSummaries } from '../../components/reports/exportUtils'
 import { logger } from '../../utils/logger'
 
 const ReportViewPage = () => {
@@ -516,7 +516,7 @@ const ReportViewPage = () => {
               No learning area summaries generated yet.
             </Box>
           ) : (
-            report.learning_area_summaries?.map((summary) => (
+            sortLearningAreaSummaries(report.learning_area_summaries)?.map((summary) => (
               <LearningAreaSummaryCard
                 key={summary.learning_area_code}
                 summary={summary}
