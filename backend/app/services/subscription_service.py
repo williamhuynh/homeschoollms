@@ -207,6 +207,16 @@ class SubscriptionService:
         cancel_url: str
     ) -> Dict[str, str]:
         """Create a Stripe Checkout session for subscription with 14-day trial"""
+        # Validate price_id against configured allowed price IDs
+        allowed_price_ids = [
+            pid for pid in [settings.stripe_monthly_price_id, settings.stripe_annual_price_id]
+            if pid is not None
+        ]
+        if not allowed_price_ids:
+            raise HTTPException(status_code=503, detail="Subscription pricing not configured")
+        if price_id not in allowed_price_ids:
+            raise HTTPException(status_code=400, detail="Invalid price ID")
+
         customer_id = await SubscriptionService.get_or_create_stripe_customer(user_id, email)
 
         # Generate idempotency key to prevent duplicate sessions

@@ -82,51 +82,38 @@ These must be fixed before any production deployment.
 ---
 
 ### SEC-07: JWT Audience Verification Disabled
-**Severity:** HIGH | **File:** `backend/app/services/supabase_service.py:55-60`
+**Severity:** HIGH | **Status:** FIXED | **File:** `backend/app/services/supabase_service.py:55-60`
 
-```python
-payload = jwt.decode(
-    token, supabase_jwt_secret, algorithms=["HS256"],
-    options={"verify_aud": False}  # Audience NOT verified
-)
-```
+~~Audience verification was disabled, allowing tokens from other Supabase projects sharing the same JWT secret to be accepted.~~
 
-**Impact:** Tokens from other Supabase projects sharing the same JWT secret are accepted.
-
-**Fix:** Set `audience="authenticated"` and `options={"verify_aud": True}`.
+**Resolution:** Set `audience="authenticated"` and `options={"verify_aud": True}` on the verified decode. Tokens must now have `aud: "authenticated"` to pass verification.
 
 ---
 
 ### SEC-08: No Rate Limiting on Authentication Endpoints
-**Severity:** HIGH | **File:** `backend/app/routes/auth.py`
+**Severity:** HIGH | **Status:** FIXED | **File:** `backend/app/routes/auth.py`
 
-Login and register endpoints have zero rate limiting. The Stripe checkout endpoint has rate limiting (5 req/hour), showing the pattern exists but wasn't applied to auth.
+~~Login and register endpoints had zero rate limiting, enabling unlimited brute-force password attempts and credential stuffing attacks.~~
 
-**Impact:** Unlimited brute-force password attempts, credential stuffing attacks.
-
-**Fix:** Add rate limiting (e.g., 5 login attempts per 15 minutes per IP+email).
+**Resolution:** Added dual rate limiting to login (5 attempts per 15 min per email + 15 attempts per 15 min per IP) and registration (3 attempts per hour per IP) using the existing `RateLimiter` infrastructure.
 
 ---
 
 ### SEC-09: Unvalidated Price ID in Checkout
-**Severity:** HIGH | **File:** `backend/app/services/subscription_service.py:202-248`
+**Severity:** HIGH | **Status:** FIXED | **File:** `backend/app/services/subscription_service.py:202-248`
 
-The `create_checkout_session()` method accepts any `price_id` from the client without validating it against configured price IDs (`STRIPE_MONTHLY_PRICE_ID`, `STRIPE_ANNUAL_PRICE_ID`).
+~~The `create_checkout_session()` method accepted any `price_id` from the client without validation, allowing users to reference arbitrary Stripe price IDs.~~
 
-**Impact:** Users could potentially reference arbitrary Stripe price IDs.
-
-**Fix:** Whitelist only `settings.stripe_monthly_price_id` and `settings.stripe_annual_price_id`.
+**Resolution:** Added whitelist validation at the start of `create_checkout_session()`. Only `settings.stripe_monthly_price_id` and `settings.stripe_annual_price_id` are accepted. Returns 400 for invalid price IDs, 503 if pricing is not configured.
 
 ---
 
 ### SEC-10: Missing File Upload Validation
-**Severity:** HIGH | **File:** `backend/app/routes/learning_outcome_routes.py:265-330`
+**Severity:** HIGH | **Status:** FIXED | **File:** `backend/app/routes/learning_outcome_routes.py:265-330`
 
-Evidence uploads accept ANY file type with NO size limit on the backend. Frontend has a 1.5MB limit, but this is trivially bypassed via direct API calls.
+~~Evidence uploads accepted ANY file type with NO size limit on the backend. Frontend had a 1.5MB limit, but this was trivially bypassed via direct API calls.~~
 
-**Impact:** Malware uploads, storage exhaustion via multi-GB files, XSS via SVG uploads.
-
-**Fix:** Add server-side file type whitelist (JPEG, PNG, WebP, GIF, PDF) with magic byte validation and a hard size limit (e.g., 50MB).
+**Resolution:** Added `validate_upload_file()` helper with three layers of validation: file extension whitelist (JPEG, PNG, WebP, GIF, PDF), content-type check, and magic byte verification. Hard 50MB size limit enforced server-side. Applied to both evidence upload endpoints.
 
 ---
 
@@ -414,10 +401,10 @@ Without CSP, any successful XSS can execute arbitrary JavaScript, steal tokens, 
 | 4 | Fix async authorization bypass | `file_storage_service.py:290-298` | CRITICAL | FIXED |
 | 5 | Fix trailing-slash student endpoint | `student_routes.py:57-62` | CRITICAL | FIXED |
 | 6 | Remove/restrict bulk deletion endpoints | `file_routes.py:326-487` | CRITICAL | FIXED |
-| 7 | Enable JWT audience verification | `supabase_service.py:55-60` | HIGH | TODO |
-| 8 | Add rate limiting to auth endpoints | `auth.py` | HIGH | TODO |
-| 9 | Validate Stripe price IDs | `subscription_service.py:202-248` | HIGH | TODO |
-| 10 | Add file upload validation | `learning_outcome_routes.py:265-330` | HIGH | TODO |
+| 7 | Enable JWT audience verification | `supabase_service.py:55-60` | HIGH | FIXED |
+| 8 | Add rate limiting to auth endpoints | `auth.py` | HIGH | FIXED |
+| 9 | Validate Stripe price IDs | `subscription_service.py:202-248` | HIGH | FIXED |
+| 10 | Add file upload validation | `learning_outcome_routes.py:265-330` | HIGH | FIXED |
 
 ### Phase 2: Important Fixes (Before paid customers)
 
