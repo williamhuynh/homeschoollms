@@ -25,6 +25,47 @@ import re
 logger = logging.getLogger(__name__)
 
 class ReportService:
+    # Preferred display order for learning area subjects in reports.
+    # Subjects matching earlier entries appear first; anything else comes last
+    # in its original order.  Matching is case-insensitive against the subject
+    # code **or** name so it works across all curriculum stages (Early Stage 1
+    # uses different codes like MATH/STE/HSE vs MAT/SCI/HSIE in later stages).
+    SUBJECT_DISPLAY_ORDER = [
+        # codes / name keywords – checked with str.startswith or substring match
+        {"codes": ["ENG"], "names": ["english"]},
+        {"codes": ["MAT", "MATH"], "names": ["mathematics"]},
+        {"codes": ["SCI", "STE"], "names": ["science"]},
+        {"codes": ["HSIE", "HSE"], "names": ["human society", "geography", "history"]},
+        {"codes": ["CRA", "CART"], "names": ["creative arts"]},
+        {"codes": ["PDH", "PHE"], "names": ["personal development", "pdhpe"]},
+    ]
+
+    @staticmethod
+    def _subject_sort_key(summary) -> tuple:
+        """Return a sort key that places subjects in the preferred display order.
+
+        Subjects that match a priority entry get (priority_index, 0).
+        Unmatched subjects get (len(SUBJECT_DISPLAY_ORDER), original_position)
+        so they appear at the end in their original relative order.
+        """
+        code = (getattr(summary, "learning_area_code", None) or "").upper()
+        name = (getattr(summary, "learning_area_name", None) or "").lower()
+
+        for idx, entry in enumerate(ReportService.SUBJECT_DISPLAY_ORDER):
+            for c in entry["codes"]:
+                if code == c or code.startswith(c):
+                    return (idx, 0)
+            for n in entry["names"]:
+                if n in name:
+                    return (idx, 0)
+        # Not in the priority list – preserve original order at the end
+        return (len(ReportService.SUBJECT_DISPLAY_ORDER), 0)
+
+    @staticmethod
+    def sort_summaries(summaries):
+        """Sort learning area summaries into the preferred display order."""
+        return sorted(summaries, key=ReportService._subject_sort_key)
+
     @staticmethod
     async def get_student_reports(
         student_id: str, 
@@ -257,7 +298,10 @@ class ReportService:
                 except Exception as e:
                     logger.error(f"Failed to generate summary for {subject.get('code', 'UNKNOWN')}: {str(e)}", exc_info=True)
                     # Continue with other subjects even if one fails
-            
+
+            # Sort summaries into preferred display order
+            summaries = ReportService.sort_summaries(summaries)
+
             # Calculate generation time
             generation_time = (datetime.utcnow() - start_time).total_seconds()
             

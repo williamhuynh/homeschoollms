@@ -1,3 +1,42 @@
+/**
+ * Preferred display order for learning area subjects in reports.
+ * Subjects matching earlier entries appear first; unmatched subjects
+ * appear at the end in their original order.
+ */
+const SUBJECT_DISPLAY_ORDER = [
+  { codes: ['ENG'], names: ['english'] },
+  { codes: ['MAT', 'MATH'], names: ['mathematics'] },
+  { codes: ['SCI', 'STE'], names: ['science'] },
+  { codes: ['HSIE', 'HSE'], names: ['human society', 'geography', 'history'] },
+  { codes: ['CRA', 'CART'], names: ['creative arts'] },
+  { codes: ['PDH', 'PHE'], names: ['personal development', 'pdhpe'] },
+]
+
+function subjectSortKey(summary) {
+  const code = (summary.learning_area_code || '').toUpperCase()
+  const name = (summary.learning_area_name || '').toLowerCase()
+
+  for (let i = 0; i < SUBJECT_DISPLAY_ORDER.length; i++) {
+    const entry = SUBJECT_DISPLAY_ORDER[i]
+    for (const c of entry.codes) {
+      if (code === c || code.startsWith(c)) return i
+    }
+    for (const n of entry.names) {
+      if (name.includes(n)) return i
+    }
+  }
+  return SUBJECT_DISPLAY_ORDER.length
+}
+
+/**
+ * Sort learning area summaries into the preferred display order:
+ * English, Mathematics, Science & Technology, HSIE, Creative Arts, PDHPE, then everything else.
+ */
+export function sortLearningAreaSummaries(summaries) {
+  if (!summaries) return summaries
+  return [...summaries].sort((a, b) => subjectSortKey(a) - subjectSortKey(b))
+}
+
 export const formatReportPeriod = (period, customName) => {
   if (period === 'custom' && customName) {
     return customName;
@@ -201,7 +240,7 @@ export const generatePrintableHTML = (report, student) => {
             <!-- Learning Area Summaries -->
             <div>
               <h2>Learning Area Progress</h2>
-              ${report.learning_area_summaries?.map(summary => `
+              ${sortLearningAreaSummaries(report.learning_area_summaries)?.map(summary => `
                 <div class="learning-area">
                   <h3>${summary.learning_area_name}</h3>
                   
