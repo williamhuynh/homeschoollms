@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO) # Uncomment for more detailed logs
 
 router = APIRouter(
-    # dependencies=[Depends(get_current_user)] # Uncomment to protect endpoint
+    dependencies=[Depends(get_current_user)]
 )
 
 @router.post("/generate-description", response_model=dict)
@@ -21,7 +21,7 @@ async def generate_ai_description(
     request: Request,
     files: List[UploadFile] = File(...), # Changed to accept a list of files
     context_description: str = Form(...),
-    # current_user: User = Depends(get_current_user) # Uncomment if endpoint is protected
+    current_user: User = Depends(get_current_user),
 ):
     """
     Receives one or more image files and context description text, 
@@ -141,7 +141,7 @@ async def generate_ai_description(
 async def analyze_image_for_questions(
     request: Request,
     files: List[UploadFile] = File(...),
-    # current_user: User = Depends(get_current_user) # Uncomment if endpoint is protected
+    current_user: User = Depends(get_current_user),
 ):
     """
     Analyzes uploaded images and generates contextual questions to better understand the learning activity.
@@ -226,7 +226,7 @@ async def suggest_learning_outcomes(
     question_answers: str = Form(...),  # JSON string of answers
     curriculum_data: str = Form(...),   # JSON string of curriculum
     student_grade: str = Form(...),
-    # current_user: User = Depends(get_current_user) # Uncomment if endpoint is protected
+    current_user: User = Depends(get_current_user),
 ):
     """
     Analyzes images and context answers to suggest appropriate learning outcomes with confidence scores.
@@ -321,7 +321,7 @@ async def suggest_learning_outcomes(
         )
 
 @router.post("/chat", response_model=dict)
-async def ai_chat(request: Request):
+async def ai_chat(request: Request, current_user: User = Depends(get_current_user)):
     """Simple AI chat endpoint. Expects JSON with { student_id?: str, student_slug?: str, messages: [{role, content}] }.
     Injects student name and grade level into a system context for the assistant.
     """

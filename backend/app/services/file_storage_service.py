@@ -215,21 +215,21 @@ class FileStorageService:
             logger.error(f"Error generating URL: {str(e)}")
             raise Exception(f"Failed to generate URL: {str(e)}")
 
-    def generate_user_signed_url(self, file_path: str, user_id: str, expiration=3600, **transforms):
+    async def generate_user_signed_url(self, file_path: str, user_id: str, expiration=3600, **transforms):
         """Generate signed URL with user-specific access control"""
         import logging
         logger = logging.getLogger(__name__)
-        
+
         try:
             logger.info(f"Generating user-specific signed URL for user {user_id}, file {file_path}")
-            
+
             # In hybrid mode, if this is already a public Cloudinary URL, return it directly
             if self.migration_mode == 'hybrid' and file_path.startswith('https://res.cloudinary.com/'):
                 logger.info("Hybrid mode: Returning existing public Cloudinary URL")
                 return file_path
-            
+
             # For non-URL paths, verify user has permission to access this image
-            if not self._verify_user_access(file_path, user_id):
+            if not await self._verify_user_access(file_path, user_id):
                 raise Exception("Access denied - user does not have permission to view this image")
             
             # If it's a full URL but not Cloudinary, extract the path
@@ -276,80 +276,65 @@ class FileStorageService:
             logger.error(f"Error generating user-specific URL: {str(e)}")
             raise Exception(f"Failed to generate user URL: {str(e)}")
     
-    def _verify_user_access(self, file_path: str, user_id: str) -> bool:
+    async def _verify_user_access(self, file_path: str, user_id: str) -> bool:
         """Verify if user has access to the specified file path"""
-        import asyncio
         from ..utils.database_utils import Database
-        from ..utils.auth_utils import is_admin_user
         from bson import ObjectId
-        
+        import logging
+        logger = logging.getLogger(__name__)
+
         # No access if no user_id provided
         if not user_id:
             return False
-        
+
         try:
-            # Get user from database to check admin status
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If we're already in an async context, we can't use asyncio.run()
-                # For now, allow access and log warning - this should be refactored
-                logger = logging.getLogger(__name__)
-                logger.warning(f"_verify_user_access called in async context - allowing access for now. File: {file_path}, User: {user_id}")
+            db = Database.get_db()
+
+            # Get user to check if they're admin
+            user = await db.users.find_one({"_id": ObjectId(user_id)})
+            if user and user.get("role") in ["admin", "super_admin"]:
                 return True
-            
-            async def check_access():
-                db = Database.get_db()
-                
-                # Get user to check if they're admin
-                user = await db.users.find_one({"_id": ObjectId(user_id)})
-                if user and user.get("role") in ["admin", "super_admin"]:
-                    return True
-                
-                # Extract student_id from file path: evidence/{student_id}/...
-                if not file_path.startswith("evidence/"):
+
+            # Extract student_id from file path: evidence/{student_id}/...
+            if not file_path.startswith("evidence/"):
+                return False
+
+            path_parts = file_path.split("/")
+            if len(path_parts) < 2:
+                return False
+
+            student_id_from_path = path_parts[1]
+
+            # Check if user has access to this student
+            try:
+                # Handle both ObjectId and slug
+                if ObjectId.is_valid(student_id_from_path):
+                    student = await db.students.find_one({"_id": ObjectId(student_id_from_path)})
+                else:
+                    student = await db.students.find_one({"slug": student_id_from_path})
+
+                if not student:
                     return False
-                
-                path_parts = file_path.split("/")
-                if len(path_parts) < 2:
-                    return False
-                
-                student_id_from_path = path_parts[1]
-                
-                # Check if user has access to this student
-                try:
-                    # Handle both ObjectId and slug
-                    if ObjectId.is_valid(student_id_from_path):
-                        student = await db.students.find_one({"_id": ObjectId(student_id_from_path)})
-                    else:
-                        student = await db.students.find_one({"slug": student_id_from_path})
-                    
-                    if not student:
-                        return False
-                    
-                    user_obj_id = ObjectId(user_id)
-                    
-                    # Check parent_access entries
-                    for access in student.get("parent_access", []):
-                        if access.get("parent_id") == user_obj_id:
-                            # Any access level allows viewing evidence
-                            return True
-                    
-                    # For backward compatibility: check parent_ids
-                    if user_obj_id in student.get("parent_ids", []):
+
+                user_obj_id = ObjectId(user_id)
+
+                # Check parent_access entries
+                for access in student.get("parent_access", []):
+                    if access.get("parent_id") == user_obj_id:
+                        # Any access level allows viewing evidence
                         return True
-                    
-                    return False
-                    
-                except Exception as e:
-                    logger = logging.getLogger(__name__)
-                    logger.error(f"Error checking student access in _verify_user_access: {str(e)}")
-                    return False
-            
-            # Run the async check
-            return asyncio.run(check_access())
-            
+
+                # For backward compatibility: check parent_ids
+                if user_obj_id in student.get("parent_ids", []):
+                    return True
+
+                return False
+
+            except Exception as e:
+                logger.error(f"Error checking student access in _verify_user_access: {str(e)}")
+                return False
+
         except Exception as e:
-            logger = logging.getLogger(__name__)
             logger.error(f"Error in _verify_user_access: {str(e)}")
             return False
 

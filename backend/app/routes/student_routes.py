@@ -59,7 +59,7 @@ async def get_students_with_slash(
     current_user: UserInDB = Depends(get_current_user)
 ):
     """Duplicate endpoint to handle requests with trailing slash"""
-    return await StudentService.get_all_students()
+    return await StudentService.get_students_for_parent(str(current_user.id))
 
 @router.get("/students/for-parent", response_model=List[Student])
 async def get_students_for_parent(
