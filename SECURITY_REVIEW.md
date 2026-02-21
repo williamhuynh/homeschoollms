@@ -2,7 +2,8 @@
 
 **Date:** 2026-02-21
 **Scope:** Full codebase audit - security, bugs, redundancy
-**Status:** READ-ONLY ANALYSIS - findings only, no code changes
+**Status:** REMEDIATION IN PROGRESS
+**Last Updated:** 2026-02-21
 
 ---
 
@@ -27,106 +28,56 @@ The application has solid architectural foundations but contains **critical secu
 These must be fixed before any production deployment.
 
 ### SEC-01: All AI Endpoints Are Completely Unauthenticated
-**Severity:** CRITICAL | **File:** `backend/app/routes/ai_routes.py:15-17`
+**Severity:** CRITICAL | **Status:** FIXED | **File:** `backend/app/routes/ai_routes.py:15-17`
 
-Authentication is **commented out** on the router and all 4 endpoints:
+~~Authentication is **commented out** on the router and all 4 endpoints.~~
 
-```python
-router = APIRouter(
-    # dependencies=[Depends(get_current_user)] # Uncomment to protect endpoint
-)
-```
-
-**Affected endpoints:**
-- `POST /api/v1/ai/generate-description` (line 19)
-- `POST /api/v1/ai/analyze-image` (line 140)
-- `POST /api/v1/ai/suggest-outcomes` (line 222)
-- `POST /api/v1/ai/chat` (line 323)
-
-**Impact:** Anyone on the internet can upload files, consume Gemini API quota, and access student data through the AI chat endpoint. This bypasses subscription limits entirely.
-
-**Fix:** Uncomment the `dependencies=[Depends(get_current_user)]` on the router (line 16) and uncomment `current_user` parameters in each endpoint.
+**Resolution:** Enabled `dependencies=[Depends(get_current_user)]` on the router and uncommented `current_user: User = Depends(get_current_user)` parameter on all 4 endpoints (generate-description, analyze-image, suggest-outcomes, chat).
 
 ---
 
 ### SEC-02: CORS Allows ALL Origins With Credentials
-**Severity:** CRITICAL | **File:** `backend/app/config/settings.py:46`
+**Severity:** CRITICAL | **Status:** FIXED | **File:** `backend/app/config/settings.py:46`
 
-```python
-allowed_origin_regex: Optional[str] = r"https?://.*"
-```
+~~This regex matches **every HTTP/HTTPS origin**. Combined with `allow_credentials=True` in `main.py`, any website can make authenticated cross-origin requests as the logged-in user.~~
 
-This regex matches **every HTTP/HTTPS origin**. Combined with `allow_credentials=True` in `main.py`, any website can make authenticated cross-origin requests as the logged-in user.
-
-**Impact:** Any malicious website a user visits can silently make API calls using their session - reading student data, modifying reports, deleting evidence.
-
-**Fix:** Remove line 46 entirely. The explicit `allowed_origins` list on lines 36-43 is correct and sufficient.
+**Resolution:** Set `allowed_origin_regex = None`. The explicit `allowed_origins` list (localhost, production Vercel URL, Capacitor, Ionic) is sufficient and secure.
 
 ---
 
 ### SEC-03: Role Privilege Escalation via Supabase Metadata
-**Severity:** CRITICAL | **File:** `backend/app/utils/auth_utils.py:55`
+**Severity:** CRITICAL | **Status:** FIXED | **File:** `backend/app/utils/auth_utils.py:55`
 
-```python
-role = user_metadata.get("role", "parent")
-```
+~~When auto-creating users on first login, the role is read from Supabase `user_metadata` which can be set by the client during signup.~~
 
-When auto-creating users on first login, the role is read from Supabase `user_metadata` which can be set by the client during signup. An attacker can set `role: "super_admin"` in their signup metadata and gain full admin access.
-
-**Impact:** Complete privilege escalation - access to admin panel, user management, impersonation, all student data.
-
-**Fix:** Hard-code `role = "parent"` for all auto-created users. Admin/super_admin roles should only be assigned through a dedicated admin endpoint or database script.
+**Resolution:** Hard-coded `role = "parent"` for all auto-created users. Admin/super_admin roles can only be assigned via dedicated admin endpoints or database scripts.
 
 ---
 
 ### SEC-04: File Access Authorization Always Bypassed
-**Severity:** CRITICAL | **File:** `backend/app/services/file_storage_service.py:290-298`
+**Severity:** CRITICAL | **Status:** FIXED | **File:** `backend/app/services/file_storage_service.py:279-339`
 
-```python
-loop = asyncio.get_event_loop()
-if loop.is_running():
-    logger.warning("_verify_user_access called in async context - allowing access for now...")
-    return True  # BYPASSES ALL VERIFICATION
-```
+~~Since FastAPI always runs in an async event loop, `loop.is_running()` is always `True`. This means `_verify_user_access()` **always returns True**.~~
 
-Since FastAPI always runs in an async event loop, `loop.is_running()` is always `True`. This means `_verify_user_access()` **always returns True**, allowing any authenticated user to access any student's files.
-
-**Impact:** Complete bypass of file-level authorization. Any parent can view any other student's evidence files.
-
-**Fix:** Refactor `_verify_user_access()` to be a proper `async def` method, or pass the already-verified user context from the route handler.
+**Resolution:** Refactored `_verify_user_access()` and `generate_user_signed_url()` to proper `async def` methods. DB queries now execute correctly — checks admin role, then verifies student access via `parent_access[]` and `parent_ids[]`. Updated the calling route in `file_routes.py` to `await` the async method.
 
 ---
 
 ### SEC-05: Trailing-Slash Endpoint Returns ALL Students
-**Severity:** CRITICAL | **File:** `backend/app/routes/student_routes.py:57-62`
+**Severity:** CRITICAL | **Status:** FIXED | **File:** `backend/app/routes/student_routes.py:57-62`
 
-```python
-@router.get("/students/", response_model=List[Student])
-async def get_students_with_slash(current_user: UserInDB = Depends(get_current_user)):
-    return await StudentService.get_all_students()  # Returns ALL students!
-```
+~~The `/students/` (with trailing slash) endpoint calls `get_all_students()`, returning every student in the database.~~
 
-The `/students` endpoint (line 50) correctly returns only the user's students via `get_students_for_parent()`. But `/students/` (with trailing slash) calls `get_all_students()`, returning every student in the database.
-
-**Impact:** Any authenticated user can see all students in the system by adding a trailing slash.
-
-**Fix:** Change line 62 to `return await StudentService.get_students_for_parent(str(current_user.id))`.
+**Resolution:** Changed `/students/` endpoint to call `StudentService.get_students_for_parent(str(current_user.id))`, matching the behavior of the `/students` endpoint.
 
 ---
 
 ### SEC-06: Bulk Deletion Endpoints Accessible by Non-Super-Admins
-**Severity:** CRITICAL | **File:** `backend/app/routes/file_routes.py:326-487`
+**Severity:** CRITICAL | **Status:** FIXED | **File:** `backend/app/routes/file_routes.py:326-487`
 
-Three endpoints allow permanent deletion of **all** images from Cloudinary:
-- `POST /migration/cleanup/delete-all-public` (line 326)
-- `POST /migration/cleanup/delete-all-private` (line 377)
-- `POST /migration/cleanup/delete-all-cloudinary` (line 428)
+~~Three bulk deletion endpoints use `is_admin_user()`, which allows regular admins to permanently delete all images.~~
 
-These use `is_admin_user()` (line 334), which allows regular admins. The only safety check is a hardcoded confirmation string.
-
-**Impact:** A compromised admin account can permanently delete all student evidence with a single API call.
-
-**Fix:** Either remove these endpoints entirely (they're migration tools), or restrict to `get_super_admin_user()` dependency with additional safeguards (email confirmation, cooling-off period).
+**Resolution:** Changed all three endpoints (`delete-all-public`, `delete-all-private`, `delete-all-cloudinary`) to use `Depends(get_super_admin_user)` dependency injection. Only `super_admin` role can access these endpoints now. Confirmation string check retained as additional safeguard.
 
 ---
 
@@ -455,48 +406,48 @@ Without CSP, any successful XSS can execute arbitrary JavaScript, steal tokens, 
 
 ### Phase 1: Critical Security (Must do before any production traffic)
 
-| # | Fix | Files | Priority |
-|---|-----|-------|----------|
-| 1 | Enable AI endpoint authentication | `ai_routes.py:15-17` | CRITICAL |
-| 2 | Remove CORS wildcard regex | `settings.py:46` | CRITICAL |
-| 3 | Hard-code `role = "parent"` on user creation | `auth_utils.py:55` | CRITICAL |
-| 4 | Fix async authorization bypass | `file_storage_service.py:290-298` | CRITICAL |
-| 5 | Fix trailing-slash student endpoint | `student_routes.py:57-62` | CRITICAL |
-| 6 | Remove/restrict bulk deletion endpoints | `file_routes.py:326-487` | CRITICAL |
-| 7 | Enable JWT audience verification | `supabase_service.py:55-60` | HIGH |
-| 8 | Add rate limiting to auth endpoints | `auth.py` | HIGH |
-| 9 | Validate Stripe price IDs | `subscription_service.py:202-248` | HIGH |
-| 10 | Add file upload validation | `learning_outcome_routes.py:265-330` | HIGH |
+| # | Fix | Files | Priority | Status |
+|---|-----|-------|----------|--------|
+| 1 | Enable AI endpoint authentication | `ai_routes.py:15-17` | CRITICAL | FIXED |
+| 2 | Remove CORS wildcard regex | `settings.py:46` | CRITICAL | FIXED |
+| 3 | Hard-code `role = "parent"` on user creation | `auth_utils.py:55` | CRITICAL | FIXED |
+| 4 | Fix async authorization bypass | `file_storage_service.py:290-298` | CRITICAL | FIXED |
+| 5 | Fix trailing-slash student endpoint | `student_routes.py:57-62` | CRITICAL | FIXED |
+| 6 | Remove/restrict bulk deletion endpoints | `file_routes.py:326-487` | CRITICAL | FIXED |
+| 7 | Enable JWT audience verification | `supabase_service.py:55-60` | HIGH | TODO |
+| 8 | Add rate limiting to auth endpoints | `auth.py` | HIGH | TODO |
+| 9 | Validate Stripe price IDs | `subscription_service.py:202-248` | HIGH | TODO |
+| 10 | Add file upload validation | `learning_outcome_routes.py:265-330` | HIGH | TODO |
 
 ### Phase 2: Important Fixes (Before paid customers)
 
-| # | Fix | Files |
-|---|-----|-------|
-| 11 | Validate subscription status in feature checks | `subscription_service.py:159-168` |
-| 12 | Fix bare exception handlers | Multiple service files |
-| 13 | Standardize datetime usage | Multiple service files |
-| 14 | Add AI call timeouts | `ai_service.py` |
-| 15 | Fix report generation race condition | `report_service.py:190-199` |
-| 16 | Add webhook idempotency | `subscription_service.py:348-401` |
-| 17 | Fix imageUtils.js wrong port | `imageUtils.js:165` |
-| 18 | Restrict grandfather endpoint | `stripe_routes.py:185-195` |
-| 19 | Sanitize error messages | Multiple route files |
-| 20 | Rotate exposed credentials | `.env.development` + credential providers |
+| # | Fix | Files | Status |
+|---|-----|-------|--------|
+| 11 | Validate subscription status in feature checks | `subscription_service.py:159-168` | TODO |
+| 12 | Fix bare exception handlers | Multiple service files | TODO |
+| 13 | Standardize datetime usage | Multiple service files | TODO |
+| 14 | Add AI call timeouts | `ai_service.py` | TODO |
+| 15 | Fix report generation race condition | `report_service.py:190-199` | TODO |
+| 16 | Add webhook idempotency | `subscription_service.py:348-401` | TODO |
+| 17 | Fix imageUtils.js wrong port | `imageUtils.js:165` | TODO |
+| 18 | Restrict grandfather endpoint | `stripe_routes.py:185-195` | TODO |
+| 19 | Sanitize error messages | Multiple route files | TODO |
+| 20 | Rotate exposed credentials | `.env.development` + credential providers | TODO |
 
 ### Phase 3: Code Quality (Ongoing)
 
-| # | Fix | Impact |
-|---|-----|--------|
-| 21 | Split api.js into domain modules | Maintainability |
-| 22 | Split ImageViewerModal | Maintainability |
-| 23 | Consolidate curriculum mapping | Single source of truth |
-| 24 | Delete dead code (ContentCreatePage_LEGACY) | Cleanliness |
-| 25 | Add CSP headers | Defense-in-depth |
-| 26 | Add audit logging | Compliance |
-| 27 | Add DOMPurify for HTML rendering | XSS prevention |
-| 28 | Fix missing prop-types dependency | Build reliability |
-| 29 | Remove debug UI from production | Information disclosure |
-| 30 | Implement token revocation mechanism | Session management |
+| # | Fix | Impact | Status |
+|---|-----|--------|--------|
+| 21 | Split api.js into domain modules | Maintainability | TODO |
+| 22 | Split ImageViewerModal | Maintainability | TODO |
+| 23 | Consolidate curriculum mapping | Single source of truth | TODO |
+| 24 | Delete dead code (ContentCreatePage_LEGACY) | Cleanliness | TODO |
+| 25 | Add CSP headers | Defense-in-depth | TODO |
+| 26 | Add audit logging | Compliance | TODO |
+| 27 | Add DOMPurify for HTML rendering | XSS prevention | TODO |
+| 28 | Fix missing prop-types dependency | Build reliability | TODO |
+| 29 | Remove debug UI from production | Information disclosure | TODO |
+| 30 | Implement token revocation mechanism | Session management | TODO |
 
 ---
 
