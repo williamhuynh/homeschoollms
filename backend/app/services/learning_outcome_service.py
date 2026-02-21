@@ -5,7 +5,7 @@ from bson import ObjectId
 from typing import List, Optional
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ class LearningOutcomeService:
         # Try to find by ObjectId first
         try:
             outcome = await db.learning_outcomes.find_one({"_id": ObjectId(learning_outcome_id)})
-        except:
+        except Exception:
             outcome = None
             
         # If not found by ObjectId, try to find by code (case-insensitive)
@@ -227,7 +227,7 @@ class LearningOutcomeService:
             try:
                 outcome_obj_id = ObjectId(learning_outcome_id)
                 logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
-            except:
+            except Exception:
                 outcome_obj_id = None
                 logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
 
@@ -422,7 +422,7 @@ class LearningOutcomeService:
 
             try:
                 student_obj_id = ObjectId(student_id)
-            except:
+            except Exception:
                 # If conversion fails, try to find student by slug
                 student = await db.students.find_one({"slug": student_id})
                 if student:
@@ -602,10 +602,10 @@ class LearningOutcomeService:
             try:
                 outcome_obj_id = ObjectId(learning_outcome_id)
                 logger.info(f"Successfully converted learning_outcome_id to ObjectId: {outcome_obj_id}")
-            except:
+            except Exception:
                 outcome_obj_id = None
                 logger.info(f"learning_outcome_id is not a valid ObjectId, using as string: {learning_outcome_id}")
-                
+
                 # If conversion fails, look up by code (case-insensitive)
                 import re
                 code_pattern = re.compile(f"^{re.escape(learning_outcome_id)}$", re.IGNORECASE)
@@ -637,7 +637,7 @@ class LearningOutcomeService:
             # Mark as deleted
             result = await db.student_evidence.update_one(
                 {"_id": evidence_obj_id},
-                {"$set": {"deleted": True, "deleted_at": datetime.now()}}
+                {"$set": {"deleted": True, "deleted_at": datetime.now(timezone.utc)}}
             )
             
             if result.modified_count == 0:
@@ -651,7 +651,7 @@ class LearningOutcomeService:
             raise he
         except Exception as e:
             logger.error(f"Error marking evidence as deleted: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Failed to mark evidence as deleted: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to mark evidence as deleted")
     
     @staticmethod
     async def generate_evidence_download_url(student_id: str, learning_outcome_id: str, evidence_id: str):
@@ -712,13 +712,13 @@ class LearningOutcomeService:
                 return download_url
             except Exception as e:
                 logger.error(f"Error generating download URL: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Failed to generate download URL: {str(e)}")
+                raise HTTPException(status_code=500, detail="Failed to generate download URL")
         except HTTPException as he:
             logger.error(f"HTTP error generating download URL: {str(he)}")
             raise he
         except Exception as e:
             logger.error(f"Error generating download URL: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Failed to generate download URL: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to generate download URL")
     
     @staticmethod
     async def generate_evidence_share_url(student_id: str, learning_outcome_id: str, evidence_id: str):
@@ -787,7 +787,7 @@ class LearningOutcomeService:
             raise he
         except Exception as e:
             logger.error(f"Error generating share URL: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Failed to generate share URL: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to generate share URL")
 
     @staticmethod
     async def update_evidence(student_id: str, learning_outcome_id: str, evidence_id: str, update_data: dict):

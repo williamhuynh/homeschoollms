@@ -10,7 +10,7 @@ This service provides functionality for super admins to:
 """
 
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from fastapi import HTTPException
 import logging
@@ -307,7 +307,7 @@ class AdminService:
         if soft_delete:
             await db.users.update_one(
                 {"_id": ObjectId(user_id)},
-                {"$set": {"is_active": False, "deleted_at": datetime.utcnow()}}
+                {"$set": {"is_active": False, "deleted_at": datetime.now(timezone.utc)}}
             )
             logger.info(f"Super admin soft-deleted user {user_id}")
             return {"message": f"User {user.get('email')} has been deactivated"}

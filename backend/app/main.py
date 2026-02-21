@@ -25,6 +25,7 @@ from .utils.error_handlers import http_error_handler, invalid_object_id_handler
 from .utils.database_utils import Database
 from .services.file_storage_service import file_storage_service  # Add import for file storage service
 from .utils.rate_limiter import get_rate_limiter  # Add import for rate limiter
+from .services.report_service import ensure_report_indexes
 import time
 
 import os
@@ -107,6 +108,10 @@ async def startup_db_client():
     rate_limiter.start_cleanup()
     logging.info("Rate limiter cleanup task started")
 
+    # Create database indexes for data integrity
+    await ensure_report_indexes()
+    logging.info("Database indexes ensured")
+
 @app.get("/health")
 async def health_check():
     try:
@@ -116,16 +121,20 @@ async def health_check():
             "database": "connected"
         }
     except Exception as e:
+        logger.error(f"Health check failed: {e}")
         return {
             "status": "unhealthy",
-            "database": str(e)
+            "database": "connection failed"
         }
     
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    # Stop rate limiter cleanup task
-    rate_limiter = get_rate_limiter()
-    rate_limiter.stop_cleanup()
-
-    # Close database connection
-    await Database.close_db()
+    try:
+        # Stop rate limiter cleanup task
+        rate_limiter = get_rate_limiter()
+        rate_limiter.stop_cleanup()
+    except Exception as e:
+        logging.error(f"Error stopping rate limiter: {e}")
+    finally:
+        # Always close database connection
+        await Database.close_db()

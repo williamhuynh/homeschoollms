@@ -1,7 +1,7 @@
 import stripe
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from fastapi import HTTPException
 import asyncio
@@ -111,10 +111,25 @@ class SubscriptionService:
         return total_evidence
     
     @staticmethod
+    def _is_subscription_active(subscription: Dict[str, Any]) -> bool:
+        """Check if a subscription has an active payment status.
+
+        Grandfathered users bypass this check since they don't pay.
+        For paying users, only 'active' and 'trialing' statuses grant premium features.
+        """
+        if subscription.get("is_grandfathered", False):
+            return True
+        status = subscription.get("status", "active")
+        return status in ("active", "trialing")
+
+    @staticmethod
     async def get_usage(user_id: str) -> SubscriptionUsage:
         """Get current usage and limits for a user"""
         subscription = await SubscriptionService.get_user_subscription(user_id)
         effective_tier = subscription["effective_tier"]
+        # If subscription is not active (e.g. past_due, canceled), fall back to free tier limits
+        if not SubscriptionService._is_subscription_active(subscription):
+            effective_tier = "free"
         limits = SubscriptionService.get_tier_limits(effective_tier)
         
         student_count = await SubscriptionService.get_student_count(user_id)
@@ -160,11 +175,14 @@ class SubscriptionService:
         """Check if user can generate reports"""
         subscription = await SubscriptionService.get_user_subscription(user_id)
         effective_tier = subscription["effective_tier"]
+        # Deny premium features when subscription is not active (past_due, canceled, etc.)
+        if not SubscriptionService._is_subscription_active(subscription):
+            effective_tier = "free"
         limits = SubscriptionService.get_tier_limits(effective_tier)
-        
+
         if not limits["can_generate_reports"]:
             return False, "Report generation is a premium feature. Upgrade to Basic to generate reports."
-        
+
         return True, ""
     
     @staticmethod
@@ -222,7 +240,7 @@ class SubscriptionService:
         # Generate idempotency key to prevent duplicate sessions
         import hashlib
         idempotency_key = hashlib.sha256(
-            f"{user_id}-{price_id}-{datetime.utcnow().strftime('%Y%m%d')}".encode()
+            f"{user_id}-{price_id}-{datetime.now(timezone.utc).strftime('%Y%m%d')}".encode()
         ).hexdigest()[:32]
 
         try:
@@ -292,7 +310,7 @@ class SubscriptionService:
             "data": data,
             "success": success,
             "error": error,
-            "processed_at": datetime.utcnow(),
+            "processed_at": datetime.now(timezone.utc),
             "retry_count": 0,
         }
 
@@ -315,7 +333,7 @@ class SubscriptionService:
                 "message": "Your recent payment failed. Please update your payment method to continue your subscription.",
                 "link": "/subscription",
                 "read": False,
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
                 "metadata": {
                     "invoice_id": invoice_id,
                 }
@@ -343,7 +361,7 @@ class SubscriptionService:
                 "message": f"Your subscription will end in {days_remaining} days. Renew to keep your premium features.",
                 "link": "/subscription",
                 "read": False,
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
                 "metadata": {
                     "days_remaining": days_remaining,
                 }
@@ -387,8 +405,8 @@ class SubscriptionService:
             "subscription_tier": tier,
             "subscription_status": mapped_status,
             "stripe_subscription_id": subscription.get("id"),
-            "current_period_end": datetime.utcfromtimestamp(current_period_end) if current_period_end else None,
-            "trial_end": datetime.utcfromtimestamp(trial_end) if trial_end else None,
+            "current_period_end": datetime.fromtimestamp(current_period_end, tz=timezone.utc) if current_period_end else None,
+            "trial_end": datetime.fromtimestamp(trial_end, tz=timezone.utc) if trial_end else None,
         }
 
         try:

@@ -1,3 +1,4 @@
+import asyncio
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
@@ -8,6 +9,9 @@ import traceback
 from fastapi import HTTPException, status
 from typing import List, Dict, Union # Added List, Dict, Union
 import logging # Added logging
+
+# Timeout in seconds for Gemini API calls
+AI_CALL_TIMEOUT = 60
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -139,7 +143,7 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
         content_parts = [prompt] + prepared_images
 
         # Generate content
-        response = await model.generate_content_async(content_parts) # Use async version
+        response = await asyncio.wait_for(model.generate_content_async(content_parts), timeout=AI_CALL_TIMEOUT) # Use async version
         logger.info("Received response from Gemini API")
 
         # Extract and clean the text
@@ -262,7 +266,7 @@ async def analyze_image_for_questions(images: List[Dict[str, Union[bytes, str]]]
         content_parts = [prompt] + prepared_images
 
         # Generate content
-        response = await model.generate_content_async(content_parts)
+        response = await asyncio.wait_for(model.generate_content_async(content_parts), timeout=AI_CALL_TIMEOUT)
         logger.info("Received response from Gemini API for question generation")
 
         # Extract and clean the text
@@ -446,7 +450,7 @@ async def suggest_learning_outcomes(
         content_parts = [prompt] + prepared_images
 
         # Generate content
-        response = await model.generate_content_async(content_parts)
+        response = await asyncio.wait_for(model.generate_content_async(content_parts), timeout=AI_CALL_TIMEOUT)
         logger.info("Received response from Gemini API for outcome suggestions")
 
         # Extract and clean the text
@@ -670,7 +674,7 @@ Do not include any preamble like "Here is the report" - just provide the narrati
         logger.info(f"Sending enhanced report generation prompt to Gemini API")
         
         # Generate content
-        response = await model.generate_content_async(prompt)
+        response = await asyncio.wait_for(model.generate_content_async(prompt), timeout=AI_CALL_TIMEOUT)
         logger.info("Received response from Gemini API for report generation")
 
         # Extract and clean the text
@@ -773,7 +777,7 @@ Guidelines:
 
         logger.info("Sending title generation prompt to Gemini API")
         content_parts = [prompt] + prepared_images
-        response = await model.generate_content_async(content_parts)
+        response = await asyncio.wait_for(model.generate_content_async(content_parts), timeout=AI_CALL_TIMEOUT)
         logger.info("Received response from Gemini API for title generation")
 
         generated_title = (response.text or "").strip()
@@ -886,7 +890,7 @@ Example tone: "This year, [Child] has shown remarkable enthusiasm for learning a
 """
 
         logger.info("Sending overview generation prompt to Gemini API")
-        response = await model.generate_content_async(prompt)
+        response = await asyncio.wait_for(model.generate_content_async(prompt), timeout=AI_CALL_TIMEOUT)
         logger.info("Received response from Gemini API for overview generation")
 
         generated_text = response.text.strip()
@@ -976,7 +980,7 @@ async def chat_with_ai(messages: List[Dict[str, str]], system_context: str) -> s
             latest_to_send = latest["content"]
 
         chat = model.start_chat(history=history)
-        response = await chat.send_message_async(latest_to_send)
+        response = await asyncio.wait_for(chat.send_message_async(latest_to_send), timeout=AI_CALL_TIMEOUT)
         reply_text = (response.text or "").strip()
         return reply_text
     except HTTPException:

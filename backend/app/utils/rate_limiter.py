@@ -1,7 +1,7 @@
 """
 Simple in-memory rate limiter for API endpoints
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Tuple
 from collections import defaultdict
 import asyncio
@@ -35,7 +35,7 @@ class RateLimiter:
         try:
             while True:
                 await asyncio.sleep(300)  # Clean up every 5 minutes
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 keys_to_delete = []
 
                 for key, timestamps in self._store.items():
@@ -76,7 +76,7 @@ class RateLimiter:
         Returns:
             Tuple of (allowed: bool, remaining: int, reset_seconds: int)
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         window_start = now - timedelta(seconds=window_seconds)
 
         # Clean old timestamps

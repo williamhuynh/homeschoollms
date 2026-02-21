@@ -119,8 +119,8 @@ async def generate_ai_description(
                 raise ValueError("Empty title from AI")
         except Exception as title_error:
             logger.warning(f"AI title generation failed: {title_error}. Using fallback title.")
-            from datetime import datetime
-            generated_title = f"AI Analyzed Evidence - {datetime.now().strftime('%Y-%m-%d')}"
+            from datetime import datetime, timezone
+            generated_title = f"AI Analyzed Evidence - {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
         
         logger.info(f"Successfully generated description (length: {len(generated_text)}).")
         return {"description": generated_text, "title": generated_title}

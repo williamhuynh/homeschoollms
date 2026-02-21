@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from typing import Optional
 
 from ..config.settings import settings
+from ..utils.database_utils import Database
 from ..models.schemas.user import UserInDB
 from ..models.schemas.subscription import (
     CreateCheckoutSessionRequest,
@@ -13,7 +14,7 @@ from ..models.schemas.subscription import (
     SubscriptionUsage,
 )
 from ..services.subscription_service import SubscriptionService
-from ..utils.auth_utils import get_current_user, get_admin_user
+from ..utils.auth_utils import get_current_user, get_admin_user, get_super_admin_user
 from ..utils.rate_limiter import get_rate_limiter
 
 # Configure Stripe
@@ -132,6 +133,15 @@ async def stripe_webhook(
 
     logger.info(f"Received Stripe webhook: {event_type} (ID: {event_id})")
 
+    # Idempotency check: skip if this event was already successfully processed
+    db = Database.get_db()
+    already_processed = await db.webhook_events.find_one(
+        {"event_id": event_id, "success": True}
+    )
+    if already_processed:
+        logger.info(f"Skipping already-processed webhook event: {event_id}")
+        return {"status": "already_processed"}
+
     # Process webhook event with error handling
     success = True
     error_message = None
@@ -184,14 +194,15 @@ async def stripe_webhook(
 
 @router.post("/grandfather-users")
 async def grandfather_existing_users(
-    admin_user: UserInDB = Depends(get_admin_user)
+    admin_user: UserInDB = Depends(get_super_admin_user)
 ):
     """
     One-time migration: Mark all existing users as grandfathered.
     They will get Basic tier features for free forever.
-    Admin only.
+    Super admin only.
     """
     count = await SubscriptionService.grandfather_existing_users()
+    logger.info(f"Grandfather migration executed by super_admin {admin_user.id}: {count} users affected")
     return {"message": f"Successfully grandfathered {count} existing users"}
 
 
