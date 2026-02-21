@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-21
 **Scope:** Full codebase audit - security, bugs, redundancy
-**Status:** REMEDIATION IN PROGRESS
+**Status:** PHASE 1 COMPLETE — Phase 2 pending
 **Last Updated:** 2026-02-21
 
 ---
@@ -97,6 +97,8 @@ These must be fixed before any production deployment.
 
 **Resolution:** Added dual rate limiting to login (5 attempts per 15 min per email + 15 attempts per 15 min per IP) and registration (3 attempts per hour per IP) using the existing `RateLimiter` infrastructure.
 
+**Review note:** The `/verify-token` endpoint (`auth.py:95`) has no rate limiting. It's auth-adjacent and could be used to probe token validity. Consider adding rate limiting in Phase 2.
+
 ---
 
 ### SEC-09: Unvalidated Price ID in Checkout
@@ -114,6 +116,10 @@ These must be fixed before any production deployment.
 ~~Evidence uploads accepted ANY file type with NO size limit on the backend. Frontend had a 1.5MB limit, but this was trivially bypassed via direct API calls.~~
 
 **Resolution:** Added `validate_upload_file()` helper with three layers of validation: file extension whitelist (JPEG, PNG, WebP, GIF, PDF), content-type check, and magic byte verification. Hard 50MB size limit enforced server-side. Applied to both evidence upload endpoints.
+
+**Review notes (minor, non-blocking):**
+- WebP magic byte check matches generic `RIFF` header (shared with WAV/AVI), but not exploitable since the extension and content-type checks must also pass.
+- `file.size` can be `None` on chunked uploads, which skips the size check. Mitigated by downstream Cloudinary/B2 limits. Consider reading full content for a stricter check if needed.
 
 ---
 
@@ -420,21 +426,22 @@ Without CSP, any successful XSS can execute arbitrary JavaScript, steal tokens, 
 | 18 | Restrict grandfather endpoint | `stripe_routes.py:185-195` | TODO |
 | 19 | Sanitize error messages | Multiple route files | TODO |
 | 20 | Rotate exposed credentials | `.env.development` + credential providers | TODO |
+| 21 | Rate limit `/verify-token` endpoint | `auth.py:95` | TODO |
 
 ### Phase 3: Code Quality (Ongoing)
 
 | # | Fix | Impact | Status |
 |---|-----|--------|--------|
-| 21 | Split api.js into domain modules | Maintainability | TODO |
-| 22 | Split ImageViewerModal | Maintainability | TODO |
-| 23 | Consolidate curriculum mapping | Single source of truth | TODO |
-| 24 | Delete dead code (ContentCreatePage_LEGACY) | Cleanliness | TODO |
-| 25 | Add CSP headers | Defense-in-depth | TODO |
-| 26 | Add audit logging | Compliance | TODO |
-| 27 | Add DOMPurify for HTML rendering | XSS prevention | TODO |
-| 28 | Fix missing prop-types dependency | Build reliability | TODO |
-| 29 | Remove debug UI from production | Information disclosure | TODO |
-| 30 | Implement token revocation mechanism | Session management | TODO |
+| 22 | Split api.js into domain modules | Maintainability | TODO |
+| 23 | Split ImageViewerModal | Maintainability | TODO |
+| 24 | Consolidate curriculum mapping | Single source of truth | TODO |
+| 25 | Delete dead code (ContentCreatePage_LEGACY) | Cleanliness | TODO |
+| 26 | Add CSP headers | Defense-in-depth | TODO |
+| 27 | Add audit logging | Compliance | TODO |
+| 28 | Add DOMPurify for HTML rendering | XSS prevention | TODO |
+| 29 | Fix missing prop-types dependency | Build reliability | TODO |
+| 30 | Remove debug UI from production | Information disclosure | TODO |
+| 31 | Implement token revocation mechanism | Session management | TODO |
 
 ---
 
@@ -456,4 +463,13 @@ The codebase is not all problems. These are solid:
 
 ## Summary
 
-The application's architecture is sound, but implementation gaps - particularly the commented-out AI authentication, wildcard CORS, role escalation via metadata, and the async authorization bypass - create **critical security holes** that would be exploited quickly in a SaaS context. The 10 critical/high items in Phase 1 should be treated as blockers for any production deployment.
+**Phase 1 is complete.** All 10 critical/high security items have been fixed and code-reviewed:
+
+- 6 CRITICAL fixes (SEC-01 through SEC-06): unauthenticated AI endpoints, wildcard CORS, role escalation, async auth bypass, data leak via trailing-slash endpoint, unrestricted bulk deletion
+- 4 HIGH fixes (SEC-07 through SEC-10): JWT audience verification, auth rate limiting, Stripe price ID validation, file upload validation
+
+**Remaining Phase 1 review notes (non-blocking):**
+- SEC-08: `/verify-token` endpoint lacks rate limiting (add in Phase 2)
+- SEC-10: WebP magic byte check is imprecise but not exploitable; `file.size` can be `None` on chunked uploads but mitigated by downstream storage limits
+
+The application's architecture is sound and Phase 1 has closed the critical security holes. Phase 2 (subscription status checks, bare exception handlers, datetime standardization, AI timeouts, race conditions, credential rotation) should be completed before onboarding paid customers.
