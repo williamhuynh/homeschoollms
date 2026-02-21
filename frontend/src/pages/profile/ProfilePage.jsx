@@ -105,7 +105,7 @@ const ProfilePage = () => {
   }
 
   return (
-    <Container maxW="container.sm" py={8}>
+    <Container maxW="container.sm" py={8} pb="80px">
       <VStack spacing={6} align="stretch">
         {/* Optional Back Button */}
         <Button 

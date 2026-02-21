@@ -216,22 +216,28 @@ function App() {
                       <Navigate to="/login" replace />
                   } 
                 />
-                <Route 
-                  path="/admin" 
+                <Route
+                  path="/admin"
                   element={
-                    isAuthenticated ? 
-                      <AdminPage /> : 
+                    isAuthenticated ?
+                      <>
+                        <AdminPage />
+                        <BottomNav />
+                      </> :
                       <Navigate to="/login" replace />
-                  } 
+                  }
                 />
                 {/* Profile Page Route */}
-                <Route 
-                  path="/profile" 
+                <Route
+                  path="/profile"
                   element={
-                    isAuthenticated ? 
-                      <ProfilePage /> : 
+                    isAuthenticated ?
+                      <>
+                        <ProfilePage />
+                        <BottomNav />
+                      </> :
                       <Navigate to="/login" replace />
-                  } 
+                  }
                 />
                 {/* Avatar Settings Page Route */}
                 <Route 
@@ -252,13 +258,16 @@ function App() {
                   } 
                 />
                 {/* Subscription Page Route */}
-                <Route 
-                  path="/subscription" 
+                <Route
+                  path="/subscription"
                   element={
-                    isAuthenticated ? 
-                      <SubscriptionPage /> : 
+                    isAuthenticated ?
+                      <>
+                        <SubscriptionPage />
+                        <BottomNav />
+                      </> :
                       <Navigate to="/login" replace />
-                  } 
+                  }
                 />
               </Routes>
               </FileUploadModalProvider>

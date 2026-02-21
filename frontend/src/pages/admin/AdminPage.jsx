@@ -75,7 +75,7 @@ const AdminPage = () => {
         onStopImpersonation={handleStopImpersonation}
       />
       
-      <Container maxW="container.xl" py={8} mt={impersonation ? 12 : 0}>
+      <Container maxW="container.xl" py={8} pb="80px" mt={impersonation ? 12 : 0}>
         <VStack spacing={8} align="stretch">
           <Box>
             <Button 
