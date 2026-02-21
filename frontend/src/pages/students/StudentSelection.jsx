@@ -80,6 +80,22 @@ const StudentSelection = () => {
     fetchStudents()
   }, [fetchStudents]) // Run on mount and when callback identity changes
 
+  // Check for subscription success redirect from Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('subscription') === 'success') {
+      toast({
+        title: 'Subscription Activated!',
+        description: 'Welcome to the Basic plan! Your account has been upgraded.',
+        status: 'success',
+        duration: 8000,
+        isClosable: true,
+      })
+      // Clean URL
+      window.history.replaceState({}, '', '/students')
+    }
+  }, [toast])
+
   return (
     // Add paddingBottom to account for fixed BottomNav height (adjust value as needed)
     <Container maxW="container.sm" py={8} pb="80px"> 

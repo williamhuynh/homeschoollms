@@ -82,7 +82,7 @@ function SubscriptionPage() {
   const handleUpgrade = async (priceId) => {
     setCheckoutLoading(true)
     try {
-      const successUrl = `${window.location.origin}/subscription?success=true`
+      const successUrl = `${window.location.origin}/students?subscription=success`
       const cancelUrl = `${window.location.origin}/subscription?canceled=true`
       
       const result = await createCheckoutSession(priceId, successUrl, cancelUrl)
@@ -104,7 +104,7 @@ function SubscriptionPage() {
   const handleManageSubscription = async () => {
     setCheckoutLoading(true)
     try {
-      const returnUrl = `${window.location.origin}/subscription`
+      const returnUrl = `${window.location.origin}/students`
       const result = await createPortalSession(returnUrl)
       
       // Redirect to Stripe Customer Portal
@@ -121,20 +121,10 @@ function SubscriptionPage() {
     }
   }
 
-  // Check for success/cancel URL params
+  // Check for cancel URL param
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    if (params.get('success') === 'true') {
-      toast({
-        title: 'Subscription Activated! 🎉',
-        description: 'Welcome to the Basic plan! Your account has been upgraded.',
-        status: 'success',
-        duration: 8000,
-        isClosable: true,
-      })
-      // Clean URL
-      window.history.replaceState({}, '', '/subscription')
-    } else if (params.get('canceled') === 'true') {
+    if (params.get('canceled') === 'true') {
       toast({
         title: 'Checkout Canceled',
         description: 'No changes were made to your subscription.',
@@ -162,7 +152,7 @@ function SubscriptionPage() {
   const hasActiveSubscription = subscription?.stripe_subscription_id && subscription?.status === 'active'
 
   return (
-    <Box bg={bgColor} minH="100vh" py={8}>
+    <Box bg={bgColor} minH="100vh" py={8} pb="80px">
       <Container maxW="container.lg">
         <VStack spacing={8} align="stretch">
           {/* Header */}
@@ -170,7 +160,7 @@ function SubscriptionPage() {
             <Button
               leftIcon={<ArrowLeft size={20} />}
               variant="ghost"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/students')}
               mb={4}
             >
               Back
