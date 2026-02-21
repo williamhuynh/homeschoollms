@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from typing import Optional, List
-from ..utils.auth_utils import get_current_user, is_admin_user
+from ..utils.auth_utils import get_current_user, is_admin_user, get_super_admin_user
 from ..models.schemas.user import UserInDB
 from ..models.schemas.content import SignedUrlRequest
 import logging
@@ -113,7 +113,7 @@ async def get_signed_url(
         file_storage_service = FileStorageService()
         
         # Use user-specific signed URL generation
-        signed_url = file_storage_service.generate_user_signed_url(
+        signed_url = await file_storage_service.generate_user_signed_url(
             file_path=request.file_path,
             user_id=str(current_user.id),
             expiration=request.expiration or 3600,
@@ -326,13 +326,10 @@ async def set_migration_mode(
 @router.post("/migration/cleanup/delete-all-public")
 async def delete_all_public_images(
     request: dict,
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_super_admin_user)
 ):
-    """DELETE ALL PUBLIC IMAGES - Use with caution!"""
+    """DELETE ALL PUBLIC IMAGES - Restricted to super_admin only."""
     try:
-        # Check if user is admin
-        if not is_admin_user(current_user):
-            raise HTTPException(status_code=403, detail="Admin access required")
         
         # Safety check - require confirmation
         confirm = request.get('confirm_delete_all')
@@ -377,13 +374,10 @@ async def delete_all_public_images(
 @router.post("/migration/cleanup/delete-all-private")
 async def delete_all_private_images(
     request: dict,
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_super_admin_user)
 ):
-    """DELETE ALL PRIVATE/AUTHENTICATED IMAGES - Use with caution!"""
+    """DELETE ALL PRIVATE/AUTHENTICATED IMAGES - Restricted to super_admin only."""
     try:
-        # Check if user is admin
-        if not is_admin_user(current_user):
-            raise HTTPException(status_code=403, detail="Admin access required")
         
         # Safety check - require confirmation
         confirm = request.get('confirm_delete_all')
@@ -428,13 +422,10 @@ async def delete_all_private_images(
 @router.post("/migration/cleanup/delete-all-cloudinary")
 async def delete_all_cloudinary_images(
     request: dict,
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_super_admin_user)
 ):
-    """DELETE ALL IMAGES FROM CLOUDINARY (both public and private) - Nuclear option!"""
+    """DELETE ALL IMAGES FROM CLOUDINARY (both public and private) - Restricted to super_admin only."""
     try:
-        # Check if user is admin
-        if not is_admin_user(current_user):
-            raise HTTPException(status_code=403, detail="Admin access required")
         
         # Safety check - require confirmation
         confirm = request.get('confirm_delete_all')

@@ -52,7 +52,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
                     user_metadata = supabase_user.get("user_metadata", {})
                     first_name = user_metadata.get("first_name", "User")
                     last_name = user_metadata.get("last_name", "Name")
-                    role = user_metadata.get("role", "parent")
+                    # Always assign 'parent' role for auto-created users.
+                    # Never trust client-supplied role from user_metadata as it
+                    # can be set during signup, enabling privilege escalation.
+                    role = "parent"
                     
                     # Create user with hashed password placeholder (Supabase manages auth)
                     from ..utils.password_utils import get_password_hash

@@ -41,9 +41,10 @@ class Settings(BaseSettings):
         "capacitor://localhost",
         "ionic://localhost"
     ]
-    # Allow any http/https origin via regex (works with allow_credentials=True)
-    # This helps dev on mobile/LAN IPs where the exact origin is unknown.
-    allowed_origin_regex: Optional[str] = r"https?://.*"
+    # Origin regex removed - the explicit allowed_origins list above is sufficient.
+    # A wildcard regex combined with allow_credentials=True allows any website
+    # to make authenticated cross-origin requests, which is a critical security risk.
+    allowed_origin_regex: Optional[str] = None
     
     class Config:
         env_file = ".env"
