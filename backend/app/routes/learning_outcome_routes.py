@@ -20,6 +20,67 @@ router = APIRouter()
 # Configure logger
 logger = logging.getLogger(__name__)
 
+# File upload validation constants
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif",
+    "application/pdf",
+}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"}
+MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
+
+# Magic bytes for file type verification
+MAGIC_BYTES = {
+    b"\xff\xd8\xff": "image/jpeg",
+    b"\x89PNG": "image/png",
+    b"RIFF": "image/webp",  # WebP starts with RIFF....WEBP
+    b"GIF8": "image/gif",
+    b"%PDF": "application/pdf",
+}
+
+
+async def validate_upload_file(file: UploadFile) -> None:
+    """Validate file type (extension, content-type, magic bytes) and size."""
+    # Check file extension
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type '{ext}' is not allowed. Accepted: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+        )
+
+    # Check declared content type
+    if file.content_type and file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Content type '{file.content_type}' is not allowed."
+        )
+
+    # Check file size
+    if file.size is not None and file.size > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File size exceeds the {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB limit."
+        )
+
+    # Read first bytes for magic byte validation, then reset
+    header = await file.read(8)
+    await file.seek(0)
+
+    if not header:
+        raise HTTPException(status_code=400, detail="Empty file uploaded.")
+
+    # Verify magic bytes match an allowed type
+    matched = False
+    for magic, _ in MAGIC_BYTES.items():
+        if header[:len(magic)] == magic:
+            matched = True
+            break
+    if not matched:
+        raise HTTPException(
+            status_code=400,
+            detail="File content does not match any allowed file type."
+        )
+
 async def verify_student_access(student_id: str, current_user: UserInDB, required_access: str = "view") -> bool:
     """
     Verify if the current user has the required access level to a student's data.
@@ -261,13 +322,17 @@ async def upload_evidence_multi_outcome(
             validated_obj_ids.append(outcome["_id"])
             logger.info(f"Found existing learning outcome: {outcome_code}")
     
+    # Validate all uploaded files before processing
+    for file in files:
+        await validate_upload_file(file)
+
     # Upload files and create evidence documents
     uploaded_files = []
-    
+
     for file in files:
         try:
             logger.info(f"Processing file: {file.filename}")
-            
+
             # Generate unique filename
             file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
             unique_filename = f"{uuid.uuid4()}.{file_extension}"
@@ -378,6 +443,10 @@ async def upload_evidence(
     if not can_add:
         raise HTTPException(status_code=403, detail=message)
     
+    # Validate all uploaded files before processing
+    for file in files:
+        await validate_upload_file(file)
+
     logger.info(f"Received {len(files)} file(s) for student {student_id}, path outcome {learning_outcome_id}")
     logger.info(f"Form data - Title: '{title}', Desc: '{description}', Loc: '{location}', Area: '{learning_area_code}', Outcome: '{learning_outcome_code}'")
     logger.info(f"Additional context - Grade: '{student_grade}', Outcome Desc: '{learning_outcome_description}'")

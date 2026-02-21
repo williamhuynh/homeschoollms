@@ -38,7 +38,7 @@ class SupabaseService:
                 key=None,  # Explicitly pass None for the key argument
                 options={
                     "verify_signature": False,
-                    "verify_aud": False  # Explicitly disable audience verification here too
+                    "verify_aud": False  # No verification needed for pre-parse
                 }
             )
             # Get the user ID from the token
@@ -56,7 +56,8 @@ class SupabaseService:
                     token,
                     supabase_jwt_secret, # This is the 'key' argument
                     algorithms=["HS256"],
-                    options={"verify_aud": False}  # Skip audience verification
+                    audience="authenticated",
+                    options={"verify_aud": True}
                 )
             except Exception as e:
                 logging.error(f"Token verification failed: {e}", exc_info=True) # Use logging.error
