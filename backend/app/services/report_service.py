@@ -68,13 +68,12 @@ class ReportService:
 
     @staticmethod
     async def get_student_reports(
-        student_id: str, 
-        academic_year: Optional[str] = None,
+        student_id: str,
         status: Optional[ReportStatus] = None
     ) -> List[StudentReport]:
-        """Get all reports for a student, optionally filtered by year and status."""
+        """Get all reports for a student, optionally filtered by status."""
         db = Database.get_db()
-        
+
         # Resolve student ID (similar to learning outcome routes)
         try:
             student_obj_id = ObjectId(student_id)
@@ -85,7 +84,7 @@ class ReportService:
                 student_obj_id = student["_id"]
             else:
                 raise HTTPException(status_code=404, detail=f"Student not found: {student_id}")
-        
+
         # Backward-compatible match for reports that may have stored different field names/types
         query: Dict = {
             "$or": [
@@ -95,8 +94,6 @@ class ReportService:
                 {"studentId": str(student_obj_id)}
             ]
         }
-        if academic_year:
-            query["academic_year"] = academic_year
         # Store and query enums as their string values
         if status:
             query["status"] = status.value if hasattr(status, "value") else str(status)
@@ -188,17 +185,17 @@ class ReportService:
         
         student = await StudentService.get_student_by_id(str(student_obj_id))
         
-        # Check if report already exists for this period
+        # Check if report already exists for this grade
+        selected_grade = request.grade_level or student.grade_level
         existing = await db.student_reports.find_one({
             "student_id": student_obj_id,
-            "academic_year": request.academic_year,
-            "report_period": request.report_period
+            "grade_level": selected_grade
         })
-        
+
         if existing:
             raise HTTPException(
-                status_code=400, 
-                detail="Report already exists for this period. Delete existing report first."
+                status_code=400,
+                detail="Report already exists for this grade. Delete existing report first."
             )
         
         # Create new report document
@@ -226,7 +223,6 @@ class ReportService:
 
         report = StudentReport(
             student_id=student_obj_id,
-            academic_year=request.academic_year,
             report_period=request.report_period if isinstance(request.report_period, ReportPeriod) else ReportPeriod(request.report_period),
             custom_period_name=request.custom_period_name,
             created_by=ObjectId(current_user.id),
@@ -323,7 +319,6 @@ class ReportService:
                 ai_overview = await generate_report_overview(
                     student_name=student_first_name,
                     grade_level=selected_grade_level,
-                    academic_year=request.academic_year,
                     report_period=request.report_period.value if hasattr(request.report_period, 'value') else str(request.report_period),
                     learning_area_summaries=[s.dict() for s in summaries],
                     total_evidence_count=total_evidence,
@@ -949,9 +944,8 @@ class ReportService:
             {"_id": report["_id"]},
             {"$set": {"status": ReportStatus.GENERATING.value, "last_modified": datetime.utcnow(), "modified_by": ObjectId(current_user.id)}}
         )
-        # Re-run generation using existing academic_year and report_period
+        # Re-run generation using existing report_period and grade_level
         generate_request = GenerateReportRequest(
-            academic_year=report.get("academic_year"),
             report_period=report.get("report_period") if isinstance(report.get("report_period"), ReportPeriod) else ReportPeriod(report.get("report_period")),
             custom_period_name=report.get("custom_period_name"),
             learning_area_codes=None,
@@ -991,7 +985,6 @@ class ReportService:
             ai_overview = await generate_report_overview(
                 student_name=student_first_name,
                 grade_level=selected_grade_level,
-                academic_year=generate_request.academic_year,
                 report_period=generate_request.report_period.value if hasattr(generate_request.report_period, 'value') else str(generate_request.report_period),
                 learning_area_summaries=[s.dict() for s in summaries],
                 total_evidence_count=total_evidence,

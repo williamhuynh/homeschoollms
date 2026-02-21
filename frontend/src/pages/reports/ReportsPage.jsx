@@ -23,7 +23,6 @@ import {
   Select,
   FormControl,
   FormLabel,
-  Input,
   useDisclosure,
   IconButton,
   Menu,
@@ -56,17 +55,11 @@ const ReportsPage = () => {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [formData, setFormData] = useState({
-    academic_year: String(new Date().getFullYear()),
     report_period: 'annual',
-    custom_period_name: '',
     template: 'standard',
     grade_level: ''
   })
-  
-  // Generate year options for the dropdown (current year and 5 years back)
-  const currentYear = new Date().getFullYear()
-  const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i)
-  
+
   // Check if user can generate reports
   const canGenerate = canGenerateReports()
 
@@ -308,7 +301,7 @@ const ReportsPage = () => {
                         </Badge>
                       </HStack>
                       <Text fontSize="sm" color="gray.600">
-                        {report.academic_year} • Created {formatDate(report.generated_at)}
+                        {report.grade_level ? `Grade ${report.grade_level} • ` : ''}Created {formatDate(report.generated_at)}
                       </Text>
                       <Text fontSize="xs" color="gray.500">
                         {report.learning_area_summaries?.length || 0} learning areas
@@ -360,44 +353,6 @@ const ReportsPage = () => {
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Academic Year</FormLabel>
-                <Select
-                  value={formData.academic_year}
-                  onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
-                >
-                  {yearOptions.map(year => (
-                    <option key={year} value={String(year)}>{year}</option>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Report Period</FormLabel>
-                <Select
-                  value={formData.report_period}
-                  onChange={(e) => setFormData({ ...formData, report_period: e.target.value })}
-                >
-                  <option value="annual">Annual Report</option>
-                  <option value="term_1" disabled>Term 1 (soon)</option>
-                  <option value="term_2" disabled>Term 2 (soon)</option>
-                  <option value="term_3" disabled>Term 3 (soon)</option>
-                  <option value="term_4" disabled>Term 4 (soon)</option>
-                  <option value="custom" disabled>Custom Period (soon)</option>
-                </Select>
-              </FormControl>
-
-              {formData.report_period === 'custom' && (
-                <FormControl isRequired>
-                  <FormLabel>Custom Period Name</FormLabel>
-                  <Input
-                    value={formData.custom_period_name}
-                    onChange={(e) => setFormData({ ...formData, custom_period_name: e.target.value })}
-                    placeholder="e.g., Mid-Year Review"
-                  />
-                </FormControl>
-              )}
-
               <FormControl isRequired>
                 <FormLabel>Grade</FormLabel>
                 <Select

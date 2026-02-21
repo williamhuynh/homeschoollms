@@ -80,18 +80,16 @@ async def ensure_student_access(student_id: str, current_user: UserInDB, require
 @router.get("/reports/{student_id}", response_model=List[StudentReport])
 async def get_student_reports(
     student_id: str,
-    academic_year: Optional[str] = None,
     status: Optional[ReportStatus] = None,
     current_user: UserInDB = Depends(get_current_user)
 ):
     """Get all reports for a student."""
     # Ensure user has at least view access
     await ensure_student_access(student_id, current_user, "view")
-    
+
     try:
         reports = await ReportService.get_student_reports(
-            student_id, 
-            academic_year=academic_year,
+            student_id,
             status=status
         )
         return reports

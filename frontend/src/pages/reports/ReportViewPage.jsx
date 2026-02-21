@@ -238,7 +238,7 @@ const ReportViewPage = () => {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `${student?.first_name}_${student?.last_name}_${report.report_period}_${report.academic_year}.html`
+      link.download = `${student?.first_name}_${student?.last_name}_Grade_${report.grade_level || student?.grade_level}.html`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -367,7 +367,7 @@ const ReportViewPage = () => {
             </Badge>
             {student && (
               <Text color="gray.600" fontSize="sm">
-                {student.first_name} {student.last_name} • {student.grade_level} • {report.academic_year}
+                {student.first_name} {student.last_name} • {report.grade_level || student.grade_level}
               </Text>
             )}
           </VStack>

@@ -800,7 +800,6 @@ Guidelines:
 async def generate_report_overview(
     student_name: str,
     grade_level: str,
-    academic_year: str,
     report_period: str,
     learning_area_summaries: List[Dict],
     total_evidence_count: int,
@@ -814,7 +813,6 @@ async def generate_report_overview(
     Args:
         student_name: The student's first name
         grade_level: The student's grade level
-        academic_year: The academic year (e.g., "2025")
         report_period: The report period (annual, term_1, etc.)
         learning_area_summaries: List of learning area summary objects
         total_evidence_count: Total number of evidence items across all areas
@@ -867,7 +865,6 @@ This will be the opening section that a parent can edit and add to.
 STUDENT DETAILS:
 - Name: {student_name}
 - Grade: {grade_level}
-- Academic Year: {academic_year}
 - Period: {period_text}
 
 PROGRESS SUMMARY:
@@ -911,7 +908,7 @@ Example tone: "This year, [Child] has shown remarkable enthusiasm for learning a
         return (
             f"{student_name} has engaged in {total_evidence_count} documented learning activities "
             f"during {period_text}, demonstrating progress across {len(learning_area_summaries)} learning areas. "
-            f"This report highlights the learning journey and achievements throughout {academic_year}."
+            f"This report highlights the learning journey and achievements in Grade {grade_level}."
         )
 
 
