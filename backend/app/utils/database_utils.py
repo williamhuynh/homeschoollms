@@ -63,8 +63,7 @@ class Database:
         await db.student_reports.create_index([("student_id", 1), ("created_at", -1)])
         await db.student_reports.create_index([
             ("student_id", 1),
-            ("academic_year", 1),
-            ("report_period", 1)
+            ("grade_level", 1)
         ], unique=True)
         await db.student_reports.create_index("status")
 

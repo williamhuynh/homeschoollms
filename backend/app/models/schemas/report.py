@@ -44,7 +44,7 @@ class ExportSettings(BaseModel):
 
 class StudentReport(MongoBaseModel):
     student_id: PyObjectId
-    academic_year: str  # e.g., "2025"
+    academic_year: Optional[str] = None  # Deprecated - kept for backward compat with existing reports
     report_period: ReportPeriod
     custom_period_name: Optional[str] = None  # For custom periods
     title: Optional[str] = None
@@ -67,8 +67,8 @@ class StudentReport(MongoBaseModel):
 
 # Request/Response models
 class GenerateReportRequest(BaseModel):
-    academic_year: str
-    report_period: ReportPeriod
+    academic_year: Optional[str] = None  # Deprecated - no longer used
+    report_period: ReportPeriod = ReportPeriod.ANNUAL
     custom_period_name: Optional[str] = None
     learning_area_codes: Optional[List[str]] = None  # If None, generate for all areas
     grade_level: Optional[str] = None
