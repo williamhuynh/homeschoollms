@@ -92,9 +92,9 @@ const SubjectContentPage = () => {
          try {
            // Get all outcome codes
            const outcomeCodes = outcomes.map(outcome => outcome.code)
-           
-           // Fetch latest evidence for each outcome (uses batch API when possible)
-           const evidence = await getLatestEvidenceForOutcomes(student._id, outcomeCodes)
+
+           // Fetch latest evidence for each outcome, filtered by current grade
+           const evidence = await getLatestEvidenceForOutcomes(student._id, outcomeCodes, student.grade_level)
            setEvidenceMap(evidence)
          } catch (err) {
            logger.error('Error fetching evidence', err)
@@ -105,7 +105,7 @@ const SubjectContentPage = () => {
          }
        }
      }
-     
+
      // Only fetch evidence if we're online
      if (!isOffline) {
        fetchEvidence()

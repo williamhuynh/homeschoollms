@@ -502,12 +502,13 @@ class ReportService:
             "deleted": {"$ne": True}
         }
         
-        # If evidence contains grade_level metadata, filter to selected grade only
+        # If evidence contains student_grade metadata, filter to selected grade only
         if grade_level:
             evidence_query["$and"] = evidence_query.get("$and", []) + [
                 {"$or": [
-                    {"grade_level": {"$exists": False}},
-                    {"grade_level": {"$eq": grade_level}}
+                    {"student_grade": {"$exists": False}},
+                    {"student_grade": None},
+                    {"student_grade": {"$eq": grade_level}}
                 ]}
             ]
         
@@ -688,8 +689,17 @@ class ReportService:
         logger.info("Discovering learning areas from evidence via aggregation")
         
         # Build aggregation to handle both array and legacy string formats for learning_area_codes
+        # Filter by grade so we only discover areas relevant to the current grade
+        match_filter = {"student_id": student_id, "deleted": {"$ne": True}}
+        if grade_level:
+            match_filter["$or"] = [
+                {"student_grade": {"$exists": False}},
+                {"student_grade": None},
+                {"student_grade": {"$eq": grade_level}}
+            ]
+
         pipeline = [
-            {"$match": {"student_id": student_id, "deleted": {"$ne": True}}},
+            {"$match": match_filter},
             {"$project": {
                 "codes": {
                     "$cond": [
