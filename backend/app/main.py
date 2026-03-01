@@ -108,9 +108,12 @@ async def startup_db_client():
     rate_limiter.start_cleanup()
     logging.info("Rate limiter cleanup task started")
 
-    # Create database indexes for data integrity
-    await ensure_report_indexes()
-    logging.info("Database indexes ensured")
+    # Create database indexes for data integrity (non-fatal on failure)
+    try:
+        await ensure_report_indexes()
+        logging.info("Database indexes ensured")
+    except Exception as e:
+        logging.warning(f"Failed to create report indexes (non-fatal): {e}")
 
 @app.get("/health")
 async def health_check():
