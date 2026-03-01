@@ -48,6 +48,15 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
   const [editedResources, setEditedResources] = useState([])
   const [newResource, setNewResource] = useState('')
 
+  const handleAddResource = () => {
+    const trimmed = newResource.trim()
+    if (!trimmed) return
+    if (!editedResources.some(r => r.toLowerCase() === trimmed.toLowerCase())) {
+      setEditedResources(prev => [...prev, trimmed])
+    }
+    setNewResource('')
+  }
+
   const handleSave = async (newSummary) => {
     try {
       setSaving(true)
@@ -124,6 +133,7 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
   }
 
   const displaySummary = summary.user_edited_summary || summary.ai_generated_summary || 'No summary available.'
+  const displayResources = summary.user_edited_resources || summary.learning_resources || []
 
   const formatDate = (dateString) => {
     if (!dateString) return ''
@@ -226,8 +236,7 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
                   size="xs"
                   variant="ghost"
                   onClick={() => {
-                    const current = summary.user_edited_resources || summary.learning_resources || []
-                    setEditedResources([...current])
+                    setEditedResources([...displayResources])
                     setIsEditingResources(true)
                   }}
                   aria-label="Edit resources"
@@ -254,22 +263,10 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
                     value={newResource}
                     onChange={(e) => setNewResource(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newResource.trim()) {
-                        const trimmed = newResource.trim()
-                        if (!editedResources.some(r => r.toLowerCase() === trimmed.toLowerCase())) {
-                          setEditedResources(prev => [...prev, trimmed])
-                        }
-                        setNewResource('')
-                      }
+                      if (e.key === 'Enter') handleAddResource()
                     }}
                   />
-                  <Button size="sm" isDisabled={!newResource.trim()} onClick={() => {
-                    const trimmed = newResource.trim()
-                    if (!editedResources.some(r => r.toLowerCase() === trimmed.toLowerCase())) {
-                      setEditedResources(prev => [...prev, trimmed])
-                    }
-                    setNewResource('')
-                  }}>Add</Button>
+                  <Button size="sm" isDisabled={!newResource.trim()} onClick={handleAddResource}>Add</Button>
                 </HStack>
                 <HStack spacing={2}>
                   <Button size="sm" colorScheme="blue" onClick={handleSaveResources}>Save</Button>
@@ -277,11 +274,9 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
                 </HStack>
               </VStack>
             ) : (
-              <Text fontSize="sm" color={
-                (summary.user_edited_resources || summary.learning_resources || []).length > 0 ? "gray.700" : "gray.400"
-              }>
-                {(summary.user_edited_resources || summary.learning_resources || []).length > 0
-                  ? (summary.user_edited_resources || summary.learning_resources).join(', ')
+              <Text fontSize="sm" color={displayResources.length > 0 ? "gray.700" : "gray.400"}>
+                {displayResources.length > 0
+                  ? displayResources.join(', ')
                   : 'No learning resources recorded'}
               </Text>
             )}

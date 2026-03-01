@@ -93,6 +93,13 @@ const AIEvidenceUploadPage = () => {
   const [newResourceDetails, setNewResourceDetails] = useState('')
   const [showAddResource, setShowAddResource] = useState(false)
 
+  const resetResourceForm = () => {
+    setShowAddResource(false)
+    setNewResourceName('')
+    setNewResourceType('')
+    setNewResourceDetails('')
+  }
+
   // Load curriculum data when component mounts
   useEffect(() => {
     const loadCurriculumData = async () => {
@@ -853,20 +860,12 @@ const AIEvidenceUploadPage = () => {
                     type: newResourceType.trim() || null,
                     details: newResourceDetails.trim() || null
                   }])
-                  setNewResourceName('')
-                  setNewResourceType('')
-                  setNewResourceDetails('')
-                  setShowAddResource(false)
+                  resetResourceForm()
                 }}
               >
                 Add
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => {
-                setShowAddResource(false)
-                setNewResourceName('')
-                setNewResourceType('')
-                setNewResourceDetails('')
-              }}>
+              <Button size="sm" variant="ghost" onClick={resetResourceForm}>
                 Cancel
               </Button>
             </HStack>

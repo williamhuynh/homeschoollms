@@ -14,6 +14,18 @@ import logging # Added logging
 # Timeout in seconds for Gemini API calls
 AI_CALL_TIMEOUT = 60
 
+def _clean_and_parse_ai_json(text: str):
+    """Strip markdown code fences from AI response text and parse as JSON."""
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
+    if cleaned.startswith("json"):
+        cleaned = cleaned[4:].strip()
+    return json.loads(cleaned)
+
 # Configure logger
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO) # Uncomment for more detailed logs
@@ -150,22 +162,12 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
 
         # Try to parse as JSON for structured response
         try:
-            # Remove markdown backticks if present
-            cleaned = response_text
-            if cleaned.startswith("```"):
-                cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
-            if cleaned.endswith("```"):
-                cleaned = cleaned[:-3]
-            cleaned = cleaned.strip()
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:].strip()
-
-            parsed = json.loads(cleaned)
+            parsed = _clean_and_parse_ai_json(response_text)
             return {
                 "description": parsed.get("description", response_text),
                 "learning_resources": parsed.get("learning_resources", [])
             }
-        except (json.JSONDecodeError, AttributeError):
+        except (json.JSONDecodeError, ValueError, AttributeError):
             # Fallback: treat entire response as description, no resources
             logger.warning("AI response was not valid JSON, falling back to plain text")
             return {
@@ -292,14 +294,8 @@ async def analyze_image_for_questions(images: List[Dict[str, Union[bytes, str]]]
         
         # Try to parse as JSON
         try:
-            # Remove any markdown formatting if present
-            if generated_text.startswith('```json'):
-                generated_text = generated_text.replace('```json', '').replace('```', '').strip()
-            elif generated_text.startswith('```'):
-                generated_text = generated_text.replace('```', '').strip()
-            
-            questions_data = json.loads(generated_text)
-            
+            questions_data = _clean_and_parse_ai_json(generated_text)
+
             # Validate the structure
             if not isinstance(questions_data, list):
                 raise ValueError("Response is not a list of questions")
@@ -474,14 +470,8 @@ async def suggest_learning_outcomes(
         
         # Try to parse as JSON
         try:
-            # Remove any markdown formatting if present
-            if generated_text.startswith('```json'):
-                generated_text = generated_text.replace('```json', '').replace('```', '').strip()
-            elif generated_text.startswith('```'):
-                generated_text = generated_text.replace('```', '').strip()
-            
-            outcomes_data = json.loads(generated_text)
-            
+            outcomes_data = _clean_and_parse_ai_json(generated_text)
+
             # Validate the structure
             if not isinstance(outcomes_data, list):
                 raise ValueError("Response is not a list of outcomes")

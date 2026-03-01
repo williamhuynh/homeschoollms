@@ -18,7 +18,7 @@ import {
 } from '@chakra-ui/react'
 import { Download, Printer, FileText, Share2, ChevronDown } from 'react-feather'
 import { useState } from 'react'
-import { generatePrintableHTML, formatReportPeriod, formatDate, sortLearningAreaSummaries } from './exportUtils'
+import { generatePrintableHTML, formatReportPeriod, formatDate, sortLearningAreaSummaries, escapeHtml } from './exportUtils'
 import { logger } from '../../utils/logger'
 
 const ReportExporter = ({ report, student, className = '' }) => {
@@ -185,7 +185,6 @@ const ReportExporter = ({ report, student, className = '' }) => {
                   </div>
 
                   ${(() => {
-                    const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
                     const resources = summary.user_edited_resources || summary.learning_resources || []
                     return `
                       <div style="margin: 10px 0; font-size: 0.9em;">

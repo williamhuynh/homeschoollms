@@ -65,16 +65,21 @@ export const formatDate = (dateString) => {
  * Supports **bold**, *italic*, and preserves line breaks.
  * Escapes HTML entities first to prevent XSS.
  */
-export const formatMarkdownToHTML = (text) => {
-  if (!text) return '';
-
-  // Escape HTML entities first to prevent XSS
-  const escaped = text
+export const escapeHtml = (str) => {
+  if (!str) return '';
+  return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+};
+
+export const formatMarkdownToHTML = (text) => {
+  if (!text) return '';
+
+  // Escape HTML entities first to prevent XSS
+  const escaped = escapeHtml(text);
 
   // Convert markdown to HTML
   // Bold first: **text** -> <strong>text</strong>
@@ -262,7 +267,6 @@ export const generatePrintableHTML = (report, student) => {
                   </div>
 
                   ${(() => {
-                    const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
                     const resources = summary.user_edited_resources || summary.learning_resources || []
                     return `
                       <div style="margin: 10px 0; font-size: 0.9em;">
