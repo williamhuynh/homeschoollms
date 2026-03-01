@@ -261,6 +261,18 @@ export const generatePrintableHTML = (report, student) => {
                     ${formatMarkdownToHTML(summary.user_edited_summary || summary.ai_generated_summary || 'No summary available.')}
                   </div>
 
+                  ${(() => {
+                    const resources = summary.user_edited_resources || summary.learning_resources || []
+                    return `
+                      <div style="margin: 10px 0; font-size: 0.9em;">
+                        <strong>Learning Resources:</strong>
+                        <span style="color: ${resources.length > 0 ? '#333' : '#999'}">
+                          ${resources.length > 0 ? resources.join(', ') : 'No learning resources recorded'}
+                        </span>
+                      </div>
+                    `
+                  })()}
+
                   ${summary.evidence_examples?.length > 0 ? `
                     <div>
                       <h4>Evidence (${summary.evidence_count} total)</h4>
