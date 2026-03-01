@@ -13,6 +13,7 @@ import os
 import uuid # Added for unique filenames
 import logging # Added for better logging control
 import re # Added for outcome code lookup
+import json
 from ..models.schemas.evidence import EvidenceUpdate
 
 router = APIRouter()
@@ -327,7 +328,6 @@ async def upload_evidence_multi_outcome(
     parsed_resources = []
     if learning_resources:
         try:
-            import json
             raw = json.loads(learning_resources)
             if isinstance(raw, list):
                 for r in raw:

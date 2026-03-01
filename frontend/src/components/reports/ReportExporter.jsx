@@ -184,6 +184,19 @@ const ReportExporter = ({ report, student, className = '' }) => {
                     ${(summary.user_edited_summary || summary.ai_generated_summary || 'No summary available.').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')}
                   </div>
 
+                  ${(() => {
+                    const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+                    const resources = summary.user_edited_resources || summary.learning_resources || []
+                    return `
+                      <div style="margin: 10px 0; font-size: 0.9em;">
+                        <strong>Learning Resources:</strong>
+                        <span style="color: ${resources.length > 0 ? '#333' : '#999'}">
+                          ${resources.length > 0 ? resources.map(r => escapeHtml(r)).join(', ') : 'No learning resources recorded'}
+                        </span>
+                      </div>
+                    `
+                  })()}
+
                   ${summary.evidence_examples?.length > 0 ? `
                     <div>
                       <h4>Evidence (${summary.evidence_count} total)</h4>

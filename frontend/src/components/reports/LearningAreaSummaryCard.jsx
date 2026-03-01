@@ -255,13 +255,19 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
                     onChange={(e) => setNewResource(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && newResource.trim()) {
-                        setEditedResources(prev => [...prev, newResource.trim()])
+                        const trimmed = newResource.trim()
+                        if (!editedResources.some(r => r.toLowerCase() === trimmed.toLowerCase())) {
+                          setEditedResources(prev => [...prev, trimmed])
+                        }
                         setNewResource('')
                       }
                     }}
                   />
                   <Button size="sm" isDisabled={!newResource.trim()} onClick={() => {
-                    setEditedResources(prev => [...prev, newResource.trim()])
+                    const trimmed = newResource.trim()
+                    if (!editedResources.some(r => r.toLowerCase() === trimmed.toLowerCase())) {
+                      setEditedResources(prev => [...prev, trimmed])
+                    }
                     setNewResource('')
                   }}>Add</Button>
                 </HStack>

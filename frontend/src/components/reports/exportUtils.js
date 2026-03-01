@@ -262,12 +262,13 @@ export const generatePrintableHTML = (report, student) => {
                   </div>
 
                   ${(() => {
+                    const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
                     const resources = summary.user_edited_resources || summary.learning_resources || []
                     return `
                       <div style="margin: 10px 0; font-size: 0.9em;">
                         <strong>Learning Resources:</strong>
                         <span style="color: ${resources.length > 0 ? '#333' : '#999'}">
-                          ${resources.length > 0 ? resources.join(', ') : 'No learning resources recorded'}
+                          ${resources.length > 0 ? resources.map(r => escapeHtml(r)).join(', ') : 'No learning resources recorded'}
                         </span>
                       </div>
                     `

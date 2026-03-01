@@ -8,6 +8,7 @@ import sys
 import traceback
 from fastapi import HTTPException, status
 from typing import List, Dict, Union # Added List, Dict, Union
+import json
 import logging # Added logging
 
 # Timeout in seconds for Gemini API calls
@@ -149,7 +150,6 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
 
         # Try to parse as JSON for structured response
         try:
-            import json
             # Remove markdown backticks if present
             cleaned = response_text
             if cleaned.startswith("```"):
@@ -291,7 +291,6 @@ async def analyze_image_for_questions(images: List[Dict[str, Union[bytes, str]]]
         logger.info(f"Generated questions text length: {len(generated_text)}")
         
         # Try to parse as JSON
-        import json
         try:
             # Remove any markdown formatting if present
             if generated_text.startswith('```json'):
@@ -432,7 +431,6 @@ async def suggest_learning_outcomes(
         context_text = "\n".join([f"{key}: {value}" for key, value in question_answers.items()])
         
         # Format curriculum data for the prompt
-        import json
         curriculum_json = json.dumps(curriculum_data, indent=2)
         
         # Construct the prompt for suggesting learning outcomes
