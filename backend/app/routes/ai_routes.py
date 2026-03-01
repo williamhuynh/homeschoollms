@@ -104,10 +104,18 @@ async def generate_ai_description(
     # Call AI service with the list of image data
     try:
         logger.info(f"Calling AI service with {len(image_data_list)} image(s).")
-        generated_text = await ai_service.generate_description_from_images( # Note: function name changed
+        result = await ai_service.generate_description_from_images(
             images=image_data_list,
             context_description=context_description
         )
+
+        # Handle both dict (new format) and string (fallback) returns
+        if isinstance(result, dict):
+            generated_text = result.get("description", "")
+            learning_resources = result.get("learning_resources", [])
+        else:
+            generated_text = result
+            learning_resources = []
 
         # Try generating a title; fallback gracefully on failure
         try:
@@ -121,9 +129,9 @@ async def generate_ai_description(
             logger.warning(f"AI title generation failed: {title_error}. Using fallback title.")
             from datetime import datetime, timezone
             generated_title = f"AI Analyzed Evidence - {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
-        
+
         logger.info(f"Successfully generated description (length: {len(generated_text)}).")
-        return {"description": generated_text, "title": generated_title}
+        return {"description": generated_text, "title": generated_title, "learning_resources": learning_resources}
 
     except HTTPException as http_exc:
         # Re-raise HTTPExceptions (e.g., from AI service validation)

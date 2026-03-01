@@ -50,16 +50,16 @@ except Exception as e:
     logger.error(f"ERROR initializing Gemini model '{model_name}': {e}", exc_info=True)
     # We'll let the endpoint handle this when it's called
 
-async def generate_description_from_images(images: List[Dict[str, Union[bytes, str]]], context_description: str) -> str:
+async def generate_description_from_images(images: List[Dict[str, Union[bytes, str]]], context_description: str) -> Dict:
     """
-    Generates a four-sentence description for one or more images based on provided context.
+    Generates a description and detects learning resources for one or more images based on provided context.
 
     Args:
         images: A list of dictionaries, each containing 'bytes' and 'mime_type' for an image.
         context_description: Contextual information to connect the image(s) to.
 
     Returns:
-        A string containing the generated four-sentence description.
+        A dict containing 'description' (str) and 'learning_resources' (list of dicts).
 
     Raises:
         HTTPException: If the API key is not configured, the model failed to initialize,
@@ -123,19 +123,16 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
             raise ValueError("Context description cannot be empty")
         
         # Construct the prompt for multiple images
-        prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the images and context provided and describe the activity shown:
+        prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the images and context provided.
 
         <Context Information> {context_description} </Context Information>
 
-        1. First, describe what your child is doing, drawing connections between the images if there are more than one provided. Use any context details provided as input into the description.
-        2. Then, if it clearly relates to the particular learning area and learning outcome, explain how the activity is evidence of achieving the learning outcome.
+        Respond with a JSON object containing:
+        1. "description": A short description (max 500 characters) of what the child is doing. Draw connections between images if multiple. If it relates to learning outcomes, explain how. Use a warm, reflective tone. Avoid emotive language. Only describe what is shown.
+        2. "learning_resources": An array of learning resources visible in the images (book titles, app names, website names, worksheet titles, educational games, etc.). Each item should have "name" (required) and "type" (optional - one of: Book, App, Website, Worksheet, Video, Game, or other). If no resources are visible, return an empty array.
 
-        If no clear connection exists, omit the linkage to the learning outcome and just describe the photos.
-        Use a warm, reflective tone suited to early childhood learning.
-        Avoid emotive language as the purpose of this is factual evidence of learning activity.
-        Keep it to no more than 500 characters.
-        DO NOT make up any additional details, only describe what is shown in the photos and provided context.
-        Do NOT output any preamble such as 'the following is the journal entry', just output the entry itself."""
+        IMPORTANT: Return ONLY valid JSON, no markdown backticks, no preamble. Example:
+        {{"description": "Your description here", "learning_resources": [{{"name": "Reading Eggs", "type": "App"}}]}}"""
 
         logger.info(f"Prompt prepared for {len(prepared_images)} images. Sending to Gemini API the following prompt: {prompt}")
         
@@ -147,14 +144,34 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
         logger.info("Received response from Gemini API")
 
         # Extract and clean the text
-        generated_text = response.text.strip()
-        logger.info(f"Generated text length: {len(generated_text)}")
-        
-        # Basic validation (optional)
-        # if generated_text.count('.') < 2 or generated_text.count('.') > 6: 
-        #      logger.warning(f"Generated text might not have exactly 4 sentences: {generated_text}")
+        response_text = response.text.strip()
+        logger.info(f"Generated text length: {len(response_text)}")
 
-        return generated_text
+        # Try to parse as JSON for structured response
+        try:
+            import json
+            # Remove markdown backticks if present
+            cleaned = response_text
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            cleaned = cleaned.strip()
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:].strip()
+
+            parsed = json.loads(cleaned)
+            return {
+                "description": parsed.get("description", response_text),
+                "learning_resources": parsed.get("learning_resources", [])
+            }
+        except (json.JSONDecodeError, AttributeError):
+            # Fallback: treat entire response as description, no resources
+            logger.warning("AI response was not valid JSON, falling back to plain text")
+            return {
+                "description": response_text,
+                "learning_resources": []
+            }
 
     except ValueError as ve:
         # Handle specific validation errors (e.g., no valid images, empty outcome)
