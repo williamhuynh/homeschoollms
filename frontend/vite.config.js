@@ -19,7 +19,14 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
-    host: true
+    port: 5173,
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'https://homeschoollms-server.onrender.com',
+        changeOrigin: true,
+        secure: true
+      }
+    }
   }
 })

@@ -151,7 +151,7 @@ const ImageViewerModal = ({
       const freshToken = await refreshToken();
       
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}/download`,
+        `${import.meta.env.VITE_API_URL || ''}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}/download`,
         {
           method: 'GET',
           headers: {
@@ -200,7 +200,7 @@ const ImageViewerModal = ({
       const freshToken = await refreshToken();
       
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}/share`,
+        `${import.meta.env.VITE_API_URL || ''}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}/share`,
         {
           method: 'POST',
           headers: {
@@ -245,7 +245,7 @@ const ImageViewerModal = ({
       const freshToken = await refreshToken();
       
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}`,
+        `${import.meta.env.VITE_API_URL || ''}/api/learning-outcomes/${studentId}/${learningOutcomeId}/evidence/${image._id}`,
         {
           method: 'DELETE',
           headers: {
