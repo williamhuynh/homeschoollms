@@ -423,8 +423,11 @@ class ReportService:
         updated = False
         for summary in report["learning_area_summaries"]:
             if summary["learning_area_code"] == learning_area_code:
-                summary["user_edited_summary"] = update_request.user_edited_summary
-                summary["is_edited"] = True
+                if update_request.user_edited_summary is not None:
+                    summary["user_edited_summary"] = update_request.user_edited_summary
+                    summary["is_edited"] = True
+                if update_request.user_edited_resources is not None:
+                    summary["user_edited_resources"] = update_request.user_edited_resources
                 summary["last_updated"] = datetime.now(timezone.utc)
                 updated = True
                 break
