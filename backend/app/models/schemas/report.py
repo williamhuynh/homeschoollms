@@ -35,6 +35,8 @@ class LearningAreaSummary(BaseModel):
     outcomes_with_evidence: int = 0
     total_outcomes: int = 0
     progress_percentage: float = 0.0
+    learning_resources: List[str] = []
+    user_edited_resources: Optional[List[str]] = None
     last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class ExportSettings(BaseModel):
@@ -74,7 +76,8 @@ class GenerateReportRequest(BaseModel):
     grade_level: Optional[str] = None
 
 class UpdateLearningAreaSummaryRequest(BaseModel):
-    user_edited_summary: str
+    user_edited_summary: Optional[str] = None
+    user_edited_resources: Optional[List[str]] = None
 
 class UpdateReportTitleRequest(BaseModel):
     title: str
