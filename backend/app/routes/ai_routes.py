@@ -332,7 +332,26 @@ async def suggest_learning_outcomes(
 async def ai_chat(request: Request, current_user: User = Depends(get_current_user)):
     """Simple AI chat endpoint. Expects JSON with { student_id?: str, student_slug?: str, messages: [{role, content}] }.
     Injects student name and grade level into a system context for the assistant.
+    Requires Basic subscription tier or higher.
     """
+    # Check subscription tier - AI chat requires Basic or higher
+    from ..services.subscription_service import SubscriptionService
+
+    subscription = await SubscriptionService.get_user_subscription(str(current_user.id))
+    effective_tier = subscription.get("effective_tier", "free")
+
+    # Check if subscription is active (not canceled, past_due, etc.)
+    # Grandfathered users bypass this check
+    if not SubscriptionService._is_subscription_active(subscription):
+        effective_tier = "free"
+
+    # Block free tier users from accessing AI chat
+    if effective_tier == "free":
+        raise HTTPException(
+            status_code=403,
+            detail="AI Chat is a premium feature. Please upgrade to Basic to access AI assistance."
+        )
+
     try:
         body = await request.json()
     except Exception:
