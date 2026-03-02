@@ -17,7 +17,13 @@ import {
   Image,
   Link,
   Badge,
-  Tooltip
+  Tooltip,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Wrap,
+  WrapItem,
+  Input
 } from '@chakra-ui/react'
 import { Edit, Save, X, ExternalLink, Eye } from 'react-feather'
 import { useState } from 'react'
@@ -38,6 +44,18 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
     summary.user_edited_summary || summary.ai_generated_summary || ''
   )
   const [saving, setSaving] = useState(false)
+  const [isEditingResources, setIsEditingResources] = useState(false)
+  const [editedResources, setEditedResources] = useState([])
+  const [newResource, setNewResource] = useState('')
+
+  const handleAddResource = () => {
+    const trimmed = newResource.trim()
+    if (!trimmed) return
+    if (!editedResources.some(r => r.toLowerCase() === trimmed.toLowerCase())) {
+      setEditedResources(prev => [...prev, trimmed])
+    }
+    setNewResource('')
+  }
 
   const handleSave = async (newSummary) => {
     try {
@@ -83,7 +101,39 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
     setIsEditing(false)
   }
 
+  const handleSaveResources = async () => {
+    try {
+      await updateLearningAreaSummary(
+        studentId,
+        reportId,
+        summary.learning_area_code,
+        { user_edited_resources: editedResources }
+      )
+      onUpdate({
+        ...summary,
+        user_edited_resources: editedResources
+      })
+      setIsEditingResources(false)
+      toast({
+        title: 'Resources updated',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      })
+    } catch (err) {
+      logger.error('Failed to save resources', err)
+      toast({
+        title: 'Error updating resources',
+        description: err.message || 'Failed to save resources',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
   const displaySummary = summary.user_edited_summary || summary.ai_generated_summary || 'No summary available.'
+  const displayResources = summary.user_edited_resources || summary.learning_resources || []
 
   const formatDate = (dateString) => {
     if (!dateString) return ''
@@ -175,6 +225,62 @@ const LearningAreaSummaryCard = ({ summary, studentId, reportId, onUpdate }) => 
               dangerouslySetInnerHTML={{ __html: formatMarkdownToHTML(displaySummary) }}
             />
           )}
+
+          {/* Learning Resources */}
+          <Box>
+            <HStack justify="space-between" mb={1}>
+              <Text fontSize="sm" fontWeight="medium" color="gray.600">Learning Resources</Text>
+              {!isEditingResources && (
+                <IconButton
+                  icon={<Edit size={14} />}
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditedResources([...displayResources])
+                    setIsEditingResources(true)
+                  }}
+                  aria-label="Edit resources"
+                />
+              )}
+            </HStack>
+
+            {isEditingResources ? (
+              <VStack spacing={2} align="stretch" p={3} bg="gray.50" borderRadius="md">
+                <Wrap spacing={2}>
+                  {editedResources.map((name, i) => (
+                    <WrapItem key={i}>
+                      <Tag size="sm" colorScheme="blue" borderRadius="full">
+                        <TagLabel>{name}</TagLabel>
+                        <TagCloseButton onClick={() => setEditedResources(prev => prev.filter((_, idx) => idx !== i))} />
+                      </Tag>
+                    </WrapItem>
+                  ))}
+                </Wrap>
+                <HStack>
+                  <Input
+                    size="sm"
+                    placeholder="Add a resource name"
+                    value={newResource}
+                    onChange={(e) => setNewResource(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddResource()
+                    }}
+                  />
+                  <Button size="sm" isDisabled={!newResource.trim()} onClick={handleAddResource}>Add</Button>
+                </HStack>
+                <HStack spacing={2}>
+                  <Button size="sm" colorScheme="blue" onClick={handleSaveResources}>Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setIsEditingResources(false)}>Cancel</Button>
+                </HStack>
+              </VStack>
+            ) : (
+              <Text fontSize="sm" color={displayResources.length > 0 ? "gray.700" : "gray.400"}>
+                {displayResources.length > 0
+                  ? displayResources.join(', ')
+                  : 'No learning resources recorded'}
+              </Text>
+            )}
+          </Box>
 
           {/* Expandable Details */}
           <Collapse in={isOpen} animateOpacity>

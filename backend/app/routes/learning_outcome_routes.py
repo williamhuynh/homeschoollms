@@ -13,6 +13,7 @@ import os
 import uuid # Added for unique filenames
 import logging # Added for better logging control
 import re # Added for outcome code lookup
+import json
 from ..models.schemas.evidence import EvidenceUpdate
 
 router = APIRouter()
@@ -246,6 +247,7 @@ async def upload_evidence_multi_outcome(
     learning_area_codes: Optional[str] = Form(None),  # Comma-separated codes
     location: Optional[str] = Form(None),
     student_grade: Optional[str] = Form(None),
+    learning_resources: Optional[str] = Form(None),
     current_user: UserInDB = Depends(get_current_user)
 ):
     """
@@ -322,6 +324,22 @@ async def upload_evidence_multi_outcome(
             validated_obj_ids.append(outcome["_id"])
             logger.info(f"Found existing learning outcome: {outcome_code}")
     
+    # Parse learning resources JSON
+    parsed_resources = []
+    if learning_resources:
+        try:
+            raw = json.loads(learning_resources)
+            if isinstance(raw, list):
+                for r in raw:
+                    if isinstance(r, dict) and r.get("name"):
+                        parsed_resources.append({
+                            "name": r["name"].strip(),
+                            "type": r.get("type", "").strip() if r.get("type") else None,
+                            "details": r.get("details", "").strip() if r.get("details") else None
+                        })
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"Failed to parse learning_resources JSON: {e}")
+
     # Validate all uploaded files before processing
     for file in files:
         await validate_upload_file(file)
@@ -371,16 +389,17 @@ async def upload_evidence_multi_outcome(
                 "thumbnail_url": thumbnail_url,
                 "title": title,
                 "description": description,
+                "learning_resources": parsed_resources if parsed_resources else [],
                 "uploaded_at": datetime.now(timezone.utc),
                 "uploaded_by": ObjectId(current_user.id),
                 "deleted": False
             }
-            
+
             # Insert the evidence document
             collection = db["student_evidence"]
             insert_result = await collection.insert_one(evidence_doc)
             logger.info(f"Evidence record created with ID: {insert_result.inserted_id} for file {file.filename}")
-            
+
             # Prepare response data
             uploaded_files.append({
                 "id": str(insert_result.inserted_id),

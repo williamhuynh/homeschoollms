@@ -423,8 +423,11 @@ class ReportService:
         updated = False
         for summary in report["learning_area_summaries"]:
             if summary["learning_area_code"] == learning_area_code:
-                summary["user_edited_summary"] = update_request.user_edited_summary
-                summary["is_edited"] = True
+                if update_request.user_edited_summary is not None:
+                    summary["user_edited_summary"] = update_request.user_edited_summary
+                    summary["is_edited"] = True
+                if update_request.user_edited_resources is not None:
+                    summary["user_edited_resources"] = update_request.user_edited_resources
                 summary["last_updated"] = datetime.now(timezone.utc)
                 updated = True
                 break
@@ -535,7 +538,17 @@ class ReportService:
         
         all_evidence = await db.student_evidence.find(evidence_query).sort("uploaded_at", -1).to_list(None)
         logger.info(f"Found {len(all_evidence)} evidence items for {subject['name']} ({subject_code})")
-        
+
+        # Aggregate learning resources from evidence
+        resource_names_seen = set()
+        aggregated_resources = []
+        for ev in all_evidence:
+            for resource in ev.get("learning_resources", []):
+                name = resource.get("name", "").strip()
+                if name and name.lower() not in resource_names_seen:
+                    resource_names_seen.add(name.lower())
+                    aggregated_resources.append(name)
+
         # Log details about evidence found
         if all_evidence:
             logger.info(f"Sample evidence items:")
@@ -694,7 +707,8 @@ class ReportService:
             evidence_count=len(all_evidence),
             outcomes_with_evidence=outcomes_count,
             total_outcomes=total_outcomes,
-            progress_percentage=progress
+            progress_percentage=progress,
+            learning_resources=aggregated_resources,
         )
     
     @staticmethod

@@ -104,10 +104,18 @@ async def generate_ai_description(
     # Call AI service with the list of image data
     try:
         logger.info(f"Calling AI service with {len(image_data_list)} image(s).")
-        generated_text = await ai_service.generate_description_from_images( # Note: function name changed
+        result = await ai_service.generate_description_from_images(
             images=image_data_list,
             context_description=context_description
         )
+
+        # Handle both dict (new format) and string (fallback) returns
+        if isinstance(result, dict):
+            generated_text = result.get("description", "")
+            learning_resources = result.get("learning_resources", [])
+        else:
+            generated_text = result
+            learning_resources = []
 
         # Try generating a title; fallback gracefully on failure
         try:
@@ -121,9 +129,9 @@ async def generate_ai_description(
             logger.warning(f"AI title generation failed: {title_error}. Using fallback title.")
             from datetime import datetime, timezone
             generated_title = f"AI Analyzed Evidence - {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
-        
+
         logger.info(f"Successfully generated description (length: {len(generated_text)}).")
-        return {"description": generated_text, "title": generated_title}
+        return {"description": generated_text, "title": generated_title, "learning_resources": learning_resources}
 
     except HTTPException as http_exc:
         # Re-raise HTTPExceptions (e.g., from AI service validation)
@@ -324,7 +332,26 @@ async def suggest_learning_outcomes(
 async def ai_chat(request: Request, current_user: User = Depends(get_current_user)):
     """Simple AI chat endpoint. Expects JSON with { student_id?: str, student_slug?: str, messages: [{role, content}] }.
     Injects student name and grade level into a system context for the assistant.
+    Requires Basic subscription tier or higher.
     """
+    # Check subscription tier - AI chat requires Basic or higher
+    from ..services.subscription_service import SubscriptionService
+
+    subscription = await SubscriptionService.get_user_subscription(str(current_user.id))
+    effective_tier = subscription.get("effective_tier", "free")
+
+    # Check if subscription is active (not canceled, past_due, etc.)
+    # Grandfathered users bypass this check
+    if not SubscriptionService._is_subscription_active(subscription):
+        effective_tier = "free"
+
+    # Block free tier users from accessing AI chat
+    if effective_tier == "free":
+        raise HTTPException(
+            status_code=403,
+            detail="AI Chat is a premium feature. Please upgrade to Basic to access AI assistance."
+        )
+
     try:
         body = await request.json()
     except Exception:

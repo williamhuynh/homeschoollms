@@ -25,9 +25,15 @@ import {
   Divider,
   Card,
   CardBody,
-  Progress
+  Progress,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Wrap,
+  WrapItem,
+  Tooltip
 } from '@chakra-ui/react'
-import { ArrowLeft, Upload, CheckCircle, AlertTriangle } from 'react-feather'
+import { ArrowLeft, Upload, CheckCircle, AlertTriangle, Plus, Info } from 'react-feather'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStudents } from '../../contexts/StudentsContext'
 import { useUser } from '../../contexts/UserContext'
@@ -81,6 +87,18 @@ const AIEvidenceUploadPage = () => {
   const [title, setTitle] = useState(`AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
   const [description, setDescription] = useState('')
   const [aiGenerationError, setAIGenerationError] = useState(null)
+  const [learningResources, setLearningResources] = useState([])
+  const [newResourceName, setNewResourceName] = useState('')
+  const [newResourceType, setNewResourceType] = useState('')
+  const [newResourceDetails, setNewResourceDetails] = useState('')
+  const [showAddResource, setShowAddResource] = useState(false)
+
+  const resetResourceForm = () => {
+    setShowAddResource(false)
+    setNewResourceName('')
+    setNewResourceType('')
+    setNewResourceDetails('')
+  }
 
   // Load curriculum data when component mounts
   useEffect(() => {
@@ -384,6 +402,10 @@ const AIEvidenceUploadPage = () => {
 
       if (student?.grade_level) {
         formData.append('student_grade', student.grade_level)
+      }
+
+      if (learningResources.length > 0) {
+        formData.append('learning_resources', JSON.stringify(learningResources))
       }
 
       await uploadEvidenceMultiOutcome(studentId, formData)
@@ -721,6 +743,14 @@ const AIEvidenceUploadPage = () => {
               } else if (!title) {
                 setTitle(`AI Analyzed Evidence - ${new Date().toLocaleDateString()}`)
               }
+              // Pre-populate learning resources from AI
+              if (descriptionResult?.learning_resources?.length > 0) {
+                setLearningResources(descriptionResult.learning_resources.map(r => ({
+                  name: r.name,
+                  type: r.type || '',
+                  details: r.details || ''
+                })))
+              }
             } catch (err) {
               logger.error('Step 3 failed: generateAIDescription', err, {
                 step: 'generate-description',
@@ -765,6 +795,86 @@ const AIEvidenceUploadPage = () => {
       <FormControl>
         <FormLabel>Description</FormLabel>
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder="Enter a description" />
+      </FormControl>
+
+      {/* Learning Resources */}
+      <FormControl>
+        <FormLabel>
+          Learning Resources
+          <Tooltip label="Books, apps, websites, or other materials used in this activity" placement="top">
+            <Box as="span" ml={1} color="gray.400" cursor="help">
+              <Info size={14} style={{ display: 'inline' }} />
+            </Box>
+          </Tooltip>
+        </FormLabel>
+
+        {/* Resource chips */}
+        {learningResources.length > 0 && (
+          <Wrap spacing={2} mb={3}>
+            {learningResources.map((resource, index) => (
+              <WrapItem key={index}>
+                <Tag size="md" colorScheme="blue" borderRadius="full">
+                  <TagLabel>{resource.name}{resource.type ? ` (${resource.type})` : ''}</TagLabel>
+                  <TagCloseButton onClick={() => {
+                    setLearningResources(prev => prev.filter((_, i) => i !== index))
+                  }} />
+                </Tag>
+              </WrapItem>
+            ))}
+          </Wrap>
+        )}
+
+        {/* Add resource form */}
+        {showAddResource ? (
+          <VStack spacing={2} align="stretch" p={3} bg="gray.50" borderRadius="md">
+            <Input
+              size="sm"
+              placeholder="Resource name (e.g. Reading Eggs)"
+              value={newResourceName}
+              onChange={(e) => setNewResourceName(e.target.value)}
+            />
+            <HStack spacing={2}>
+              <Input
+                size="sm"
+                placeholder="Type (e.g. Book, App, Website)"
+                value={newResourceType}
+                onChange={(e) => setNewResourceType(e.target.value)}
+                flex={1}
+              />
+              <Input
+                size="sm"
+                placeholder="URL or note (optional)"
+                value={newResourceDetails}
+                onChange={(e) => setNewResourceDetails(e.target.value)}
+                flex={1}
+              />
+            </HStack>
+            <HStack spacing={2}>
+              <Button
+                size="sm"
+                colorScheme="blue"
+                isDisabled={!newResourceName.trim()}
+                onClick={() => {
+                  setLearningResources(prev => [...prev, {
+                    name: newResourceName.trim(),
+                    type: newResourceType.trim() || null,
+                    details: newResourceDetails.trim() || null
+                  }])
+                  resetResourceForm()
+                }}
+              >
+                Add
+              </Button>
+              <Button size="sm" variant="ghost" onClick={resetResourceForm}>
+                Cancel
+              </Button>
+            </HStack>
+          </VStack>
+        ) : (
+          <Button size="sm" variant="outline" leftIcon={<Plus size={14} />} onClick={() => setShowAddResource(true)}>
+            Add Resource
+          </Button>
+        )}
       </FormControl>
 
       <HStack spacing={3}>
