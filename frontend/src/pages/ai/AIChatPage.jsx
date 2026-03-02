@@ -3,7 +3,9 @@ import { Box, Container, Flex, Heading, HStack, IconButton, Input, Spinner, Text
 import { ArrowLeft, Send } from 'react-feather'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useStudents } from '../../contexts/StudentsContext'
+import { useUser } from '../../contexts/UserContext'
 import { chatWithAI } from '../../services/api'
+import UpgradeModal from '../../components/subscription/UpgradeModal'
 
 const MessageBubble = ({ role, content }) => {
   const isUser = role === 'user'
@@ -30,6 +32,7 @@ const AIChatPage = () => {
   const { studentId } = useParams()
   const location = useLocation()
   const { students } = useStudents()
+  const { isFreeTier, subscriptionLoading } = useUser()
   const toast = useToast()
   const [isSending, setIsSending] = useState(false)
   const [input, setInput] = useState('')
@@ -37,6 +40,7 @@ const AIChatPage = () => {
     { role: 'assistant', content: 'Hi! I am your homeschool co-pilot. How can I help you today?' }
   ])
   const scrollRef = useRef(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   const suggestion = useMemo(() => {
     if (location?.state?.fromLearningOutcome && location?.state?.learningOutcome) {
@@ -55,6 +59,13 @@ const AIChatPage = () => {
     if (!student) return
     document.title = `AI Chat - ${student.first_name} ${student.last_name}`
   }, [student])
+
+  // Check subscription tier - show upgrade modal if free tier
+  useEffect(() => {
+    if (!subscriptionLoading && isFreeTier()) {
+      setShowUpgradeModal(true)
+    }
+  }, [subscriptionLoading, isFreeTier])
 
   useEffect(() => {
     // Auto-scroll to bottom when messages change
@@ -109,6 +120,9 @@ const AIChatPage = () => {
 
   return (
     <Box minH="100vh" bg="gray.50">
+      {/* Upgrade Modal for Free Tier Users */}
+      <UpgradeModal isOpen={showUpgradeModal} feature="AI Chat" />
+
       <Container maxW="container.md" p={0}>
         <HStack px={4} py={3} spacing={3} bg="white" borderBottomWidth="1px" position="sticky" top={0} zIndex={10}>
           <IconButton icon={<ArrowLeft />} variant="ghost" onClick={() => navigate(-1)} aria-label="Back" />
@@ -146,6 +160,7 @@ const AIChatPage = () => {
                   setInput(suggestion)
                   handleSend(suggestion)
                 }}
+                isDisabled={showUpgradeModal}
               >
                 {suggestion}
               </Button>
@@ -160,13 +175,14 @@ const AIChatPage = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             bg="gray.100"
+            isDisabled={showUpgradeModal}
           />
           <IconButton
             icon={isSending ? <Spinner size="sm" /> : <Send />}
             colorScheme="teal"
             onClick={handleSend}
             aria-label="Send"
-            isDisabled={isSending || !input.trim()}
+            isDisabled={isSending || !input.trim() || showUpgradeModal}
           />
         </HStack>
       </Container>
