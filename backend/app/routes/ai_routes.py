@@ -340,6 +340,11 @@ async def ai_chat(request: Request, current_user: User = Depends(get_current_use
     subscription = await SubscriptionService.get_user_subscription(str(current_user.id))
     effective_tier = subscription.get("effective_tier", "free")
 
+    # Check if subscription is active (not canceled, past_due, etc.)
+    # Grandfathered users bypass this check
+    if not SubscriptionService._is_subscription_active(subscription):
+        effective_tier = "free"
+
     # Block free tier users from accessing AI chat
     if effective_tier == "free":
         raise HTTPException(
