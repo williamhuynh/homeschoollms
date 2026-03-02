@@ -24,6 +24,7 @@ wheels/
 # Environment
 .env
 .env.*
+.env.txt
 !.env.example
 venv/
 .venv/
