@@ -68,6 +68,21 @@ class AsyncCursor:
         return self
 
     def sort(self, *args, **kwargs):
+        """Apply MongoDB-style sort to the items."""
+        if args:
+            # Handle both [(field, direction)] and field, direction forms
+            if isinstance(args[0], list):
+                sort_spec = args[0]
+            elif len(args) == 2:
+                sort_spec = [(args[0], args[1])]
+            else:
+                # Just field name, default to ascending
+                sort_spec = [(args[0], 1)]
+
+            # Sort by each field in reverse order (last field sorted first)
+            for field, direction in reversed(sort_spec):
+                reverse = (direction == -1)
+                self._items.sort(key=lambda x: x.get(field), reverse=reverse)
         return self
 
     async def to_list(self, length=None):
@@ -130,7 +145,8 @@ class AsyncMongoCollection:
     async def create_index(self, keys, **kwargs):
         return self._col.create_index(keys, **kwargs)
 
-    async def aggregate(self, pipeline, **kwargs):
+    def aggregate(self, pipeline, **kwargs):
+        """Return cursor synchronously for Motor-style chaining."""
         result = list(self._col.aggregate(pipeline))
         return AsyncCursor(iter(result))
 
