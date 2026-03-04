@@ -255,15 +255,15 @@ export class NSWCurriculum {
   // Hybrid implementation - works both synchronously (backward compatible) and asynchronously
   async getOutcomes(stage, subjectCode) {
     // If data is already loaded, return immediately
-    if (this.data[stage]) {
+    if (this.data[stage]?.subjects) {
       const subject = this.data[stage].subjects.find(s => s.code === subjectCode);
       return subject ? subject.outcomes : [];
     }
-    
+
     // Try to load data
     try {
       const stageData = await this.load(stage);
-      const subject = stageData.subjects.find(s => s.code === subjectCode);
+      const subject = stageData?.subjects?.find(s => s.code === subjectCode);
       return subject ? subject.outcomes : [];
     } catch (err) {
       logger.error(`Error getting outcomes for ${stage}/${subjectCode}`, err);
