@@ -39,6 +39,7 @@ class Settings(BaseSettings):
         "https://homeschool-lms.vercel.app",  # Production frontend (Vercel)
         "https://www.astralearn.com.au",  # Production frontend (custom domain)
         "https://astralearn.com.au",  # Production frontend (custom domain without www)
+        "https://app.astralearn.com.au",  # Production frontend (app subdomain)
         "http://localhost:4173", # Local frontend
         "capacitor://localhost",
         "ionic://localhost"
