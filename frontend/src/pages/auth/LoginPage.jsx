@@ -35,7 +35,14 @@ const handleLogin = async () => {
   setIsLoading(true);
   setError('');
   setNotification('');
-  
+
+  // Validate email and password are provided
+  if (!credentials.email || !credentials.password) {
+    setError('Please enter both email and password');
+    setIsLoading(false);
+    return;
+  }
+
   try {
     // Call Supabase signIn function
     const { session } = await signIn(credentials.email, credentials.password);
