@@ -1,8 +1,42 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['icons/**/*', 'vite.svg'],
+      manifest: false, // Use existing public/manifest.json
+      workbox: {
+        // Don't cache API calls - always fetch fresh data
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/.*/,
+            handler: 'NetworkOnly'
+          },
+          {
+            urlPattern: /^https:\/\/.*\.onrender\.com\/api\/.*/,
+            handler: 'NetworkOnly'
+          },
+          {
+            urlPattern: /\.(png|jpg|jpeg|svg|webp|gif)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'image-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 7 * 24 * 60 * 60 // 7 days
+              }
+            }
+          }
+        ],
+        skipWaiting: true,
+        clientsClaim: true
+      }
+    })
+  ],
   build: {
     outDir: 'dist',
     sourcemap: false,

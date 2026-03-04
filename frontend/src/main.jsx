@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import * as Sentry from '@sentry/react'
 import { store, rehydrateStore } from './state/store'
+import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.jsx'
 
@@ -25,6 +26,20 @@ if (sentryDsn) {
         return null
       }
       return event
+    },
+  })
+}
+
+// Register service worker for PWA support
+// Auto-updates when new version is available
+if ('serviceWorker' in navigator) {
+  registerSW({
+    onNeedRefresh() {
+      // Auto-reload when new version is available
+      // Service worker will update automatically due to autoUpdate mode
+    },
+    onOfflineReady() {
+      console.log('App ready to work offline')
     },
   })
 }
