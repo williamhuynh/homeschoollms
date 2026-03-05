@@ -18,7 +18,6 @@ import { ArrowLeft, Shield, Users, BookOpen, BarChart2 } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import DeleteStudent from '../../components/admin/DeleteStudent'
 import ManageParentAccess from '../../components/admin/ManageParentAccess'
-import ImageMigrationManager from '../../components/admin/ImageMigrationManager'
 import UserManagement from '../../components/admin/UserManagement'
 import AllStudentsView from '../../components/admin/AllStudentsView'
 import PlatformStats from '../../components/admin/PlatformStats'
@@ -104,8 +103,7 @@ const AdminPage = () => {
               {/* Regular Tabs */}
               <Tab>Manage Access</Tab>
               <Tab>Delete Student</Tab>
-              {isAdmin() && <Tab>Image Migration</Tab>}
-              
+
               {/* Super Admin Tabs - Distinguished with red styling */}
               {isSuperAdmin() && (
                 <Tab {...superAdminTabStyle}>
@@ -146,17 +144,7 @@ const AdminPage = () => {
                   <DeleteStudent />
                 </Box>
               </TabPanel>
-              
-              {/* Image Migration Tab (Admin only) */}
-              {isAdmin() && (
-                <TabPanel>
-                  <Box>
-                    <Heading size="md" mb={4}>Image Security Migration</Heading>
-                    <ImageMigrationManager />
-                  </Box>
-                </TabPanel>
-              )}
-              
+
               {/* Platform Stats Tab (Super Admin) */}
               {isSuperAdmin() && (
                 <TabPanel>
