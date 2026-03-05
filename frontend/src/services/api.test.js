@@ -657,26 +657,6 @@ describe('File functions', () => {
       expect(result.signed_url).toBe('https://example.com/signed')
     })
   })
-
-  describe('getMigrationStatus', () => {
-    it('should GET migration status', async () => {
-      mockApi.get.mockResolvedValue({ data: { migration_mode: 'private' } })
-
-      const result = await api.getMigrationStatus()
-      expect(result.migration_mode).toBe('private')
-    })
-  })
-
-  describe('listMigrationImages', () => {
-    it('should GET images with params', async () => {
-      mockApi.get.mockResolvedValue({ data: { images: [], total: 0 } })
-
-      await api.listMigrationImages('public', 25)
-      expect(mockApi.get).toHaveBeenCalledWith('/api/files/migration/images', {
-        params: { image_type: 'public', limit: 25 },
-      })
-    })
-  })
 })
 
 // ========================
