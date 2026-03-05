@@ -164,49 +164,51 @@ const ParentAccessList = ({ studentId, studentName, onAccessUpdated }) => {
       {parents.length === 0 ? (
         <Text>No one else has access to this student yet.</Text>
       ) : (
-        <Table variant="simple" size="sm">
-          <Thead>
-            <Tr>
-              <Th>Name</Th>
-              <Th>Email</Th>
-              <Th>Access Level</Th>
-              <Th>Actions</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {parents.map((parent) => (
-              <Tr key={parent.parent_id}>
-                <Td>{parent.full_name}</Td>
-                <Td>{parent.email}</Td>
-                <Td>{getAccessLevelBadge(parent.access_level)}</Td>
-                <Td>
-                  <Select
-                    size="sm"
-                    value={parent.access_level}
-                    onChange={(e) => handleAccessLevelChange(parent.parent_id, e.target.value)}
-                    mr={2}
-                    width="120px"
-                    isDisabled={isUpdating}
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="content">Content</option>
-                    <option value="view">View</option>
-                  </Select>
-                  <Button
-                    size="sm"
-                    colorScheme="red"
-                    variant="outline"
-                    onClick={() => openDeleteDialog(parent)}
-                    isDisabled={isUpdating}
-                    ml={2}
-                  >
-                    Remove
-                  </Button>
-                </Td>
+        <Box overflowX="auto">
+          <Table variant="simple" size="sm">
+            <Thead>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Email</Th>
+                <Th>Access Level</Th>
+                <Th>Actions</Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {parents.map((parent) => (
+                <Tr key={parent.parent_id}>
+                  <Td>{parent.full_name}</Td>
+                  <Td>{parent.email}</Td>
+                  <Td>{getAccessLevelBadge(parent.access_level)}</Td>
+                  <Td>
+                    <Select
+                      size="sm"
+                      value={parent.access_level}
+                      onChange={(e) => handleAccessLevelChange(parent.parent_id, e.target.value)}
+                      mr={2}
+                      width="120px"
+                      isDisabled={isUpdating}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="content">Content</option>
+                      <option value="view">View</option>
+                    </Select>
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      variant="outline"
+                      onClick={() => openDeleteDialog(parent)}
+                      isDisabled={isUpdating}
+                      ml={2}
+                    >
+                      Remove
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
       )}
 
       {/* Confirmation Dialog for Removing Access */}
