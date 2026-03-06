@@ -37,10 +37,17 @@ import {
   ListItem,
   Divider,
   Badge,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Wrap,
+  WrapItem,
+  Tooltip,
+  HStack,
 } from '@chakra-ui/react';
 import ResponsiveImage from './ResponsiveImage';
 import SignedImage from './SignedImage';
-import { Download, Trash2, Share2, X, Edit } from 'react-feather';
+import { Download, Trash2, Share2, X, Edit, Plus } from 'react-feather';
 import { curriculumService } from '../../services/curriculum';
 import Select from 'react-select';
 import { updateEvidence } from '../../services/api';
@@ -68,6 +75,7 @@ const ImageViewerModal = ({
   const [editDescription, setEditDescription] = useState('');
   const [editLearningAreas, setEditLearningAreas] = useState([]);
   const [editLearningOutcomes, setEditLearningOutcomes] = useState([]);
+  const [editLearningResources, setEditLearningResources] = useState([]);
   const [learningAreasList, setLearningAreasList] = useState([]);
   const [learningOutcomesList, setLearningOutcomesList] = useState([]);
   const [isLoadingAreas, setIsLoadingAreas] = useState(false);
@@ -525,9 +533,13 @@ const ImageViewerModal = ({
     }).filter(Boolean);
     
     logger.debug('Edit mode initialized', { areasSelected: selectedAreasOptions.length, outcomesSelected: selectedOutcomesOptions.length });
-    
+
     setEditLearningAreas(selectedAreasOptions);
     setEditLearningOutcomes(selectedOutcomesOptions);
+
+    // Initialize learning resources
+    const currentResources = image.learning_resources || [];
+    setEditLearningResources(currentResources);
   };
 
   const cancelEdit = () => {
@@ -553,6 +565,7 @@ const ImageViewerModal = ({
         description: editDescription,
         learning_area_codes: editLearningAreas.map(area => area.value),
         learning_outcome_codes: editLearningOutcomes.map(outcome => outcome.value),
+        learning_resources: editLearningResources,
       };
       const updated = await updateEvidence(
         studentId,
@@ -569,6 +582,8 @@ const ImageViewerModal = ({
         image.learning_area_code = updated.learning_area_codes?.[0] || null;
         image.learning_outcome_codes = updated.learning_outcome_codes || [];
         image.learning_outcome_code = updated.learning_outcome_codes?.[0] || null;
+        // Update learning resources
+        image.learning_resources = updated.learning_resources || [];
         // Clear cached outcome details so they refresh from server
         image.learning_outcome_details = null;
       }
@@ -874,6 +889,156 @@ const ImageViewerModal = ({
                   </Box>
                 )}
               </Box>
+
+              {/* Learning Resources Section */}
+              <Box mt={3}>
+                {isEditing ? (
+                  <FormControl>
+                    <FormLabel fontSize="sm" color="white">Learning Resources</FormLabel>
+                    {editLearningResources.length > 0 && (
+                      <VStack spacing={2} align="stretch" mb={3}>
+                        {editLearningResources.map((resource, index) => (
+                          <Box
+                            key={index}
+                            bg="gray.50"
+                            p={3}
+                            borderRadius="md"
+                            borderLeft="3px solid"
+                            borderLeftColor="purple.400"
+                          >
+                            <Flex justify="space-between" align="start" mb={2}>
+                              <Text fontSize="sm" fontWeight="semibold" color="black">
+                                {resource.name}
+                                {resource.type && (
+                                  <Badge ml={2} colorScheme="purple" fontSize="xs">
+                                    {resource.type}
+                                  </Badge>
+                                )}
+                              </Text>
+                              <IconButton
+                                icon={<X size={14} />}
+                                size="xs"
+                                colorScheme="red"
+                                variant="ghost"
+                                aria-label="Remove resource"
+                                onClick={() => {
+                                  setEditLearningResources(prev => prev.filter((_, i) => i !== index));
+                                }}
+                              />
+                            </Flex>
+                            {resource.details && (
+                              <Text fontSize="xs" color="gray.600" noOfLines={2}>
+                                {resource.details}
+                              </Text>
+                            )}
+                          </Box>
+                        ))}
+                      </VStack>
+                    )}
+                    {editLearningResources.length < 10 && (
+                      <VStack spacing={2} align="stretch" p={3} bg="gray.50" borderRadius="md">
+                        <Input
+                          size="sm"
+                          placeholder="Resource name (e.g., Reading Eggs, Mathletics)"
+                          id="new-resource-name"
+                          bg="white"
+                        />
+                        <HStack spacing={2}>
+                          <Box as="select" size="sm" flex={1} borderRadius="md" p={2} bg="white" color="black">
+                            <option value="">Type (optional)</option>
+                            <option value="Book">Book</option>
+                            <option value="App">App</option>
+                            <option value="Website">Website</option>
+                            <option value="Video">Video</option>
+                            <option value="Game">Game</option>
+                            <option value="Other">Other</option>
+                          </Box>
+                          <Input
+                            size="sm"
+                            placeholder="URL or note (optional)"
+                            id="new-resource-details"
+                            flex={1}
+                            bg="white"
+                          />
+                        </HStack>
+                        <Button
+                          size="sm"
+                          leftIcon={<Plus size={14} />}
+                          colorScheme="purple"
+                          variant="outline"
+                          onClick={() => {
+                            const nameInput = document.getElementById('new-resource-name');
+                            const typeSelect = document.querySelector('#new-resource-name').parentElement.querySelector('select');
+                            const detailsInput = document.getElementById('new-resource-details');
+
+                            const name = nameInput.value.trim();
+                            const type = typeSelect.value || null;
+                            const details = detailsInput.value.trim() || null;
+
+                            if (name) {
+                              setEditLearningResources(prev => [...prev, { name, type, details }]);
+                              nameInput.value = '';
+                              typeSelect.value = '';
+                              detailsInput.value = '';
+                            }
+                          }}
+                        >
+                          Add Resource
+                        </Button>
+                      </VStack>
+                    )}
+                    {editLearningResources.length >= 10 && (
+                      <Text fontSize="xs" color="yellow.300" mt={2}>
+                        Maximum 10 resources reached
+                      </Text>
+                    )}
+                  </FormControl>
+                ) : (
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2} color="gray.300">Learning Resources</Text>
+                    {(() => {
+                      const resources = image.learning_resources || [];
+
+                      if (resources.length === 0) {
+                        return <Badge colorScheme="gray" variant="subtle">No learning resources attached</Badge>;
+                      }
+
+                      return (
+                        <Wrap spacing={2}>
+                          {resources.map((resource, index) => (
+                            <WrapItem key={index}>
+                              <Tooltip
+                                label={
+                                  <Box>
+                                    {resource.type && <Text fontSize="xs" fontWeight="bold">{resource.type}</Text>}
+                                    {resource.details && <Text fontSize="xs" mt={1}>{resource.details}</Text>}
+                                  </Box>
+                                }
+                                placement="top"
+                                hasArrow
+                                isDisabled={!resource.type && !resource.details}
+                              >
+                                <Tag
+                                  size="md"
+                                  colorScheme="purple"
+                                  variant="solid"
+                                  borderRadius="md"
+                                >
+                                  <TagLabel>
+                                    {resource.name}
+                                    {resource.type && ` (${resource.type})`}
+                                  </TagLabel>
+                                </Tag>
+                              </Tooltip>
+                            </WrapItem>
+                          ))}
+                        </Wrap>
+                      );
+                    })()}
+                  </Box>
+                )}
+              </Box>
+
               {isEditing && (
                 <Flex mt={4} gap={3} justify="flex-end">
                   <Button onClick={cancelEdit} variant="ghost" colorScheme="gray">Cancel</Button>
