@@ -113,8 +113,10 @@ async def verify_student_access(student_id: str, current_user: UserInDB, require
         user_obj_id = ObjectId(current_user.id)
         
         # Check parent_access entries
+        # Compare as strings to handle both ObjectId and str storage
+        # (Pydantic .dict() serializes PyObjectId to str, so parent_id may be stored as either)
         for access in student.get("parent_access", []):
-            if access.get("parent_id") == user_obj_id:
+            if str(access.get("parent_id")) == str(user_obj_id):
                 access_level = access.get("access_level", "view")
                 
                 # Check if user has required access level
