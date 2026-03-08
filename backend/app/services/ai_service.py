@@ -136,12 +136,12 @@ async def generate_description_from_images(images: List[Dict[str, Union[bytes, s
             raise ValueError("Context description cannot be empty")
         
         # Construct the prompt for multiple images
-        prompt = f"""You are a parent creating a short learning journal entry for your child. Look at the images and context provided.
+        prompt = f"""You are a parent documenting your child's learning activity. Look at the images and context provided.
 
         <Context Information> {context_description} </Context Information>
 
         Respond with a JSON object containing:
-        1. "description": A short description (max 500 characters) of what the child is doing. Draw connections between images if multiple. If it relates to learning outcomes, explain how. Use a warm, reflective tone. Avoid emotive language. Only describe what is shown.
+        1. "description": A short description (max 500 characters) of what the child is doing. Describe only what is visible in the images — the activity, materials, and setting. Be factual and specific. Write in a warm but straightforward tone. Avoid interpretation, inference, or emotive language. If there are multiple images, describe what is shown across them.
         2. "learning_resources": An array of learning resources visible in the images (book titles, app names, website names, worksheet titles, educational games, etc.). Each item should have "name" (required) and "type" (optional - one of: Book, App, Website, Worksheet, Video, Game, or other). If no resources are visible, return an empty array.
 
         IMPORTANT: Return ONLY valid JSON, no markdown backticks, no preamble. Example:
