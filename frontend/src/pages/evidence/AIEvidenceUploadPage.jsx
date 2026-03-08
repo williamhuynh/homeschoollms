@@ -43,6 +43,7 @@ import ResponsiveImage from '../../components/common/ResponsiveImage'
 import { compressImage } from '../../services/imageService'
 import { logger } from '../../utils/logger'
 import { UpgradeBanner } from '../../components/subscription/UpgradePrompt'
+import Select from 'react-select'
 
 /** Build a user-visible error description that includes actionable detail. */
 function describeUploadError(error, fallback) {
@@ -78,8 +79,11 @@ const AIEvidenceUploadPage = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [analysisQuestions, setAnalysisQuestions] = useState([])
   const [questionAnswers, setQuestionAnswers] = useState({})
+  const [customAnswers, setCustomAnswers] = useState({}) // For "Other" option text inputs
+  const [additionalContext, setAdditionalContext] = useState('') // Free text context field
   const [suggestedOutcomes, setSuggestedOutcomes] = useState([])
   const [selectedOutcomes, setSelectedOutcomes] = useState([])
+  const [manuallySelectedOutcomes, setManuallySelectedOutcomes] = useState([]) // Manual outcome selection
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const [curriculumData, setCurriculumData] = useState(null)
 
@@ -239,21 +243,7 @@ const AIEvidenceUploadPage = () => {
   }
 
   const handleQuestionSubmit = async () => {
-    // Validate that required questions are answered
-    const unansweredRequired = analysisQuestions.filter(q => 
-      q.type === 'radio' && !questionAnswers[q.id]
-    )
-
-    if (unansweredRequired.length > 0) {
-      toast({
-        title: 'Please answer all questions',
-        description: 'All questions need to be answered before proceeding',
-        status: 'warning',
-        duration: 3000,
-        isClosable: true,
-      })
-      return
-    }
+    // No validation - all questions are now optional
 
     if (!curriculumData) {
       toast({
@@ -269,13 +259,24 @@ const AIEvidenceUploadPage = () => {
     setIsProcessing(true)
     try {
       logger.breadcrumb('ai', 'Submitting answers for outcome analysis')
-      
+
+      // Merge question answers with custom "Other" answers and additional context
+      const mergedAnswers = { ...questionAnswers }
+      Object.keys(customAnswers).forEach(questionId => {
+        if (questionAnswers[questionId] === 'Other (please specify)' && customAnswers[questionId]) {
+          mergedAnswers[questionId] = customAnswers[questionId]
+        }
+      })
+      if (additionalContext.trim()) {
+        mergedAnswers['additional_context'] = additionalContext.trim()
+      }
+
       // Call AI service to suggest learning outcomes
       const files = selectedFiles.map(f => f.file)
       const response = await suggestLearningOutcomes(
-        files, 
-        questionAnswers, 
-        curriculumData, 
+        files,
+        mergedAnswers,
+        curriculumData,
         student.grade_level
       )
       
@@ -616,22 +617,43 @@ const AIEvidenceUploadPage = () => {
 
       <VStack spacing={4} align="stretch">
         {analysisQuestions.map((question) => (
-          <FormControl key={question.id} isRequired={question.type === 'radio'}>
-            <FormLabel fontWeight="semibold">{question.question}</FormLabel>
-            
+          <FormControl key={question.id}>
+            <FormLabel fontWeight="semibold">
+              {question.question}
+              <Text as="span" fontSize="sm" color="gray.500" ml={2}>(optional)</Text>
+            </FormLabel>
+
             {question.type === 'radio' && (
-              <RadioGroup
-                value={questionAnswers[question.id] || ''}
-                onChange={(value) => handleAnswerChange(question.id, value)}
-              >
-                <Stack direction="column" spacing={2}>
-                  {question.options.map((option) => (
-                    <Radio key={option} value={option}>
-                      {option}
+              <VStack align="stretch" spacing={2}>
+                <RadioGroup
+                  value={questionAnswers[question.id] || ''}
+                  onChange={(value) => handleAnswerChange(question.id, value)}
+                >
+                  <Stack direction="column" spacing={2}>
+                    {question.options.map((option) => (
+                      <Radio key={option} value={option}>
+                        {option}
+                      </Radio>
+                    ))}
+                    <Radio value="Other (please specify)">
+                      Other (please specify)
                     </Radio>
-                  ))}
-                </Stack>
-              </RadioGroup>
+                  </Stack>
+                </RadioGroup>
+
+                {questionAnswers[question.id] === 'Other (please specify)' && (
+                  <Input
+                    placeholder="Please describe..."
+                    value={customAnswers[question.id] || ''}
+                    onChange={(e) => setCustomAnswers(prev => ({
+                      ...prev,
+                      [question.id]: e.target.value
+                    }))}
+                    mt={2}
+                    bg="gray.50"
+                  />
+                )}
+              </VStack>
             )}
 
             {question.type === 'text' && (
@@ -644,6 +666,28 @@ const AIEvidenceUploadPage = () => {
             )}
           </FormControl>
         ))}
+
+        <Divider my={4} />
+
+        <FormControl>
+          <FormLabel fontWeight="semibold">
+            Additional Context
+            <Text as="span" fontSize="sm" color="gray.500" ml={2}>(optional)</Text>
+          </FormLabel>
+          <Text fontSize="sm" color="gray.600" mb={2}>
+            Provide any extra details to help identify the right learning outcomes
+          </Text>
+          <Textarea
+            placeholder="E.g., This activity involved problem solving with fractions..."
+            value={additionalContext}
+            onChange={(e) => setAdditionalContext(e.target.value)}
+            rows={3}
+            maxLength={500}
+          />
+          <Text fontSize="xs" color="gray.500" mt={1} textAlign="right">
+            {additionalContext.length}/500 characters
+          </Text>
+        </FormControl>
       </VStack>
 
       <HStack spacing={3}>
@@ -712,9 +756,59 @@ const AIEvidenceUploadPage = () => {
       {suggestedOutcomes.length === 0 && (
         <Alert status="info">
           <AlertIcon />
-          No learning outcomes were suggested. You can still upload the evidence manually by selecting outcomes from the regular upload flow.
+          No learning outcomes were suggested. Use the manual selection below to choose outcomes.
         </Alert>
       )}
+
+      <Divider my={4} />
+
+      <Box>
+        <Heading size="md" mb={2}>Manual Selection</Heading>
+        <Text fontSize="sm" color="gray.600" mb={3}>
+          Can&apos;t find the right outcome? Manually select from all outcomes for {student?.grade_level}
+        </Text>
+        <Select
+          isMulti
+          options={curriculumData?.learning_areas?.map(subject => ({
+            label: subject.name,
+            options: (subject.outcomes || []).map(outcome => ({
+              value: outcome.code,
+              label: `${outcome.code} - ${outcome.name}`,
+              subject: subject.name,
+              outcome: outcome
+            }))
+          })) || []}
+          value={manuallySelectedOutcomes}
+          onChange={(selected) => setManuallySelectedOutcomes(selected || [])}
+          placeholder="Search and select learning outcomes..."
+          isSearchable
+          closeMenuOnSelect={false}
+          formatGroupLabel={(data) => (
+            <Box fontWeight="bold" color="purple.600" py={1}>{data.label}</Box>
+          )}
+          styles={{
+            control: (base) => ({ ...base, minHeight: '50px' }),
+            option: (base, state) => ({
+              ...base,
+              backgroundColor: state.isSelected ? '#3182ce' : state.isFocused ? '#f7fafc' : 'white',
+              color: state.isSelected ? 'white' : 'black'
+            }),
+            groupHeading: (base) => ({
+              ...base,
+              fontSize: '14px',
+              fontWeight: 'bold',
+              color: '#805AD5',
+              textTransform: 'none',
+              padding: '8px 12px'
+            })
+          }}
+        />
+        {manuallySelectedOutcomes.length > 0 && (
+          <Text fontSize="sm" color="gray.600" mt={2}>
+            {manuallySelectedOutcomes.length} outcome(s) manually selected
+          </Text>
+        )}
+      </Box>
 
       <HStack spacing={3}>
         <Button
@@ -728,7 +822,22 @@ const AIEvidenceUploadPage = () => {
           colorScheme="blue"
           flex={1}
           onClick={async () => {
-            if (selectedOutcomes.length === 0) return
+            const totalSelectedCodes = [
+              ...selectedOutcomes,
+              ...manuallySelectedOutcomes.map(o => o.value)
+            ]
+            const uniqueSelectedCodes = [...new Set(totalSelectedCodes)]
+
+            if (uniqueSelectedCodes.length === 0) {
+              toast({
+                title: 'No outcomes selected',
+                description: 'Please select at least one learning outcome',
+                status: 'warning',
+                duration: 3000,
+                isClosable: true,
+              })
+              return
+            }
             setIsProcessing(true)
             setAIGenerationError(null)
             try {
