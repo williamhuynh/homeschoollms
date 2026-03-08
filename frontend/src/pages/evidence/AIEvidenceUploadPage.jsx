@@ -877,9 +877,9 @@ const AIEvidenceUploadPage = () => {
           }}
           isLoading={isProcessing}
           loadingText="Generating description..."
-          isDisabled={selectedOutcomes.length === 0}
+          isDisabled={selectedOutcomes.length === 0 && manuallySelectedOutcomes.length === 0}
         >
-          Review Details ({selectedOutcomes.length} outcomes)
+          Review Details ({selectedOutcomes.length + manuallySelectedOutcomes.length} outcomes)
         </Button>
       </HStack>
     </VStack>
