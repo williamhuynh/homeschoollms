@@ -96,10 +96,13 @@ class StudentService:
         db = Database.get_db()
         students = []
         
-        # Base query to find students associated with the parent
+        # Base query to find students associated with the parent.
+        # parent_access.parent_id may be stored as ObjectId or str (Pydantic .dict()
+        # serialises PyObjectId to str), so query both forms.
         query = {"$or": [
-            {"parent_ids": ObjectId(user_id)},  # For backward compatibility
-            {"parent_access.parent_id": ObjectId(user_id)}  # New structure
+            {"parent_ids": ObjectId(user_id)},             # backward compat
+            {"parent_access.parent_id": ObjectId(user_id)},  # ObjectId stored
+            {"parent_access.parent_id": str(user_id)},        # str stored
         ]}
         
         async for student in db.students.find(query):
