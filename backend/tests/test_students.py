@@ -170,3 +170,44 @@ class TestParentAccess:
         )
         # Should fail because the user doesn't exist
         assert resp.status_code in (404, 400, 500)
+
+
+class TestListStudentsStringParentId:
+    """Regression: get_students_for_parent must match parent_id stored as string.
+
+    Pydantic .dict() serializes PyObjectId to str, so create_student may store
+    parent_access[].parent_id as a plain string rather than an ObjectId.
+    The MongoDB query must handle both forms.
+    """
+
+    async def test_list_returns_student_when_parent_id_stored_as_string(
+        self, client, seeded_db, test_user_id
+    ):
+        """GET /api/students should include a student whose parent_id is stored as str."""
+        # Insert a student with parent_id stored as a plain string (Pydantic serialisation bug)
+        str_student_id = ObjectId()
+        seeded_db._db["students"].insert_one({
+            "_id": str_student_id,
+            "first_name": "StringId",
+            "last_name": "Student",
+            "slug": "string-id-student",
+            "date_of_birth": "2015-01-01",
+            "gender": "female",
+            "grade_level": "Year 3",
+            "parent_access": [
+                {"parent_id": str(test_user_id), "access_level": "admin"}
+            ],
+            "parent_ids": [],
+            "organization_id": None,
+            "family_id": None,
+            "subjects": {},
+            "active_subjects": [],
+            "created_at": "2026-01-01T00:00:00Z",
+        })
+
+        resp = await client.get("/api/students")
+        assert resp.status_code == 200
+        names = [s["first_name"] for s in resp.json()]
+        assert "StringId" in names, (
+            "Student with string-stored parent_id should appear in /api/students list"
+        )

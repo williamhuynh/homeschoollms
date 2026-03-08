@@ -148,3 +148,33 @@ class TestEvidenceAccessControl:
             f"/api/learning-outcomes/{str(test_student_id)}/MA2-RN-01/evidence"
         )
         assert resp.status_code == 401
+
+
+class TestVerifyStudentAccess:
+
+    async def test_access_granted_when_parent_id_stored_as_string(
+        self, client, seeded_db, test_student_id, test_user_id
+    ):
+        """
+        Regression test: verify_student_access must grant access (200, not 403)
+        when parent_id in parent_access is stored as a string.
+
+        Production create_student calls parent_access.dict() which serializes
+        PyObjectId to str. Before the fix, str != ObjectId comparison always
+        returned False, causing 403 for all students created via normal signup.
+        """
+        # Overwrite the seeded student's parent_access with string parent_id
+        # (simulating what create_student produces via .dict() serialization)
+        seeded_db._db["students"].update_one(
+            {"_id": test_student_id},
+            {"$set": {"parent_access": [{"parent_id": str(test_user_id), "access_level": "admin"}]}}
+        )
+
+        resp = await client.get(
+            f"/api/evidence/batch/student/{str(test_student_id)}",
+            params={"outcomes": "MA2-RN-01"},
+        )
+        assert resp.status_code == 200, (
+            f"Expected 200 but got {resp.status_code}: parent_id stored as string "
+            "must still grant access via verify_student_access"
+        )
